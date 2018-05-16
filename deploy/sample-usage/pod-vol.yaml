@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: s3fs-test-pod
+spec:
+  containers:
+  - name: s3fs-test-container
+    image: anaudiyal/infinite-loop
+    volumeMounts:
+    - mountPath: "/mnt/s3fs"
+      name: s3fs-test-volume
+  volumes:
+  - name: s3fs-test-volume
+    flexVolume:
+      driver: "ibm/ibmc-s3fs"
+      secretRef:
+        name: test-secret
+      options:
+        bucket: "mybucket"
+        endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
+        region: "us-standard"
+        chunk-size-mb: "200"
+        parallel-count: "24"
+        multireq-max: "30"
+        stat-cache-size: "100000"
+        s3fs-fuse-retry-count: "5"
+        debug-level: "warn"
+        curl-debug: "false"
+        tls-cipher-suite: "AES"
+        kernel-cache: "true"

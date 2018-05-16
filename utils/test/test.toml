@@ -1,0 +1,6 @@
+[header]
+id = 1
+name = "test"
+yesOrNo = true
+pi = 3.14
+list = "1, 2"

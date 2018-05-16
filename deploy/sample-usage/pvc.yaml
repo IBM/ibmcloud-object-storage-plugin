@@ -1,0 +1,18 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: s3fs-test-pvc
+  annotations:
+    volume.beta.kubernetes.io/storage-class: "ibmc-s3fs-standard"
+    ibm.io/auto-create-bucket: "true"
+    ibm.io/auto-delete-bucket: "false"
+    ibm.io/bucket: "mybucket"
+    ibm.io/endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
+    ibm.io/region: "us-standard"
+    ibm.io/secret-name: "test-secret"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi # fictitious value

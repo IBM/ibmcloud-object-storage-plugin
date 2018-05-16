@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: s3fs-test-pod
+spec:
+  containers:
+  - name: s3fs-test-container
+    image: anaudiyal/infinite-loop
+    volumeMounts:
+    - mountPath: "/mnt/s3fs"
+      name: s3fs-test-volume
+  volumes:
+  - name: s3fs-test-volume
+    persistentVolumeClaim:
+      claimName: s3fs-test-pvc

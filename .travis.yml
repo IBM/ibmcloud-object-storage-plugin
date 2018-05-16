@@ -1,0 +1,33 @@
+language: go
+
+go:
+  - 1.9
+  - tip
+
+group: bluezone
+
+matrix:
+  fast_finish: true
+  allow_failures:
+  - go: tip
+
+cache:
+  bundler: true
+
+sudo: true
+
+before_install:
+  - sudo add-apt-repository ppa:masterminds/glide -y && sudo apt-get update -q
+  - sudo apt-get install glide -y
+  - sudo apt-get install bc
+
+before_script:
+  - make deps
+  - go get github.com/pierrre/gotestcover
+  - go get github.com/gin-gonic/gin
+
+script:
+  - make vet
+  - make fmt
+  - make test
+  - make coverage
