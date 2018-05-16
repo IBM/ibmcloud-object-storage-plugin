@@ -68,33 +68,33 @@ buildgo:
 .PHONY: buildprovisioner
 buildprovisioner:
 	#Build provisioner executable on target env
-	sudo docker build -t provisioner-builder --pull -f images/provisioner/Dockerfile.builder .
-	sudo docker run provisioner-builder /bin/true
-	sudo docker cp `sudo docker ps -q -n=1`:/root/ca-certs.tar.gz ./
-	sudo docker cp `sudo docker ps -q -n=1`:/root/provisioner.tar.gz ./
+	docker build -t provisioner-builder --pull -f images/provisioner/Dockerfile.builder .
+	docker run provisioner-builder /bin/true
+	docker cp `docker ps -q -n=1`:/root/ca-certs.tar.gz ./
+	docker cp `docker ps -q -n=1`:/root/provisioner.tar.gz ./
 
 	#Make the final docker build having iscsilib and provisioner
-	sudo docker build \
+	docker build \
         --build-arg git_commit_id=${GIT_COMMIT_SHA} \
         --build-arg git_remote_url=${GIT_REMOTE_URL} \
         --build-arg build_date=${BUILD_DATE} \
         -t $(IMAGE):$(VERSION) -f ./images/provisioner/Dockerfile .
 
 	#Cleanup
-	sudo rm -f provisioner.tar.gz
-	sudo rm -f ca-certs.tar.gz
+	rm -f provisioner.tar.gz
+	rm -f ca-certs.tar.gz
 
 .PHONY: builddriver
 builddriver:
 	#Build and copy executables
-	sudo docker build --build-arg git_commit_id=${GIT_COMMIT_SHA} --build-arg build_date=${BUILD_DATE} -t driver-builder --pull -f images/driver/Dockerfile.builder .
-	sudo docker run driver-builder /bin/true
-	sudo docker cp `sudo docker ps -q -n=1`:/go/bin/driver $(GOPATH)/bin/ibmc-s3fs
-	sudo chmod 755 $(GOPATH)/bin/ibmc-s3fs
+	docker build --build-arg git_commit_id=${GIT_COMMIT_SHA} --build-arg build_date=${BUILD_DATE} -t driver-builder --pull -f images/driver/Dockerfile.builder .
+	docker run driver-builder /bin/true
+	docker cp `docker ps -q -n=1`:/go/bin/driver $(GOPATH)/bin/ibmc-s3fs
+	chmod 755 $(GOPATH)/bin/ibmc-s3fs
 
 .PHONY: push
 push:
-	sudo docker push $(IMAGE):$(VERSION)
+	docker push $(IMAGE):$(VERSION)
 
 .PHONY: test-integration
 test-integration:
@@ -102,4 +102,4 @@ test-integration:
 
 .PHONY: clean
 clean:
-	sudo rm -f ibmcloud-object-storage-plugin
+	rm -f ibmcloud-object-storage-plugin
