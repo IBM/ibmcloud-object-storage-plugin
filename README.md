@@ -36,7 +36,7 @@ For building the **provisioner** image and the **driver** binary, `docker`, `GO`
    Run `docker images` command to view the provisioner container image by name `ibmcloud-object-storage-plugin`.
 
 ## Provisioner image
-Push the provisioner container image from the build system to your image respository, the one being used for your Kubernetes cluster. Refer to [docker push](https://docs.docker.com/engine/reference/commandline/push/)
+Push the provisioner container image from the build system to your image repository, the one being used for your Kubernetes cluster. Refer to [docker push](https://docs.docker.com/engine/reference/commandline/push/)
 
 ## Installation
 1. Copy driver binary `ibmc-s3fs` from your build system to each worker node, under `/tmp/`
@@ -48,7 +48,7 @@ Push the provisioner container image from the build system to your image resposi
    $ sudo systemctl restart kubelet
    ```
 3. Create the provisioner.<br>
-   Before executing following command update `image` details as per your reopsitory in `deploy/provisioner.yaml`. Currently, it is `image: ibmcloud-object-storage-plugin:latest`, which expects image to be in public docker hub
+   Before executing following command update `image` details as per your repository in `deploy/provisioner.yaml`. Currently, it is `image: ibmcloud-object-storage-plugin:latest`, which expects image to be in public docker hub
    ```
    $ kubectl create -f deploy/provisioner-sa.yaml
    $ kubectl create -f deploy/provisioner.yaml
