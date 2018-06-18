@@ -33,11 +33,11 @@ cat /root/.ssh/id_rsa.pub >> /host/root/.ssh/authorized_keys
 chmod 700 /host/root/.ssh/
 chmod 600 /host/root/.ssh/authorized_keys
 
+touch /host/etc/ssh/sshd_config
 sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /host/etc/ssh/sshd_config
 /root/bin/systemutil -service ssh.service
 
 ssh -o StrictHostKeyChecking=no root@localhost bash /root/install-dep.sh
-
 
 sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /host/etc/ssh/sshd_config
 /root/bin/systemutil -service ssh.service
