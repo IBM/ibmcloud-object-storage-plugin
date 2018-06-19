@@ -4,6 +4,7 @@ set -ex
 DRIVER_LOCATION="/host/usr/libexec/kubernetes/kubelet-plugins/volume/exec/ibm~ibmc-s3fs"
 KUBELET_SVC_CONFIG="/host/lib/systemd/system/kubelet.service"
 
+mkdir -p /host/local/bin
 cp /root/bin/s3fs /host/local/bin/
 cp /root/bin/install-dep.sh /host/root/
 chmod +x /host/local/bin/s3fs /host/root/install-dep.sh 
@@ -32,11 +33,11 @@ cat /root/.ssh/id_rsa.pub >> /host/root/.ssh/authorized_keys
 chmod 700 /host/root/.ssh/
 chmod 600 /host/root/.ssh/authorized_keys
 
+touch /host/etc/ssh/sshd_config
 sed -i 's/PermitRootLogin no/PermitRootLogin yes/g' /host/etc/ssh/sshd_config
 /root/bin/systemutil -service ssh.service
 
 ssh -o StrictHostKeyChecking=no root@localhost bash /root/install-dep.sh
-
 
 sed -i 's/PermitRootLogin yes/PermitRootLogin no/g' /host/etc/ssh/sshd_config
 /root/bin/systemutil -service ssh.service
