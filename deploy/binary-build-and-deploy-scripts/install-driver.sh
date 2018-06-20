@@ -4,8 +4,7 @@ set -ex
 DRIVER_LOCATION="/host/usr/libexec/kubernetes/kubelet-plugins/volume/exec/ibm~ibmc-s3fs"
 KUBELET_SVC_CONFIG="/host/lib/systemd/system/kubelet.service"
 
-mkdir -p /host/local/bin
-cp /root/bin/s3fs /host/local/bin/
+cp /root/bin/s3fs /host/usr/local/bin/
 cp /root/bin/install-dep.sh /host/root/
 chmod +x /host/local/bin/s3fs /host/root/install-dep.sh 
 
