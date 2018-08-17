@@ -17,8 +17,7 @@ cache:
 sudo: true
 
 before_install:
-  - sudo add-apt-repository ppa:masterminds/glide -y && sudo apt-get update -q
-  - sudo apt-get install glide -y
+  - sudo sudo curl https://glide.sh/get | sh
   - sudo apt-get install bc
 
 before_script:
