@@ -11,6 +11,7 @@
 import argparse
 import datetime
 import json
+import math
 import os
 import subprocess
 import sys
@@ -20,10 +21,9 @@ from Queue import Queue
 from threading import Thread
 
 node_list = [ ]
+nodes_available = ""
 nodeqone = Queue(maxsize=0)
 nodeqtwo = Queue(maxsize=0)
-NUMBER_OF_WORKERS = 3
-
 
 ### Create daemonset yaml file in local machine
 ##
@@ -260,6 +260,7 @@ def backupdiagnosticLogs(q, locktwo):
 
 def check_daemonset_state(ds_name):
     attempts = 0
+    global nodes_available
 
     cmd = "kubectl get nodes | grep -w \"Ready\" | wc -l"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -373,6 +374,7 @@ def main():
     #print "\nExecuting checks inside each worker node"
     global nodeqone
     global nodeqtwo
+    global node_list
 
     flag = 0
     # Collect driver logs based on --driver-log option
@@ -403,6 +405,9 @@ def main():
     # creating a lock
     lockone = threading.Lock()
     locktwo = threading.Lock()
+
+    # Set thread count equals to 1/3rd of worker nodes
+    NUMBER_OF_WORKERS = int(math.ceil(int(nodes_available)/float(3)))
 
     for i in range(NUMBER_OF_WORKERS):
         worker = Thread(target=backupDriverLog, args=(nodeqone,lockone, ))
