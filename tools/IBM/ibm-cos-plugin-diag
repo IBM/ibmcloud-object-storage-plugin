@@ -212,7 +212,7 @@ def getNodeList(q=None):
             q.put(x)
     return 0
 
-def get_driver_log_ips(q, podname, podns, driver_log_opts):
+def getNodeList4DL(q, podname="", podns="", driver_log_opts=""):
     global pod_node
     flag = 0
 
@@ -490,14 +490,14 @@ def inspectPOD(ns="", pod=""):
             if line.strip().startswith("Warning") or line.strip().startswith("Error"):
                print ">  > " + REDC + line.strip() + ENDC
 
-        cmd = "grep " + pod_uid + " ./" + pod_node +"-ibmc-s3fs.log | grep error"
+        cmd = "grep " + pod_uid + " ./" + pod_node +"-ibmc-s3fs.log | grep -i Error"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
             if out_list[-1].strip():
                 err_msg = out_list[-1].strip().split('\"msg\":', 1)
-                print ">  > " + REDC + err_msg[1].strip("\\n\"}") + ENDC
-            print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
+                print ">  > " + REDC + err_msg[1].strip()[:-1] + ENDC
+                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
     return ret
 
 def main():
@@ -596,7 +596,7 @@ def main():
         worker.setDaemon(True)
         worker.start()
 
-    get_driver_log_ips(nodeQdl, args.pod, args.ns, args.driver_log)
+    getNodeList4DL(q=nodeQdl, podname=args.pod, podns=args.ns, driver_log_opts=args.driver_log)
     nodeQdl.join()
 
     # Inspect POD
