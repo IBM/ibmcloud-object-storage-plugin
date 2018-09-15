@@ -23,6 +23,7 @@ node_list = []
 nodeQdl = Queue(maxsize=0)
 nodeQdigl = Queue(maxsize=0)
 NUMBER_OF_WORKERS = 3
+pod_node=None
 
 BOLD = '\033[1m'
 REDC = '\033[31m'
@@ -137,7 +138,7 @@ def executeBasicChecks():
 
 
     inspectSC(sc="ibmc-s3fs-standard-cross-region")
-     
+
     print "\n****ServiceAccounts****"
     cmd = "kubectl get sa -n kube-system | grep ibmcloud-object-storage-driver | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -152,7 +153,7 @@ def executeBasicChecks():
         print "\n> IBM COS Plug-in not installed... " + NOT_OK
         print "> " + BOLD +  "Refer to" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_storage_cos.html#object_storage" + ENDC
         return ret
-       
+
     cmd = "kubectl get sa -n kube-system | grep ibmcloud-object-storage-plugin | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
@@ -210,6 +211,42 @@ def getNodeList(q=None):
         for x in node_list:
             q.put(x)
     return 0
+
+def getNodeList4DL(q, podname="", podns="", driver_log_opts=""):
+    global pod_node
+    flag = 0
+
+    if podname:
+        # Get host node detail for the POD
+        cmd =  "kubectl get pods -o jsonpath='{.status.hostIP}' -n " + podns + " " + podname
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if not cmd_err.strip():
+            pod_node = cmd_out.strip()
+
+    if driver_log_opts:
+        for x in driver_log_opts:
+            if "all" in x:
+                getNodeList(q)
+                return
+            else:
+                if "," in x:
+                    input_workers = x.split(',')
+                    for ip in input_workers:
+                      if ip.strip() in node_list:
+                          q.put(ip.strip())
+                else:
+                    q.put(x.strip())
+
+    if pod_node:
+        if driver_log_opts:
+            for x in driver_log_opts:
+                if pod_node in x:
+                    flag = 1
+            if flag == 0:
+                q.put(pod_node)
+        else:
+            q.put(pod_node)
+
 
 def backupDriverLog(q=None):
      while True:
@@ -292,7 +329,7 @@ def inspectSC(sc="", prefix=""):
         if cmd_err.strip():
             print prefix + "> Error: " + cmd_err.strip()
         return ret
-  
+
     class_data = json.loads(cmd_out.strip())
 
     ret = 0
@@ -339,7 +376,7 @@ def inspectSC(sc="", prefix=""):
     else:
         print prefix + "> provisioner is not set to \"ibm.io/ibmc-s3fs\"... " + NOT_OK
         ret = 1
-         
+
     return ret
 
 
@@ -362,16 +399,16 @@ def inspectPVC(ns="", pvc=""):
         if line.startswith("Annotations"):
             print "> Annotations: "
             continue
-	if line.startswith("Events:"):
+        if line.startswith("Events:"):
             break
-	if line.find('storage-provisioner'):
-           if not line.find("ibm.io/ibmc-s3fs"):
-              invalFlag = True 
+        if line.find('storage-provisioner'):
+            if not line.find("ibm.io/ibmc-s3fs"):
+              invalFlag = True
         print "> " + line.strip()
 
     if invalFlag:
         print "> \"storage-provisioner\" not set to \"ibm.io/ibmc-s3fs\"... " + NOT_OK
- 
+
     cmd =  "kubectl get pvc -n " + ns + " -o json " + pvc
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
@@ -409,7 +446,57 @@ def inspectPVC(ns="", pvc=""):
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
             if out_list[-1].strip():
-	        print ">  > " + REDC +  out_list[-1].strip() + ENDC
+                print ">  > " + REDC +  out_list[-1].strip() + ENDC
+                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
+    return ret
+
+def inspectPOD(ns="", pod=""):
+    ret = 1
+    print "\n****Inspecting POD \"" + pod + "\"****"
+    cmd =  "kubectl describe pod -n " + ns + " " + pod
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if rc != 0:
+        print "> Unable to inspect pod... " + NOT_OK
+        if cmd_err.strip():
+            print "> Error: " + cmd_err.strip()
+        return ret
+
+    print "> " + cmd
+    out_list = cmd_out.strip().splitlines()
+    for line in out_list:
+        line = line.strip()
+        if line.startswith("Events:"):
+            break
+        print "> " + line
+
+    cmd =  "kubectl get pod -n " + ns + " -o json " + pod
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if cmd_err.strip():
+       print "> Error: " + cmd_err.strip()
+       return ret
+
+    pod_data = json.loads(cmd_out.strip())
+    if "Running" == pod_data['status']['phase']:
+        print "> pod " + pod + " in \"Running\" state... ok"
+        ret = 0
+    else:
+        ret = 1
+        print "> pod " + pod + " in \"{0}\" state... ".format(pod_data['status']['phase']) + NOT_OK
+
+        pod_uid = pod_data['metadata']['uid']
+
+        print "\n>  ****Checking for Error/Warning****"
+        for line in out_list:
+            if line.strip().startswith("Warning") or line.strip().startswith("Error"):
+               print ">  > " + REDC + line.strip() + ENDC
+
+        cmd = "grep " + pod_uid + " ./" + pod_node +"-ibmc-s3fs.log | grep -i Error"
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if cmd_out.strip():
+            out_list = cmd_out.strip().splitlines()
+            if out_list[-1].strip():
+                err_msg = out_list[-1].strip().split('\"msg\":', 1)
+                print ">  > " + REDC + err_msg[1].strip()[:-1] + ENDC
                 print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
     return ret
 
@@ -500,14 +587,6 @@ def main():
     if args.pvc:
         inspectPVC(ns=args.ns, pvc=args.pvc)
 
-    pod_node=None
-    if args.pod:
-        # Get host node detail for the POD
-        cmd =  "kubectl get pods -o jsonpath='{.status.hostIP}' -n " + args.ns + " " + args.pod
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if (not cmd_err.strip()) and (cmd_out.strip() not in node_list):
-            pod_node = cmd_out.strip()
-
     print "\n*****Collecting driver logs*****"
     # Collect driver logs --driver-log option
     global nodeQdl
@@ -516,34 +595,13 @@ def main():
         worker = threading.Thread(name="th-"+str(i), target=backupDriverLog, args=(nodeQdl, ))
         worker.setDaemon(True)
         worker.start()
- 
-    if args.driver_log:
-        for x in args.driver_log:
-            if "all" in x:
-                flag = 1
-                getNodeList(nodeQdl)
-                break
-            else:
-                if pod_node and  not pod_node in x:
-                    nodeQdl.put(pod_node)
-                if "," in x:
-                    input_workers = x.split(',')
-                    for ip in input_workers:
-                      if ip in node_list:
-                          nodeQdl.put(x)
 
+    getNodeList4DL(q=nodeQdl, podname=args.pod, podns=args.ns, driver_log_opts=args.driver_log)
     nodeQdl.join()
 
-    # InspectPOD 
+    # Inspect POD
     if args.pod:
-        print "\n****Checking POD status****"
-        cmd =  "kubectl describe pod -n " + args.ns + " " + args.pod
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            print "> " + cmd
-            out_list = cmd_out.strip().splitlines()
-	    for line in out_list:
-		print "> " + line
+        inspectPOD(ns=args.ns, pod=args.pod)
 
     cmd = "uname"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
