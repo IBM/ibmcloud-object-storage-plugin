@@ -1,0 +1,129 @@
+#! /usr/bin/python
+# vim: tabstop=4 shiftwidth=4 softtabstop=4
+# ******************************************************************************
+# * Licensed Materials - Property of IBM
+# * IBM Cloud Container Service, 5737-D43
+# * (C) Copyright IBM Corp. 2018 All Rights Reserved.
+# * US Government Users Restricted Rights - Use, duplication or
+# * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+# ******************************************************************************
+import os
+import threading
+import time
+from Queue import Queue
+import datetime
+import subprocess
+import math
+import sys
+
+class cmdHandler:
+            # Internal method to execute a command
+            # RC 0 - Cmd execution with zero return code
+            # RC 1 - Cmd executed with non zero return code
+            # RC 2 - Runtime error / exception
+            def cmd_run(self, cmd):
+                cmd_output = ''
+                cmd_err = ''
+                rc = 0
+
+                #print ("CommmandExec \"{0}\"".format(cmd))
+                try:
+                    process = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                       stderr=subprocess.PIPE, shell=True)
+                    process.wait()
+                    (cmd_output, cmd_err) = process.communicate()
+                except Exception as err:
+                    print ("Command \"{0}\" execution failed. ERROR: {1}".format(cmd, str(err)))
+		    cmd_err = "Command Execution Failed:" + str(err)
+                    rc = 2
+                else:
+                    if process.returncode == 0:
+                        rc = 0
+                    else:
+                        rc = 1
+                    #if cmd_err:
+                    #   print ("{0}\nERROR: {1}".format(cmd, cmd_err.strip()))
+                return (rc, cmd_output, cmd_err)
+
+
+cmdHandle = cmdHandler()
+hostname=''
+
+try:
+    f = open("/var/log/ibm-cos-plugin-diag.log", "w")
+except Exception:
+    print("Could not open log file" + f)
+    sys.exit(1)
+
+binaryPath="/binary/kubelet-plugins/volume/exec/ibm~ibmc-s3fs/ibmc-s3fs"
+if os.getenv("HOST_IP") is not None: 
+    hostname=os.environ['HOST_IP']
+else:
+    print "Env Var HOST_IP not defined"
+
+mountList = []
+mountQ = Queue(maxsize=0)
+NUMBER_OF_WORKERS = 5
+
+
+def checkMountPointStatus(q):
+    while True:
+            name = threading.currentThread().getName()
+            x = q.get()
+            print "> {0} Checking status of mount point {1}".format(name, x)
+            #cmd = "timeout -t 30 -s 9 ls -al {0} 2>&1 > /dev/null".format(x)
+            cmd = "timeout -t 30 -s 9 ls -al {0} > /dev/null".format(x)
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if rc != 0:
+                print "{0} Error: MountPointAccessError: {1}".format(hostname, cmd_err)
+                f.write('%s: %s: Error: MountPointAccessError:%s\n' %
+                   (hostname, x, cmd_err))
+            else:
+                print "{0} Info: Able to access: {1}".format(hostname, x)
+                f.write('%s: Info: Able to access:%s\n' %
+                   (hostname, x))
+            q.task_done()
+
+def  main():
+
+    print "****Checking driver binary under Kube plugin path****"
+    f.write("****Checking driver binary under Kube plugin path****\n")
+    if os.path.isfile(binaryPath):
+         f.write('%s: %s: Info: Found:%s\n' %
+               (datetime.datetime.now(), hostname, binaryPath))
+    else:
+        f.write('%s: %s: Error: DriverBinaryNotFound: Binary %s not found\n' %
+               (datetime.datetime.now(), hostname, binaryPath))
+
+
+    print  "****Checking status of mount-points****"
+    f.write("****Checking status of mount-points****\n")
+
+    cmd = "mount | grep \"type fuse.s3fs\" | awk '{for(i=1;i<=NF;i++) if ($i==\"on\") print $(i+1)}'"
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if not cmd_err.strip():
+        mountList = cmd_out.strip().split()
+        print mountList
+
+    if not mountList:
+        f.write('%s: %s: Info: No S3FS mount-point found on the host\n' %
+               (datetime.datetime.now(), hostname))
+    else:
+        print datetime.datetime.now()
+        threadCount = int(math.ceil(int(len(mountList))/float(3)))
+        if threadCount > 5:
+            NUMBER_OF_WORKERS = 5
+        else:
+            NUMBER_OF_WORKERS = threadCount
+        for i in range(NUMBER_OF_WORKERS):
+            worker = threading.Thread(name="th-"+str(i), target=checkMountPointStatus, args=(mountQ, ))
+            worker.setDaemon(True)
+            worker.start()
+        for x in mountList:
+            mountQ.put(x)
+        mountQ.join()
+   
+    f.close()
+
+if __name__ == "__main__":
+    main()

@@ -47,7 +47,8 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: ambikanair/ibm-cos-diag-tool:v001
+      - image: ambikanair/ibm-cos-diag-tool:v002
+        imagePullPolicy: Always
         securityContext:
           privileged: true
         name: ibm-cos-plugin-diag
@@ -57,23 +58,23 @@ spec:
            fieldRef:
              fieldPath: status.hostIP
         volumeMounts:
-        - mountPath: /host
-          name: root-fs
-        - mountPath: /run/systemd
-          name: host-systemd
         - mountPath: "/var/log/"
           name: s3fs-log
+        - mountPath: /kubelet
+          name: host-kubelet
+          mountPropagation: HostToContainer
+        - mountPath: /binary
+          name: host-binary
       volumes:
-      - name: root-fs
-        hostPath:
-          # directory location on host
-          path: /
-      - name: host-systemd
-        hostPath:
-          path: /run/systemd
       - name: s3fs-log
         hostPath:
           path: /var/log/
+      - name: host-kubelet
+        hostPath:
+          path: /var/lib/kubelet/
+      - name: host-binary
+        hostPath:
+          path: /usr/libexec/kubernetes/
 '''
 #
 ##
@@ -266,23 +267,26 @@ def backupdiagnosticLogs(q):
      while True:
          name = threading.currentThread().getName()
          x = q.get()
-         print "> {0}: Copying diagnostic log from node {1}".format(name, x)
          cmd = "kubectl get pods -o wide | grep ibm-cos-plugin-diag | grep  \"{0}\" |awk '{{print $1}}'".format(x)
          (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
          if not cmd_err.strip():
              podname =  cmd_out.strip()
-             cmd = "kubectl cp {0}:/var/log/ibm-cos-plugin-diag.log {1}-ibm-cos-plugin-diag.log".format(podname, x)
+             #print "> {0}: Check if diagnostic log is ready for node {1}".format(name, x)
+             cmd = "kubectl exec  {0}  -- ps | grep check-mount-health".format(podname)
              (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-             #if not cmd_err.strip():
-             #    cmd ="cat {0}-ibm-cos-plugin-diag.log | grep -e Error".format(x)
-             #    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-             #    if (not cmd_err.strip()) and cmd_out.strip():
-             #        print cmd_out.strip()
+
+             if rc == 0:
+                 #print "> {0}: diagnostic log is not ready for node {1}".format(name, x)
+                 q.put(x)
+             else:
+                 print "> {0}: Copying diagnostic log from node {1}".format(name, x)
+                 cmd = "kubectl cp {0}:/var/log/ibm-cos-plugin-diag.log {1}-ibm-cos-plugin-diag.log".format(podname, x)
+                 (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
          q.task_done()
 
 def check_daemonset_state(ds_name):
     attempts = 0
-
+    flag = 0
     cmd = "kubectl get nodes | grep -w \"Ready\" | wc -l"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     nodes_available = cmd_out.strip()
@@ -303,10 +307,14 @@ def check_daemonset_state(ds_name):
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
                 print cmd_out.strip()
-            sys.exit(1)
-
+            flag = 1
+            break
         print "> DS: {0}, Desired: {1}, Available: {2} Sleeping 10 seconds".format(ds_name, nodes_available, ds_status_ready)
         time.sleep(10)
+    if flag == 1:
+        print "Deployment of daemonset failed. Cleaning up daemonset now\n"
+        returnVal = cleanup_daemonset("ibm-cos-plugin-diag")
+        sys.exit(returnVal)
 
 def cleanup_daemonset(ds_name):
     print "\n****Deleting daemonset {0}****".format(ds_name)
@@ -315,9 +323,10 @@ def cleanup_daemonset(ds_name):
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         print cmd_out.strip()
+        return 0
     else:
-        sys.exit(1)
-
+        print "\n****Could not delete daemonset {0}****".format(ds_name)
+        return 1
 
 def inspectSC(sc="", prefix=""):
     ret = 1
@@ -553,14 +562,21 @@ def main():
     nodeQdigl.join()
 
     print "\n*****Analyzing ibm-cos-plugin-diag logs*****"
-    cmd = "grep DriverBinaryNotFound ./*ibm-cos-plugin-diag.log"
+    cmd = "grep -h DriverBinaryNotFound ./*ibm-cos-plugin-diag.log"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_out.strip():
         print "> IBM COS Plug-in driver not installed... " + NOT_OK
         out_list = cmd_out.strip().splitlines()
         for line in out_list:
-            print "> " + line[21:]
-
+            print line
+    
+    cmd = "grep -h MountPointAccessError ./*ibm-cos-plugin-diag.log"
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if cmd_out.strip():
+        print "> Some of the Mount Points are not healthy... " + NOT_OK
+        out_list = cmd_out.strip().splitlines()
+        for line in out_list:
+            print line
     # Collect provisioner log
     if args.pvc or args.provisioner_log:
         print "\n****Collecting provisioner log****"
