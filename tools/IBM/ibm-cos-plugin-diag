@@ -19,12 +19,13 @@ import time
 from Queue import Queue
 # from threading import Thread
 
-node_list = []
+nodes = []
 nodeQdl = Queue(maxsize=0)
 nodeQdigl = Queue(maxsize=0)
 NUMBER_OF_WORKERS = 3
 pod_node=None
-
+g_nlist=""
+g_labelFlag = 0
 BOLD = '\033[1m'
 REDC = '\033[31m'
 BLUEC = '\033[34m'
@@ -75,6 +76,8 @@ spec:
       - name: host-binary
         hostPath:
           path: /usr/libexec/kubernetes/
+      nodeSelector:
+        tool: ibm-cos-diag
 '''
 #
 ##
@@ -198,55 +201,18 @@ def executeBasicChecks():
             print "> ibmcloud-object-storage-secret-reader is not defined... " + NOT_OK
     return ret
 
-def getNodeList(q=None):
-    global node_list
-    cmd = "kubectl get nodes | grep -w \"Ready\" | awk '{print $1}'"
-    if not node_list:
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            node_list = cmd_out.strip().split()
-        else:
-            return 1
-
-    if q and node_list:
-        for x in node_list:
+def scheduleForLog(q=None):
+    if q and nodes:
+        for x in nodes:
             q.put(x)
-    return 0
 
-def getNodeList4DL(q, podname="", podns="", driver_log_opts=""):
-    global pod_node
-    flag = 0
+def getNodeList4DL(q, driver_log_opts=""):
+    if pod_node and  not driver_log_opts:
+        q.put(pod_node)
 
-    if podname:
-        # Get host node detail for the POD
-        cmd =  "kubectl get pods -o jsonpath='{.status.hostIP}' -n " + podns + " " + podname
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            pod_node = cmd_out.strip()
-
-    if driver_log_opts:
-        for x in driver_log_opts:
-            if "all" in x:
-                getNodeList(q)
-                return
-            else:
-                if "," in x:
-                    input_workers = x.split(',')
-                    for ip in input_workers:
-                      if ip.strip() in node_list:
-                          q.put(ip.strip())
-                else:
-                    q.put(x.strip())
-
-    if pod_node:
-        if driver_log_opts:
-            for x in driver_log_opts:
-                if pod_node in x:
-                    flag = 1
-            if flag == 0:
-                q.put(pod_node)
-        else:
-            q.put(pod_node)
+    if driver_log_opts and nodes:
+        for x in nodes:
+            q.put(x)
 
 
 def backupDriverLog(q=None):
@@ -258,7 +224,7 @@ def backupDriverLog(q=None):
          (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
          if not cmd_err.strip():
              podname =  cmd_out.strip()
-             cmd = "kubectl cp {0}:var/log/ibmc-s3fs.log {1}-ibmc-s3fs.log".format(podname, x)
+             cmd = "kubectl cp {0}:var/log/ibmc-s3fs.log ibm-cos-diagnostic-logs/{1}-ibmc-s3fs.log".format(podname, x)
              (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
 
          q.task_done()
@@ -280,16 +246,13 @@ def backupdiagnosticLogs(q):
                  q.put(x)
              else:
                  print "> {0}: Copying diagnostic log from node {1}".format(name, x)
-                 cmd = "kubectl cp {0}:/var/log/ibm-cos-plugin-diag.log {1}-ibm-cos-plugin-diag.log".format(podname, x)
+                 cmd = "kubectl cp {0}:/var/log/ibm-cos-plugin-diag.log ibm-cos-diagnostic-logs/{1}-ibm-cos-plugin-diag.log".format(podname, x)
                  (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
          q.task_done()
 
-def check_daemonset_state(ds_name):
+def check_daemonset_state(ds_name, nodes_available):
     attempts = 0
     flag = 0
-    cmd = "kubectl get nodes | grep -w \"Ready\" | wc -l"
-    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-    nodes_available = cmd_out.strip()
 
     while True:
         attempts = attempts + 1
@@ -297,22 +260,23 @@ def check_daemonset_state(ds_name):
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         ds_status_ready = cmd_out.strip()
 
-        if ds_status_ready == nodes_available:
-           print "> " + ds_name + " is running and available ds instances: " +  ds_status_ready
+        if ds_status_ready == str(nodes_available):
+           print "> " + ds_status_ready + " instances of " + ds_name + " is running"
            break
 
         if attempts > 30 :
-            print "> " + ds_name + " Instances Desired: " + nodes_available + ", Instances Available: " + ds_status_ready
+            print "> " + ds_name + " Instances Desired: " + str(nodes_available) + ", Instances Available: " + ds_status_ready
             cmd = "kubectl get ds {0}".format(ds_name)
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
                 print cmd_out.strip()
             flag = 1
             break
-        print "> DS: {0}, Desired: {1}, Available: {2} Sleeping 10 seconds".format(ds_name, nodes_available, ds_status_ready)
+        print "> DS: {0}, Desired: {1}, Available: {2} Sleeping 10 seconds".format(ds_name, str(nodes_available), ds_status_ready)
         time.sleep(10)
     if flag == 1:
         print "Deployment of daemonset failed. Cleaning up daemonset now\n"
+        cleanupLogs()
         returnVal = cleanup_daemonset("ibm-cos-plugin-diag")
         sys.exit(returnVal)
 
@@ -450,7 +414,7 @@ def inspectPVC(ns="", pvc=""):
                print ">  > " + REDC + line.strip() + ENDC
 
         #cmd = "grep pvc-devtest-02 ./ibm-cos-provisioner.log | grep Error"
-        cmd = "grep " + pvc + " ./ibm-cos-provisioner.log | grep Error"
+        cmd = "grep " + pvc + " ibm-cos-diagnostic-logs/ibm-cos-provisioner.log | grep Error"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
@@ -499,7 +463,7 @@ def inspectPOD(ns="", pod=""):
             if line.strip().startswith("Warning") or line.strip().startswith("Error"):
                print ">  > " + REDC + line.strip() + ENDC
 
-        cmd = "grep " + pod_uid + " ./" + pod_node +"-ibmc-s3fs.log | grep -i Error"
+        cmd = "grep " + pod_uid + " ibm-cos-diagnostic-logs/" + pod_node +"-ibmc-s3fs.log | grep -i Error"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
@@ -509,6 +473,78 @@ def inspectPOD(ns="", pod=""):
                 print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
     return ret
 
+def getPodNode(podname="", podns=""):
+    global pod_node
+    if podname:
+        # Get host node detail for the POD
+        cmd =  "kubectl get pods -o jsonpath='{.status.hostIP}' -n " + podns + " " + podname
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if not cmd_err.strip():
+            pod_node = cmd_out.strip()
+    return pod_node
+
+def removeDuplicate(duplicate):
+    final_list = []
+    for node in duplicate:
+        if node not in final_list:
+            final_list.append(node)
+    return final_list
+def getFinalListofNodes(podnode="", nodeList=""):
+    workers=[]
+    global nodes
+    if nodeList:
+        if "all" in nodeList:
+            cmd = "kubectl get nodes | grep -w \"Ready\" | awk '{print $1}'"
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if not cmd_err.strip():
+                workers = cmd_out.strip().split()
+        else:
+            for x in nodeList:
+                if "," in x:
+                    workers = x.split(',')
+                else:
+                    workers.append(x)
+    if podnode:
+        workers.append(podnode)
+    nodes=removeDuplicate(workers)
+    return len(nodes)
+
+def labelNodesForDSDeployment(nodeList=""):
+    global g_nlist
+    global g_labelFlag
+    if nodeList and "all" in nodeList:
+       f = open("diagnostic_daemon.yaml","r")
+       lines = f.readlines()
+       f.close()
+
+       with open('diagnostic_daemon.yaml', 'w') as yamlfile:
+           for line in lines:
+               if "nodeSelector" not in line and "tool: ibm-cos-diag" not in line:
+                    yamlfile.write(line)
+    else:
+        if nodeList:
+            g_labelFlag = 1
+            for ip in nodeList:
+                g_nlist = g_nlist + ip + " "
+            cmd = "kubectl label nodes {0} tool=ibm-cos-diag".format(g_nlist)
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            return rc
+    return
+
+def makeLogFolder():
+    currentDir = os.getcwd()
+    logFolderPath = currentDir + "/ibm-cos-diagnostic-logs"
+    if not os.path.exists(logFolderPath):
+        try:
+            os.mkdir(logFolderPath)
+        except OSError:
+            print ("Creation of log directory %s failed" % logFolderPath)
+    return logFolderPath
+
+def cleanupLogs():
+    cmd = "rm -rf diagnostic_daemon.yaml ibm-cos-diagnostic-logs"
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+
 def main():
     parser = argparse.ArgumentParser(description='Tool to diagnose object-storage-plugin related issues.')
     parser.add_argument("--namespace", "-n", default="default", dest="ns", metavar="string",
@@ -517,18 +553,24 @@ def main():
     parser.add_argument("--pod-name", dest="pod", metavar="string", help="Name of the pod")
     parser.add_argument("--provisioner-log", dest="provisioner_log", action="store_true",
                         help="Collect provisioner log")
-    parser.add_argument("--driver-log", dest="driver_log", metavar="all|<NODE1>,<NODE2>,...",
+    parser.add_argument("--node", dest="node_list", metavar="all|<NODE1>,<NODE2>,...",
                         action='append',
-                        help="Name of worker nodes from which driver log needs to be collected seperated by comma(,)")
-
+                        help="Name of worker nodes on which daemonset pods have to be deployed separated by comma(,)")
+    parser.add_argument("--driver-log", dest="driver_log",action="store_true",
+                        help="Collect driver logs from worker nodes provided in --node option")
     args = parser.parse_args()
+
+    if not args.node_list and args.driver_log:
+        print "> " + BOLD + REDC + "Warning: --node option should be used when using --driver-log" + ENDC
+
     if "KUBECONFIG" not in os.environ:
         print "ERROR: Env. var. KUBECONFIG not set. Export KUBECONFIG before running this tool.\nExiting!!!"
         sys.exit(1)
 
     print "****Checking access to cluster****"
-    rc = getNodeList()
-    if rc == 1:
+    cmd = "kubectl get nodes | grep -w \"Ready\" | awk '{print $1}'"
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if cmd_err.strip():
         print "ERROR: Unable to access cluster. Check KUBECONFIG env variable."
         sys.exit(1)
     else:
@@ -538,45 +580,54 @@ def main():
     if rc > 2:
         sys.exit(1)
 
-    # Create diag pod
-    cmd = "kubectl apply -f diagnostic_daemon.yaml"
-    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-    if cmd_err.strip():
-        print "ERROR: Unbale to create diag POD. Exiting!!!"
-        print "> " + REDC + cmd_err.strip() + ENDC
-        sys.exit(1)
+    logFolder = makeLogFolder()
+    podNode = getPodNode(podname=args.pod, podns=args.ns)
+    nodeCount = getFinalListofNodes(podnode=podNode, nodeList=args.node_list)
+    returnStatus =  labelNodesForDSDeployment(nodes)
 
-    # wait for the daemonset pod to reach running state
-    check_daemonset_state("ibm-cos-plugin-diag")
+    if nodeCount != 0:
+        # Create diag pod
+        cmd = "kubectl apply -f diagnostic_daemon.yaml"
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if cmd_err.strip():
+            print "ERROR: Unable to create diag POD. Exiting!!!"
+            print "> " + REDC + cmd_err.strip() + ENDC
+            cleanupLogs()
+            sys.exit(1)
 
-    print "\n*****Collecting ibm-cos-plugin-diag logs*****"
-    # Collect diag pod logs
-    global nodeQdigl
+        # wait for the daemonset pod to reach running state
+        check_daemonset_state("ibm-cos-plugin-diag", nodeCount)
 
-    for i in range(NUMBER_OF_WORKERS):
-        workertwo = threading.Thread(name="th-"+str(i), target=backupdiagnosticLogs, args=(nodeQdigl, ))
-        workertwo.setDaemon(True)
-        workertwo.start()
+    if args.pod or args.node_list:
+        print "\n*****Collecting ibm-cos-plugin-diag logs*****"
+        # Collect diag pod logs
+        global nodeQdigl
 
-    getNodeList(nodeQdigl)
-    nodeQdigl.join()
+        for i in range(NUMBER_OF_WORKERS):
+            workertwo = threading.Thread(name="th-"+str(i), target=backupdiagnosticLogs, args=(nodeQdigl, ))
+            workertwo.setDaemon(True)
+            workertwo.start()
 
-    print "\n*****Analyzing ibm-cos-plugin-diag logs*****"
-    cmd = "grep -h DriverBinaryNotFound ./*ibm-cos-plugin-diag.log"
-    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-    if cmd_out.strip():
-        print "> IBM COS Plug-in driver not installed... " + NOT_OK
-        out_list = cmd_out.strip().splitlines()
-        for line in out_list:
-            print line
+        scheduleForLog(nodeQdigl)
+        nodeQdigl.join()
+
+    if args.pod or args.node_list:
+        print "\n*****Analyzing ibm-cos-plugin-diag logs*****"
+        cmd = "grep -h DriverBinaryNotFound ibm-cos-diagnostic-logs/*ibm-cos-plugin-diag.log"
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if cmd_out.strip():
+            print "> IBM COS Plug-in driver not installed... " + NOT_OK
+            out_list = cmd_out.strip().splitlines()
+            for line in out_list:
+                print line
     
-    cmd = "grep -h MountPointAccessError ./*ibm-cos-plugin-diag.log"
-    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-    if cmd_out.strip():
-        print "> Some of the Mount Points are not healthy... " + NOT_OK
-        out_list = cmd_out.strip().splitlines()
-        for line in out_list:
-            print line
+        cmd = "grep -h MountPointAccessError ibm-cos-diagnostic-logs/*ibm-cos-plugin-diag.log"
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if cmd_out.strip():
+            print "> Some of the Mount Points are not healthy... " + NOT_OK
+            out_list = cmd_out.strip().splitlines()
+            for line in out_list:
+                print line
     # Collect provisioner log
     if args.pvc or args.provisioner_log:
         print "\n****Collecting provisioner log****"
@@ -590,7 +641,7 @@ def main():
                 plugin_pod_name = plugin_pod[0]
                 plugin_pod_status = plugin_pod[1]
                 if plugin_pod_status == "Running":
-                    cmd = "kubectl logs {0} -n kube-system > ibm-cos-provisioner.log".format(plugin_pod_name)
+                    cmd = "kubectl logs {0} -n kube-system > ibm-cos-diagnostic-logs/ibm-cos-provisioner.log".format(plugin_pod_name)
                     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
                     if not cmd_err.strip():
                         print "> Collected provisioner log... ok"
@@ -603,17 +654,18 @@ def main():
     if args.pvc:
         inspectPVC(ns=args.ns, pvc=args.pvc)
 
-    print "\n*****Collecting driver logs*****"
     # Collect driver logs --driver-log option
-    global nodeQdl
+    if args.pod or ( args.driver_log and args.node_list):
+        print "\n*****Collecting driver logs*****"
+        global nodeQdl
 
-    for i in range(NUMBER_OF_WORKERS):
-        worker = threading.Thread(name="th-"+str(i), target=backupDriverLog, args=(nodeQdl, ))
-        worker.setDaemon(True)
-        worker.start()
+        for i in range(NUMBER_OF_WORKERS):
+            worker = threading.Thread(name="th-"+str(i), target=backupDriverLog, args=(nodeQdl, ))
+            worker.setDaemon(True)
+            worker.start()
 
-    getNodeList4DL(q=nodeQdl, podname=args.pod, podns=args.ns, driver_log_opts=args.driver_log)
-    nodeQdl.join()
+        getNodeList4DL(q=nodeQdl, driver_log_opts=args.driver_log)
+        nodeQdl.join()
 
     # Inspect POD
     if args.pod:
@@ -630,47 +682,26 @@ def main():
         compress_cmd = "tar -cvf ibm-cos-diagnostic-logs.tar "
         file_extension = ".tar"
 
-    if (args.pvc or args.provisioner_log) and (args.driver_log or args.pod):
-        cmd = compress_cmd + "ibm-cos-provisioner.log *ibmc-s3fs.log *ibm-cos-plugin-diag.log"
+    if  os.listdir(logFolder):
+        cmd = compress_cmd + "ibm-cos-diagnostic-logs/"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            cmd = "pwd"
-            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if not cmd_err.strip() and rc == 0:
+            cd = os.getcwd()
             print "\nSuccessfully created log archive \"ibm-cos-diagnostic-logs" + file_extension + "\""
-            print "and saved as: " + cmd_out.strip() + "/ibm-cos-diagnostic-logs" + file_extension
+            print "and saved as: " + cd + "/ibm-cos-diagnostic-logs" + file_extension
 
-    elif args.driver_log or args.pod:
-        cmd = compress_cmd + "*ibmc-s3fs.log *ibm-cos-plugin-diag.log"
+    cleanupLogs()
+
+    if nodeCount != 0:
+        # Delete ibm-cos-plugin-diag daemonset
+        cleanup_daemonset("ibm-cos-plugin-diag")
+
+    if g_labelFlag == 1:
+        cmd = "kubectl label nodes {0} tool-".format(g_nlist)
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            cmd = "pwd"
-            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "\nSuccessfully created log archive \"ibm-cos-diagnostic-logs" + file_extension + "\""
-            print "and saved as: " + cmd_out.strip() + "/ibm-cos-diagnostic-logs" + file_extension
-
-    elif args.pvc or args.provisioner_log:
-        cmd = compress_cmd + "ibm-cos-provisioner.log *ibm-cos-plugin-diag.log"
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            cmd = "pwd"
-            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "\nSuccessfully created log archive \"ibm-cos-diagnostic-logs" + file_extension + "\""
-            print "and saved as: " + cmd_out.strip() + "/ibm-cos-diagnostic-logs" + file_extension
-
-    else:
-        cmd = compress_cmd + "*ibm-cos-plugin-diag.log"
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if not cmd_err.strip():
-            cmd = "pwd"
-            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "Successfully created log archive \"ibm-cos-diagnostic-logs" + file_extension + "\""
-            print "and saved as: " + cmd_out.strip() + "/ibm-cos-diagnostic-logs" + file_extension
-
-    cmd = "rm -rf diagnostic_daemon.yaml *ibm-cos-plugin-diag.log  *ibmc-s3fs.log ibm-cos-provisioner.log"
-    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-
-    # Delete ibm-cos-plugin-diag daemonset
-    cleanup_daemonset("ibm-cos-plugin-diag")
+        if  cmd_err.strip():
+            print "Error while removing labels from node"
+            print cmd_err
 
 if __name__ == "__main__":
     main()
