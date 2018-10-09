@@ -120,6 +120,8 @@ cmdHandle = cmdHandler()
 
 def executeBasicChecks():
     ret = 0
+    driverPodsCount = 0
+    healthyDriverPodsCount = 0
     print "\n****ibmcloud-object-storage-plugin pod status****"
     cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-plugin| awk '{print $3}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -128,7 +130,32 @@ def executeBasicChecks():
             print "> ibmcloud-object-storage-plugin pod is not found... " + NOT_OK
             ret += 1
         else:
-            print "> ibmcloud-object-storage-plugin pod is in \"{0}\" state.".format(cmd_out.strip())
+            print "> ibmcloud-object-storage-plugin pod is in \"{0}\" state... ok".format(cmd_out.strip())
+
+    print "\n****ibmcloud-object-storage-driver pods status****"
+    cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-driver| wc -l"
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if not cmd_err.strip():
+        driverPodsCount = int(cmd_out.strip())
+        if driverPodsCount == 0:
+            print "> ibmcloud-object-storage-driver pods are not found... " + NOT_OK
+            ret += 1
+        else:
+            cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-driver| grep Running| wc -l"
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if not cmd_err.strip():
+                healthyDriverPodsCount = int(cmd_out.strip())
+            if driverPodsCount != healthyDriverPodsCount:
+                cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-driver| grep -v Running| awk '{print $7}'"
+                (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+                if not cmd_err.strip():
+                    print "> {0} out of {1} ibmcloud-object-storage-driver pods, deployed on below nodes, " \
+                    "are not in running state... {2}".format(driverPodsCount-healthyDriverPodsCount, driverPodsCount, NOT_OK)
+                    out_list = cmd_out.strip().splitlines()
+                    for line in out_list:
+                        print "> " + line
+            else:
+                print "> All ibmcloud-object-storage-driver pods are in \"Running\" state... ok"
 
     print "\n****Default storage class list****"
     cmd = "kubectl get sc | grep s3fs"
@@ -153,7 +180,7 @@ def executeBasicChecks():
             print "> ibmcloud-object-storage-driver is not defined... " + NOT_OK
             ret += 1
 
-    if ret > 2:
+    if ret > 3:
         print "\n> IBM COS Plug-in not installed... " + NOT_OK
         print "> " + BOLD +  "Refer to" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_storage_cos.html#object_storage" + ENDC
         return ret
@@ -196,9 +223,9 @@ def executeBasicChecks():
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-secret-reader" == cmd_out.strip():
-            print "> " + cmd_out.strip() + " is defined... ok"
+            print "> " + cmd_out.strip() + " is defined... ok\n"
         else:
-            print "> ibmcloud-object-storage-secret-reader is not defined... " + NOT_OK
+            print "> ibmcloud-object-storage-secret-reader is not defined... " + NOT_OK + "\n"
     return ret
 
 def scheduleForLog(q=None):
@@ -512,17 +539,17 @@ def getFinalListofNodes(podnode="", nodeList=""):
 def labelNodesForDSDeployment(nodeList=""):
     global g_nlist
     global g_labelFlag
-    if nodeList and "all" in nodeList:
-       f = open("diagnostic_daemon.yaml","r")
-       lines = f.readlines()
-       f.close()
+    if nodeList:
+        if "all" in nodeList:
+            f = open("diagnostic_daemon.yaml","r")
+            lines = f.readlines()
+            f.close()
 
-       with open('diagnostic_daemon.yaml', 'w') as yamlfile:
-           for line in lines:
-               if "nodeSelector" not in line and "tool: ibm-cos-diag" not in line:
-                    yamlfile.write(line)
-    else:
-        if nodeList:
+            with open('diagnostic_daemon.yaml', 'w') as yamlfile:
+                for line in lines:
+                    if "nodeSelector" not in line and "tool: ibm-cos-diag" not in line:
+                        yamlfile.write(line)
+        else:
             g_labelFlag = 1
             for ip in nodeList:
                 g_nlist = g_nlist + ip + " "
@@ -561,7 +588,8 @@ def main():
     args = parser.parse_args()
 
     if not args.node_list and args.driver_log:
-        print "> " + BOLD + REDC + "Warning: --node option should be used when using --driver-log" + ENDC
+        print "> " + BOLD + REDC + "ERROR: --node option should be used when using --driver-log" + ENDC
+        sys.exit(1)
 
     if "KUBECONFIG" not in os.environ:
         print "ERROR: Env. var. KUBECONFIG not set. Export KUBECONFIG before running this tool.\nExiting!!!"
@@ -611,23 +639,27 @@ def main():
         scheduleForLog(nodeQdigl)
         nodeQdigl.join()
 
-    if args.pod or args.node_list:
         print "\n*****Analyzing ibm-cos-plugin-diag logs*****"
+        errorFound = 0
         cmd = "grep -h DriverBinaryNotFound ibm-cos-diagnostic-logs/*ibm-cos-plugin-diag.log"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
+            errorFound = 1
             print "> IBM COS Plug-in driver not installed... " + NOT_OK
             out_list = cmd_out.strip().splitlines()
             for line in out_list:
                 print line
-    
+
         cmd = "grep -h MountPointAccessError ibm-cos-diagnostic-logs/*ibm-cos-plugin-diag.log"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
+            errorFound = 1
             print "> Some of the Mount Points are not healthy... " + NOT_OK
             out_list = cmd_out.strip().splitlines()
             for line in out_list:
                 print line
+        if errorFound == 0:
+            print "> No Error"
     # Collect provisioner log
     if args.pvc or args.provisioner_log:
         print "\n****Collecting provisioner log****"
