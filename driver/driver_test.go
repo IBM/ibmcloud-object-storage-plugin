@@ -223,7 +223,7 @@ func Test_Mount_S3FSFUSERetryCount_Zero(t *testing.T) {
 	}
 }
 
-func Test_Mount_BadStatCacheExpireSeconds(t *testing.T) {
+func Test_Mount_BadStatCacheExpireSeconds_NonInt(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()
 	r.Opts[optionStatCacheExpireSeconds] = "non-int-value"
@@ -231,6 +231,17 @@ func Test_Mount_BadStatCacheExpireSeconds(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, "Cannot convert value of stat-cache-expire-seconds into integer")
+	}
+}
+
+func Test_Mount_BadStatCacheExpireSeconds_NegativeInt(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionStatCacheExpireSeconds] = "-10"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "value of stat-cache-expire-seconds should be >= 0")
 	}
 }
 

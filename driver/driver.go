@@ -280,13 +280,17 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 
 	//Check if value of stat-cache-expire-seconds parameter can be converted to integer
 	if options.StatCacheExpireSeconds != "" {
-		_, err := strconv.Atoi(options.StatCacheExpireSeconds)
+		cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
 		if err != nil {
 			p.Logger.Error(hostname+" Component: S3FS Driver, "+
 				"Message: Cannot convert value of stat-cache-expire-seconds into integer",
 				zap.Error(err))
 			return fmt.Errorf("Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
-		}
+		} else if cacheExpireSeconds < 0 {
+			p.Logger.Error(hostname+" Component: S3FS Driver, "+
+				"Message: value of stat-cache-expire-seconds should be >= 0",
+				zap.Error(err))
+			return fmt.Errorf("Message: value of stat-cache-expire-seconds should be >= 0")
 	}
 
 	if options.APIKeyB64 != "" {

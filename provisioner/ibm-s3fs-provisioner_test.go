@@ -320,7 +320,7 @@ func Test_Provision_PVCAnnotations_StatCacheSize_Positive(t *testing.T) {
 	assert.Equal(t, "50", pv.Spec.FlexVolume.Options[optionStatCacheSize])
 }
 
-func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds(t *testing.T) {
+func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NonInt(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "non-int-value"
@@ -328,6 +328,17 @@ func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds(t *testing.T) {
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of stat-cache-expire-seconds into integer")
+	}
+}
+
+func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NegativeInt(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "-6"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "value of stat-cache-expire-seconds should be >= 0")
 	}
 }
 
