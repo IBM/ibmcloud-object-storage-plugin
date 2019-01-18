@@ -29,15 +29,16 @@ import (
 )
 
 const (
-	optionChunkSizeMB        = "chunk-size-mb"
-	optionParallelCount      = "parallel-count"
-	optiontlsCipherSuite     = "tls-cipher-suite"
-	optionCurlDebug          = "curl-debug"
-	optionKernelCache        = "kernel-cache"
-	optionS3FSFUSERetryCount = "s3fs-fuse-retry-count"
-	optionAccessKey          = "kubernetes.io/secret/access-key"
-	optionSecretKey          = "kubernetes.io/secret/secret-key"
-	optionAPIKey             = "kubernetes.io/secret/api-key"
+	optionChunkSizeMB            = "chunk-size-mb"
+	optionParallelCount          = "parallel-count"
+	optiontlsCipherSuite         = "tls-cipher-suite"
+	optionCurlDebug              = "curl-debug"
+	optionKernelCache            = "kernel-cache"
+	optionS3FSFUSERetryCount     = "s3fs-fuse-retry-count"
+	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
+	optionAccessKey              = "kubernetes.io/secret/access-key"
+	optionSecretKey              = "kubernetes.io/secret/secret-key"
+	optionAPIKey                 = "kubernetes.io/secret/api-key"
 
 	testDir            = "/tmp/"
 	testChunkSizeMB    = 500
@@ -219,6 +220,17 @@ func Test_Mount_S3FSFUSERetryCount_Zero(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, "value of s3fs-fuse-retry-count should be non-zero")
+	}
+}
+
+func Test_Mount_BadStatCacheExpireSeconds(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionStatCacheExpireSeconds] = "non-int-value"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "Cannot convert value of stat-cache-expire-seconds into integer")
 	}
 }
 
@@ -503,6 +515,38 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "retries=1",
+		"-o", "default_acl=",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionStatCacheExpireSeconds] = "1"
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testEndpoint,
+		"-o", "endpoint=" + testRegion,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "sync_read",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "stat_cache_expire=1",
 		"-o", "default_acl=",
 	}
 
