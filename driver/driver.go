@@ -291,6 +291,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				"Message: value of stat-cache-expire-seconds should be >= 0",
 				zap.Error(err))
 			return fmt.Errorf("Message: value of stat-cache-expire-seconds should be >= 0")
+		}
 	}
 
 	if options.APIKeyB64 != "" {

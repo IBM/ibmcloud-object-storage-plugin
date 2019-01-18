@@ -184,11 +184,11 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//Check if value of stat-cache-expire-seconds parameter can be converted to integer
 	if pvc.StatCacheExpireSeconds != "" {
-		 cacheExpireSeconds, err := strconv.Atoi(pvc.StatCacheExpireSeconds)
-		 if err != nil {
+		cacheExpireSeconds, err := strconv.Atoi(pvc.StatCacheExpireSeconds)
+		if err != nil {
 			return nil, fmt.Errorf(pvcName+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
-			return nil, fmt.Errorf(pvcName+":value of stat-cache-expire-seconds should be >= 0")
+			return nil, fmt.Errorf(pvcName + ":value of stat-cache-expire-seconds should be >= 0")
 		}
 	}
 
