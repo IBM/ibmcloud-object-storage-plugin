@@ -58,22 +58,23 @@ var buildVersion string
 
 // Options are the FlexVolume driver options
 type Options struct {
-	ChunkSizeMB        int    `json:"chunk-size-mb,string"`
-	ParallelCount      int    `json:"parallel-count,string"`
-	MultiReqMax        int    `json:"multireq-max,string"`
-	StatCacheSize      int    `json:"stat-cache-size,string"`
-	FSGroup            string `json:"kubernetes.io/fsGroup,omitempty"`
-	Endpoint           string `json:"endpoint"`
-	Region             string `json:"region"`
-	Bucket             string `json:"bucket"`
-	DebugLevel         string `json:"debug-level"`
-	CurlDebug          bool   `json:"curl-debug,string"`
-	KernelCache        bool   `json:"kernel-cache,string,omitempty"`
-	TLSCipherSuite     string `json:"tls-cipher-suite,omitempty"`
-	S3FSFUSERetryCount string `json:"s3fs-fuse-retry-count,omitempty"`
-	AccessKeyB64       string `json:"kubernetes.io/secret/access-key,omitempty"`
-	SecretKeyB64       string `json:"kubernetes.io/secret/secret-key,omitempty"`
-	APIKeyB64          string `json:"kubernetes.io/secret/api-key,omitempty"`
+	ChunkSizeMB            int    `json:"chunk-size-mb,string"`
+	ParallelCount          int    `json:"parallel-count,string"`
+	MultiReqMax            int    `json:"multireq-max,string"`
+	StatCacheSize          int    `json:"stat-cache-size,string"`
+	FSGroup                string `json:"kubernetes.io/fsGroup,omitempty"`
+	Endpoint               string `json:"endpoint"`
+	Region                 string `json:"region"`
+	Bucket                 string `json:"bucket"`
+	DebugLevel             string `json:"debug-level"`
+	CurlDebug              bool   `json:"curl-debug,string"`
+	KernelCache            bool   `json:"kernel-cache,string,omitempty"`
+	TLSCipherSuite         string `json:"tls-cipher-suite,omitempty"`
+	S3FSFUSERetryCount     string `json:"s3fs-fuse-retry-count,omitempty"`
+	StatCacheExpireSeconds string `json:"stat-cache-expire-seconds,omitempty"`
+	AccessKeyB64           string `json:"kubernetes.io/secret/access-key,omitempty"`
+	SecretKeyB64           string `json:"kubernetes.io/secret/secret-key,omitempty"`
+	APIKeyB64              string `json:"kubernetes.io/secret/api-key,omitempty"`
 }
 
 // S3fsPlugin supports mount & unmount requests of s3fs volumes
@@ -277,6 +278,22 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		}
 	}
 
+	//Check if value of stat-cache-expire-seconds parameter can be converted to integer
+	if options.StatCacheExpireSeconds != "" {
+		cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
+		if err != nil {
+			p.Logger.Error(hostname+" Component: S3FS Driver, "+
+				"Message: Cannot convert value of stat-cache-expire-seconds into integer",
+				zap.Error(err))
+			return fmt.Errorf("Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+		} else if cacheExpireSeconds < 0 {
+			p.Logger.Error(hostname+" Component: S3FS Driver, "+
+				"Message: value of stat-cache-expire-seconds should be >= 0",
+				zap.Error(err))
+			return fmt.Errorf("Message: value of stat-cache-expire-seconds should be >= 0")
+		}
+	}
+
 	if options.APIKeyB64 != "" {
 		apiKey, err = parser.DecodeBase64(options.APIKeyB64)
 		if err != nil {
@@ -380,6 +397,10 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	//Number of retries for failed S3 transaction
 	if options.S3FSFUSERetryCount != "" {
 		args = append(args, "-o", "retries="+options.S3FSFUSERetryCount)
+	}
+
+	if options.StatCacheExpireSeconds != "" {
+		args = append(args, "-o", "stat_cache_expire="+options.StatCacheExpireSeconds)
 	}
 
 	if options.CurlDebug {

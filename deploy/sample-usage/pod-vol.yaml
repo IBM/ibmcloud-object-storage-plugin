@@ -23,6 +23,7 @@ spec:
         parallel-count: "24"
         multireq-max: "30"
         stat-cache-size: "100000"
+        stat-cache-expire-seconds: ""   # stat-cache-expire time in seconds; default is no expire.
         s3fs-fuse-retry-count: "5"
         debug-level: "warn"
         curl-debug: "false"

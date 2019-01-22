@@ -29,17 +29,18 @@ import (
 
 // PVC annotations
 type pvcAnnotations struct {
-	AutoCreateBucket   bool   `json:"ibm.io/auto-create-bucket,string"`
-	AutoDeleteBucket   bool   `json:"ibm.io/auto-delete-bucket,string"`
-	Bucket             string `json:"ibm.io/bucket"`
-	Endpoint           string `json:"ibm.io/endpoint"`
-	Region             string `json:"ibm.io/region"`
-	SecretName         string `json:"ibm.io/secret-name"`
-	ChunkSizeMB        string `json:"ibm.io/chunk-size-mb,omitempty"`
-	ParallelCount      string `json:"ibm.io/parallel-count,omitempty"`
-	MultiReqMax        string `json:"ibm.io/multireq-max,omitempty"`
-	StatCacheSize      string `json:"ibm.io/stat-cache-size,omitempty"`
-	S3FSFUSERetryCount string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+	AutoCreateBucket       bool   `json:"ibm.io/auto-create-bucket,string"`
+	AutoDeleteBucket       bool   `json:"ibm.io/auto-delete-bucket,string"`
+	Bucket                 string `json:"ibm.io/bucket"`
+	Endpoint               string `json:"ibm.io/endpoint"`
+	Region                 string `json:"ibm.io/region"`
+	SecretName             string `json:"ibm.io/secret-name"`
+	ChunkSizeMB            string `json:"ibm.io/chunk-size-mb,omitempty"`
+	ParallelCount          string `json:"ibm.io/parallel-count,omitempty"`
+	MultiReqMax            string `json:"ibm.io/multireq-max,omitempty"`
+	StatCacheSize          string `json:"ibm.io/stat-cache-size,omitempty"`
+	S3FSFUSERetryCount     string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+	StatCacheExpireSeconds string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
 }
 
 // PV annotations
@@ -181,6 +182,16 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
+	//Check if value of stat-cache-expire-seconds parameter can be converted to integer
+	if pvc.StatCacheExpireSeconds != "" {
+		cacheExpireSeconds, err := strconv.Atoi(pvc.StatCacheExpireSeconds)
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+		} else if cacheExpireSeconds < 0 {
+			return nil, fmt.Errorf(pvcName + ":value of stat-cache-expire-seconds should be >= 0")
+		}
+	}
+
 	if pvc.AutoDeleteBucket {
 		if !pvc.AutoCreateBucket {
 			return nil, errors.New(pvcName + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
@@ -224,18 +235,19 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	driverOptions, err := parser.MarshalToMap(&driver.Options{
-		ChunkSizeMB:        sc.ChunkSizeMB,
-		ParallelCount:      sc.ParallelCount,
-		MultiReqMax:        sc.MultiReqMax,
-		StatCacheSize:      sc.StatCacheSize,
-		TLSCipherSuite:     sc.TLSCipherSuite,
-		CurlDebug:          sc.CurlDebug,
-		KernelCache:        sc.KernelCache,
-		DebugLevel:         sc.DebugLevel,
-		S3FSFUSERetryCount: strconv.Itoa(sc.S3FSFUSERetryCount),
-		Endpoint:           pvc.Endpoint,
-		Region:             pvc.Region,
-		Bucket:             pvc.Bucket,
+		ChunkSizeMB:            sc.ChunkSizeMB,
+		ParallelCount:          sc.ParallelCount,
+		MultiReqMax:            sc.MultiReqMax,
+		StatCacheSize:          sc.StatCacheSize,
+		TLSCipherSuite:         sc.TLSCipherSuite,
+		CurlDebug:              sc.CurlDebug,
+		KernelCache:            sc.KernelCache,
+		DebugLevel:             sc.DebugLevel,
+		S3FSFUSERetryCount:     strconv.Itoa(sc.S3FSFUSERetryCount),
+		StatCacheExpireSeconds: pvc.StatCacheExpireSeconds,
+		Endpoint:               pvc.Endpoint,
+		Region:                 pvc.Region,
+		Bucket:                 pvc.Bucket,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":cannot marshal driver options: %v", err)

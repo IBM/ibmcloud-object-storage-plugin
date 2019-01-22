@@ -48,13 +48,14 @@ const (
 	testCurlDebug          = "false"
 	testTLSCipherSuite     = "test-tls-cipher-suite"
 
-	annotationBucket           = "ibm.io/bucket"
-	annotationAutoCreateBucket = "ibm.io/auto-create-bucket"
-	annotationAutoDeleteBucket = "ibm.io/auto-delete-bucket"
-	annotationEndpoint         = "ibm.io/endpoint"
-	annotationRegion           = "ibm.io/region"
-	annotationSecretName       = "ibm.io/secret-name"
-	annotationSecretNamespace  = "ibm.io/secret-namespace"
+	annotationBucket                 = "ibm.io/bucket"
+	annotationAutoCreateBucket       = "ibm.io/auto-create-bucket"
+	annotationAutoDeleteBucket       = "ibm.io/auto-delete-bucket"
+	annotationEndpoint               = "ibm.io/endpoint"
+	annotationRegion                 = "ibm.io/region"
+	annotationSecretName             = "ibm.io/secret-name"
+	annotationSecretNamespace        = "ibm.io/secret-namespace"
+	annotationStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
 
 	parameterChunkSizeMB        = "ibm.io/chunk-size-mb"
 	parameterParallelCount      = "ibm.io/parallel-count"
@@ -66,18 +67,19 @@ const (
 	parameterCurlDebug          = "ibm.io/curl-debug"
 	parameterKernelCache        = "ibm.io/kernel-cache"
 
-	optionChunkSizeMB        = "chunk-size-mb"
-	optionParallelCount      = "parallel-count"
-	optionMultiReqMax        = "multireq-max"
-	optionStatCacheSize      = "stat-cache-size"
-	optionS3FSFUSERetryCount = "s3fs-fuse-retry-count"
-	optionTLSCipherSuite     = "tls-cipher-suite"
-	optionDebugLevel         = "debug-level"
-	optionCurlDebug          = "curl-debug"
-	optionKernelCache        = "kernel-cache"
-	optionEndpoint           = "endpoint"
-	optionRegion             = "region"
-	optionBucket             = "bucket"
+	optionChunkSizeMB            = "chunk-size-mb"
+	optionParallelCount          = "parallel-count"
+	optionMultiReqMax            = "multireq-max"
+	optionStatCacheSize          = "stat-cache-size"
+	optionS3FSFUSERetryCount     = "s3fs-fuse-retry-count"
+	optionTLSCipherSuite         = "tls-cipher-suite"
+	optionDebugLevel             = "debug-level"
+	optionCurlDebug              = "curl-debug"
+	optionKernelCache            = "kernel-cache"
+	optionEndpoint               = "endpoint"
+	optionRegion                 = "region"
+	optionBucket                 = "bucket"
+	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
 )
 
 type clientGoConfig struct {
@@ -316,6 +318,38 @@ func Test_Provision_PVCAnnotations_StatCacheSize_Positive(t *testing.T) {
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
 	assert.Equal(t, "50", pv.Spec.FlexVolume.Options[optionStatCacheSize])
+}
+
+func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NonInt(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "non-int-value"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Cannot convert value of stat-cache-expire-seconds into integer")
+	}
+}
+
+func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NegativeInt(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "-6"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "value of stat-cache-expire-seconds should be >= 0")
+	}
+}
+
+func Test_Provision_PVCAnnotations_StatCacheExpireSeconds_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "6"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionStatCacheExpireSeconds])
 }
 
 func Test_Provision_PVCAnnotations_BadS3FSFUSERetryCount(t *testing.T) {
