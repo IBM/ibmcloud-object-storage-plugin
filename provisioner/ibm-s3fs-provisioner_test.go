@@ -20,25 +20,28 @@ import (
 	"github.com/kubernetes-incubator/external-storage/lib/controller"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	k8fake "k8s.io/client-go/kubernetes/fake"
+	//"k8s.io/client-go/pkg/api/v1"
+	"k8s.io/api/core/v1"
+	//"k8s.io/client-go/pkg/runtime"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"strconv"
 	"testing"
 )
 
 const (
-	testSecretName         = "test-secret"
-	testNamespace          = "test-namespace"
-	testAccessKey          = "akey"
-	testSecretKey          = "skey"
-	testAPIKey             = "apikey"
-	testServiceInstanceID  = "sid"
-	testBucket             = "test-bucket"
-	testEndpoint           = "https://test-endpoint"
-	testRegion             = "test-region"
+	testSecretName        = "test-secret"
+	testNamespace         = "test-namespace"
+	testAccessKey         = "akey"
+	testSecretKey         = "skey"
+	testAPIKey            = "apikey"
+	testServiceInstanceID = "sid"
+	testBucket            = "test-bucket"
+	testOSEndpoint        = "https://test-object-store-endpoint"
+	testIAMEndpoint       = "https://test-iam-endpoint"
+
 	testChunkSizeMB        = 2
 	testParallelCount      = 3
 	testMultiReqMax        = 4
@@ -47,12 +50,16 @@ const (
 	testDebugLevel         = "debug"
 	testCurlDebug          = "false"
 	testTLSCipherSuite     = "test-tls-cipher-suite"
+	testStorageClass       = "test-storage-class"
+	testObjectPath         = "/test/object-path"
 
 	annotationBucket                 = "ibm.io/bucket"
+	annotationObjectPath             = "ibm.io/object-path"
 	annotationAutoCreateBucket       = "ibm.io/auto-create-bucket"
 	annotationAutoDeleteBucket       = "ibm.io/auto-delete-bucket"
 	annotationEndpoint               = "ibm.io/endpoint"
 	annotationRegion                 = "ibm.io/region"
+	annotationIAMEndpoint            = "ibm.io/iam-endpoint"
 	annotationSecretName             = "ibm.io/secret-name"
 	annotationSecretNamespace        = "ibm.io/secret-namespace"
 	annotationStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
@@ -66,6 +73,9 @@ const (
 	parameterDebugLevel         = "ibm.io/debug-level"
 	parameterCurlDebug          = "ibm.io/curl-debug"
 	parameterKernelCache        = "ibm.io/kernel-cache"
+	parameterOSEndpoint         = "ibm.io/object-store-endpoint"
+	parameterIAMEndpoint        = "ibm.io/iam-endpoint"
+	parameterStorageClass       = "ibm.io/object-store-storage-class"
 
 	optionChunkSizeMB            = "chunk-size-mb"
 	optionParallelCount          = "parallel-count"
@@ -76,10 +86,13 @@ const (
 	optionDebugLevel             = "debug-level"
 	optionCurlDebug              = "curl-debug"
 	optionKernelCache            = "kernel-cache"
-	optionEndpoint               = "endpoint"
+	optionOSEndpoint             = "object-store-endpoint"
 	optionRegion                 = "region"
 	optionBucket                 = "bucket"
 	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
+	optionObjectPath             = "object-path"
+	optionStorageClass           = "object-store-storage-class"
+	optionIAMEndpoint            = "iam-endpoint"
 )
 
 type clientGoConfig struct {
@@ -169,8 +182,6 @@ func getVolumeOptions() controller.VolumeOptions {
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					annotationBucket:     testBucket,
-					annotationEndpoint:   testEndpoint,
-					annotationRegion:     testRegion,
 					annotationSecretName: testSecretName,
 				},
 				Namespace: testNamespace,
@@ -184,6 +195,9 @@ func getVolumeOptions() controller.VolumeOptions {
 			parameterS3FSFUSERetryCount: strconv.Itoa(testS3FSFUSERetryCount),
 			parameterTLSCipherSuite:     testTLSCipherSuite,
 			parameterDebugLevel:         testDebugLevel,
+			parameterStorageClass:       testStorageClass,
+			parameterOSEndpoint:         testOSEndpoint,
+			parameterIAMEndpoint:        testIAMEndpoint,
 		},
 	}
 
@@ -197,6 +211,13 @@ func getAutoDeletePersistentVolume() *v1.PersistentVolume {
 				annotationAutoDeleteBucket: "true",
 				annotationSecretName:       testSecretName,
 				annotationSecretNamespace:  testNamespace,
+			},
+		},
+		Spec: v1.PersistentVolumeSpec{
+			PersistentVolumeSource: v1.PersistentVolumeSource{
+				FlexVolume: &v1.FlexVolumeSource{
+					Options: map[string]string{"object-store-endpoint": testOSEndpoint, "object-store-storage-class": testStorageClass},
+				},
 			},
 		},
 	}
@@ -224,16 +245,58 @@ func Test_Provision_BadSCParameters(t *testing.T) {
 	}
 }
 
-func Test_Provision_BadPVCEndpoint(t *testing.T) {
+func Test_Provision_BadPVCOSEndpoint(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationEndpoint] = "test-endpoint"
+	v.PVC.Annotations[annotationEndpoint] = "test-object-store-endpoint"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), fmt.Sprintf("Bad value for ibm.io/endpoint \"%s\": scheme is missing. "+
+		assert.Contains(t, err.Error(), fmt.Sprintf("Bad value for ibm.io/object-store-endpoint \"%s\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>", v.PVC.Annotations[annotationEndpoint]))
 	}
+}
+
+func Test_Provision_PVCAnnotations_OSEndpoint_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationEndpoint] = "https://test-object-store-endpoint-defined-in-pvc"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://test-object-store-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionOSEndpoint])
+}
+
+func Test_Provision_PVCAnnotations_StorageClass_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationRegion] = "test-storage-class-defined-in-pvc"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "test-storage-class-defined-in-pvc", pv.Spec.FlexVolume.Options[optionStorageClass])
+}
+
+func Test_Provision_BadPVCIAMEndpoint(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationIAMEndpoint] = "test-iam-endpoint"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), fmt.Sprintf("Bad value for ibm.io/iam-endpoint \"%s\":"+
+			" Must be of the form https://<hostname> or http://<hostname>", v.PVC.Annotations[annotationIAMEndpoint]))
+	}
+}
+
+func Test_Provision_PVCAnnotations_IAMEndpoint_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationIAMEndpoint] = "https://test-iam-endpoint-defined-in-pvc"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "https://test-iam-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionIAMEndpoint])
 }
 
 func Test_Provision_PVCAnnotations_BadChunkSizeMB(t *testing.T) {
@@ -396,6 +459,29 @@ func Test_Provision_AutoDeleteBucketWithNonEmptyBucket(t *testing.T) {
 	}
 }
 
+func Test_Provision_MissingBucket(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationBucket] = ""
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "bucket name not specified")
+	}
+}
+
+func Test_Provision_ObjectPathWithAutoCreateBucket(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "object-path cannot be set when auto-create is enabled")
+	}
+}
+
 func Test_Provision_UUIDGeneratorFailure(t *testing.T) {
 	p := getFailedUUIDProvisioner()
 	v := getVolumeOptions()
@@ -475,6 +561,41 @@ func Test_Provision_FailCheckBucketAccess(t *testing.T) {
 	}
 }
 
+func Test_Provision_PVCAnnotations_ObjectPath_Positive(t *testing.T) {
+	factory := &fake.ObjectStorageSessionFactory{}
+	p := getFakeBackendProvisioner(factory)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, testObjectPath, pv.Spec.FlexVolume.Options[optionObjectPath])
+}
+
+func Test_Provision_CheckObjectPathExistence_Error(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistenceError: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), fmt.Sprintf("cannot access object-path \"%s\" inside bucket %s",
+			v.PVC.Annotations[annotationObjectPath], v.PVC.Annotations[annotationBucket]))
+	}
+}
+
+func Test_Provision_CheckObjectPathExistence_PathNotFound(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistencePathNotFound: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), fmt.Sprintf("object-path \"%s\" not found inside bucket %s",
+			v.PVC.Annotations[annotationObjectPath], v.PVC.Annotations[annotationBucket]))
+	}
+}
+
 func Test_Provision_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
 	p := getFakeBackendProvisioner(factory)
@@ -492,21 +613,13 @@ func Test_Provision_Positive(t *testing.T) {
 			optionTLSCipherSuite:     testTLSCipherSuite,
 			optionDebugLevel:         testDebugLevel,
 			optionCurlDebug:          testCurlDebug,
-			optionEndpoint:           testEndpoint,
-			optionRegion:             testRegion,
+			optionOSEndpoint:         testOSEndpoint,
 			optionBucket:             testBucket,
+			optionStorageClass:       testStorageClass,
+			optionIAMEndpoint:        testIAMEndpoint,
 		},
 		pv.Spec.FlexVolume.Options,
 	)
-
-	assert.Equal(t, testEndpoint, factory.LastEndpoint)
-	assert.Equal(t, testRegion, factory.LastRegion)
-	assert.Equal(t, testAccessKey, factory.LastCredentials.AccessKey)
-	assert.Equal(t, testSecretKey, factory.LastCredentials.SecretKey)
-	assert.Equal(t, "", factory.LastCredentials.APIKey)
-	assert.Equal(t, testBucket, factory.LastCheckedBucket)
-	assert.Equal(t, "", factory.LastCreatedBucket)
-	assert.Equal(t, "", factory.LastDeletedBucket)
 }
 
 func Test_Provision_CurlDebug_Positive(t *testing.T) {
@@ -529,6 +642,26 @@ func Test_Provision_KernelCache_Positive(t *testing.T) {
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionKernelCache])
 }
 
+func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {
+	factory := &fake.ObjectStorageSessionFactory{}
+	p := getFakeBackendProvisioner(factory)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+
+	assert.Equal(t, testOSEndpoint, factory.LastEndpoint)
+	assert.Equal(t, testStorageClass, factory.LastRegion)
+	assert.Equal(t, testAccessKey, factory.LastCredentials.AccessKey)
+	assert.Equal(t, testSecretKey, factory.LastCredentials.SecretKey)
+	assert.Equal(t, "", factory.LastCredentials.APIKey)
+	assert.Equal(t, testIAMEndpoint, factory.LastCredentials.IAMEndpoint)
+	assert.Equal(t, testBucket, factory.LastCreatedBucket)
+	assert.Equal(t, testBucket, factory.LastCheckedBucket)
+	assert.Equal(t, "", factory.LastDeletedBucket)
+}
+
 func Test_Provision_IAM_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
 	p := getCustomProvisioner(
@@ -543,6 +676,7 @@ func Test_Provision_IAM_Positive(t *testing.T) {
 
 	assert.Equal(t, testAPIKey, factory.LastCredentials.APIKey)
 	assert.Equal(t, testServiceInstanceID, factory.LastCredentials.ServiceInstanceID)
+	assert.Equal(t, testIAMEndpoint, factory.LastCredentials.IAMEndpoint)
 }
 
 func Test_Provision_BucketAutoDelete_Positive(t *testing.T) {
@@ -563,7 +697,6 @@ func Test_Delete_BadPVAnnotations(t *testing.T) {
 	p := getProvisioner()
 	pv := getAutoDeletePersistentVolume()
 	pv.Annotations[annotationAutoDeleteBucket] = "non-bool-value"
-
 	err := p.Delete(pv)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot unmarshal PV annotations")
@@ -606,11 +739,12 @@ func Test_Provision_Delete_Positive(t *testing.T) {
 	err = p.Delete(pv)
 	assert.NoError(t, err)
 
-	assert.Equal(t, testEndpoint, factory.LastEndpoint)
-	assert.Equal(t, testRegion, factory.LastRegion)
+	assert.Equal(t, testOSEndpoint, factory.LastEndpoint)
+	assert.Equal(t, testStorageClass, factory.LastRegion)
 	assert.Equal(t, testAccessKey, factory.LastCredentials.AccessKey)
 	assert.Equal(t, testSecretKey, factory.LastCredentials.SecretKey)
 	assert.Equal(t, "", factory.LastCredentials.APIKey)
+	assert.Equal(t, testIAMEndpoint, factory.LastCredentials.IAMEndpoint)
 	assert.Equal(t, bucketName, factory.LastDeletedBucket)
 }
 
@@ -638,5 +772,6 @@ func Test_Provision_Delete_IAM_Positive(t *testing.T) {
 
 	assert.Equal(t, testServiceInstanceID, factory.LastCredentials.ServiceInstanceID)
 	assert.Equal(t, testAPIKey, factory.LastCredentials.APIKey)
+	assert.Equal(t, testIAMEndpoint, factory.LastCredentials.IAMEndpoint)
 	assert.Equal(t, bucketName, factory.LastDeletedBucket)
 }

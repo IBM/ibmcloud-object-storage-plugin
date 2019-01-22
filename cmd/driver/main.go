@@ -16,6 +16,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver/interfaces"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+	optParser "github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	flags "github.com/jessevdk/go-flags"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -47,7 +48,6 @@ var filelogger = getZapLogger()
 // Save the io streams, before we divert them to File.
 // this will be used used while printing the response
 var stdout = os.Stdout
-var hostname, anyerror = os.Hostname()
 
 // NewS3fsPlugin returns a new instance of the driver that supports mount & unmount operations of s3fs volumes
 func NewS3fsPlugin(logger *zap.Logger) *driver.S3fsPlugin {
@@ -68,8 +68,14 @@ type initCommand struct{}
 
 func (i *initCommand) Execute(args []string) error {
 	response := NewS3fsPlugin(filelogger).Init()
-	filelogger.Info(hostname+" S3FS Driver info", zap.String("Version", Version), zap.String("Build", Build))
+	filelogger.Info(":S3FS Driver info:", zap.String("Version", Version), zap.String("Build", Build))
 	return printResponse(response)
+}
+
+type PodDetail struct {
+	PodUid  string `json:"kubernetes.io/pod.uid,omitempty"`
+	PodName string `json:"kubernetes.io/pod.name,omitempty"`
+	PodNS   string `json:"kubernetes.io/pod.namespace,omitempty"`
 }
 
 type mountCommand struct{}
@@ -88,8 +94,14 @@ func maskSecrets(m map[string]string) (map[string]string, []byte, error) {
 }
 func (m *mountCommand) Execute(args []string) error {
 	var err error
+	var podDetail PodDetail
+	var podUID = ""
+	var hostname, anyerror = os.Hostname()
+	if anyerror != nil {
+		hostname = ""
+	}
 
-	filelogger.Info(hostname + " MountCommand start")
+	filelogger.Info(":MountCommand start:" + hostname)
 
 	mountOpts := make(map[string]string)
 	mountOptsLogs := make(map[string]string)
@@ -110,9 +122,16 @@ func (m *mountCommand) Execute(args []string) error {
 		})
 	}
 
+	err = optParser.UnmarshalMap(&mountOpts, &podDetail)
+	if err == nil {
+		podUID = podDetail.PodUid
+		filelogger.Info(podDetail.PodUid + ":" + podDetail.PodName + ":" +
+			podDetail.PodNS + ":" + hostname)
+	}
+
 	mountOptsLogs, newString, err := maskSecrets(mountOpts)
 
-	filelogger.Info(hostname+" MountCommand args", zap.ByteString("input args", newString))
+	filelogger.Info(podUID+":MountCommand args", zap.ByteString("input args", newString))
 
 	targetMountDir := args[0]
 
@@ -123,7 +142,7 @@ func (m *mountCommand) Execute(args []string) error {
 		})
 	}
 
-	filelogger.Info(hostname+" cmd-MountCommand  ", zap.Any("mountOpts", mountOptsLogs))
+	filelogger.Info(podUID+":cmd-MountCommand  ", zap.Any("mountOpts", mountOptsLogs))
 
 	// For logs
 	mountRequestLog := interfaces.FlexVolumeMountRequest{
@@ -135,19 +154,25 @@ func (m *mountCommand) Execute(args []string) error {
 		MountDir: targetMountDir,
 		Opts:     mountOpts,
 	}
-	filelogger.Info(hostname+" cmd-MountCommand ", zap.Any("mountRequest", mountRequestLog))
+	filelogger.Info(podUID+":cmd-MountCommand ", zap.Any("mountRequest", mountRequestLog))
 	//response := NewS3fsPlugin(filelogger).Mount(mountRequest)
 	s3fsPlugin := NewS3fsPlugin(filelogger)
-	(*s3fsPlugin).SetBuildVersion(Version)
+	driver.SetBuildVersion(Version)
+	driver.SetPodUID(podUID)
 	response := (*s3fsPlugin).Mount(mountRequest)
-	filelogger.Info(hostname+" MountCommand End", zap.Any("response", response))
+	filelogger.Info(podUID+":MountCommand End", zap.Any("response", response))
 	return printResponse(response)
 }
 
 type unmountCommand struct{}
 
 func (u *unmountCommand) Execute(args []string) error {
-	filelogger.Info(hostname+" UnmountCommand start", zap.Strings("input args", args))
+	var hostname, anyerror = os.Hostname()
+	if anyerror != nil {
+		hostname = ""
+	}
+	filelogger.Info(":UnmountCommand start:" + hostname)
+	filelogger.Info(":UnmountCommand args", zap.Strings("input args", args))
 
 	if len(args) != 1 {
 		return printResponse(interfaces.FlexVolumeResponse{
@@ -161,7 +186,7 @@ func (u *unmountCommand) Execute(args []string) error {
 		MountDir: mountDir,
 	}
 	response := NewS3fsPlugin(filelogger).Unmount(unmountRequest)
-	filelogger.Info(hostname+" UnmountCommand end", zap.Reflect("response", response))
+	filelogger.Info(":UnmountCommand end", zap.Reflect("response", response))
 	return printResponse(response)
 }
 
@@ -246,6 +271,8 @@ func getZapLogger() *zap.Logger {
 
 	//Zap Logger with Log rotation
 	logger := zap.New(loggercore)
+	logger.Named("S3FSDriver")
+
 	return logger
 }
 
@@ -257,7 +284,7 @@ func printResponse(f interfaces.FlexVolumeResponse) error {
 	output := string(responseBytes[:])
 
 	// log output being returned to flex driver
-	filelogger.Info(hostname+" FlexVolumeResponse", zap.String("output", output))
+	filelogger.Info(":FlexVolumeResponse", zap.String("output", output))
 
 	// write it to stdout, so that flexdriver will read it
 	fmt.Fprintf(stdout, "%s", output)

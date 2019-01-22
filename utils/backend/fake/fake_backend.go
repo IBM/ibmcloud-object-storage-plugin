@@ -24,6 +24,10 @@ type ObjectStorageSessionFactory struct {
 	FailCreateBucket bool
 	//FailDeleteBucket ...
 	FailDeleteBucket bool
+	//CheckObjectPathExistenceError ...
+	CheckObjectPathExistenceError bool
+	//CheckObjectPathExistencePathNotFound ...
+	CheckObjectPathExistencePathNotFound bool
 
 	// LastEndpoint holds the endpoint of the last created session
 	LastEndpoint string
@@ -69,6 +73,15 @@ func (s *fakeObjectStorageSession) CheckBucketAccess(bucket string) error {
 		return errors.New("")
 	}
 	return nil
+}
+
+func (s *fakeObjectStorageSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) {
+	if s.factory.CheckObjectPathExistenceError {
+		return false, errors.New("")
+	} else if s.factory.CheckObjectPathExistencePathNotFound {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (s *fakeObjectStorageSession) CreateBucket(bucket string) (string, error) {

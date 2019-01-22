@@ -17,6 +17,7 @@ spec:
         name: test-secret
       options:
         bucket: "mybucket"
+        object-path: "" # Bucket's sub-directory to be mounted (OPTIONAL)
         endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
         region: "us-standard"
         chunk-size-mb: "200"

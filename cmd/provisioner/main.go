@@ -107,6 +107,11 @@ func main() {
 		logger.Fatal("Failed to create client:", zap.Error(err))
 	}
 
+	err = cfg.SetUpEvn(clientset, logger)
+	if err != nil {
+		logger.Fatal("Error while loading the ENV variables", zap.Error(err))
+	}
+
 	serverVersion, err := clientset.Discovery().ServerVersion()
 	if err != nil {
 		logger.Fatal("Error getting server version:", zap.Error(err))

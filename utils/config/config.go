@@ -11,15 +11,32 @@
 package config
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/BurntSushi/toml"
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
 	"go.uber.org/zap"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"strconv"
 	"strings"
 )
 
+// ClusterInfo ...
+type ClusterInfo struct {
+	ClusterID   string `json:"cluster_id"`
+	ClusterName string `json:"cluster_name,omitempty"`
+	DataCenter  string `json:"datacenter,omitempty"`
+	CustomerID  string `json:"customer_id,omitempty"`
+}
+
 func getEnv(key string) string {
 	return os.Getenv(strings.ToUpper(key))
+}
+
+func setEnv(key string, value string) {
+	os.Setenv(strings.ToUpper(key), value)
 }
 
 // GetGoPath ...
@@ -78,4 +95,63 @@ func GetConfigStringList(envKey string, defaultConf string, logger zap.Logger) [
 
 	val = strings.Replace(val, " ", "", -1)
 	return strings.Split(val, ",")
+}
+
+// SetUpEvn ... Export the configmap (eg. cluster-info) to environment variables
+func SetUpEvn(kubeclient kubernetes.Interface, logger *zap.Logger) error {
+	logger.Info("Entry SetUpEvn")
+
+	//Read cluster meta info
+	err := LoadClusterInfoMap(kubeclient, logger)
+	if err != nil {
+		return err
+	}
+
+	logger.Info("Exit SetUpEvn")
+	return err
+}
+
+//LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
+func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) error {
+	logger.Debug("Entry LoadClusterInfoMap")
+
+	//check if the ENV variable already loaded
+	clusterid := getEnv("cluster_id")
+	if len(clusterid) > 0 {
+		logger.Info("Exit LoadClusterInfoMap, cluster_id already set", zap.String("cluster_id", clusterid))
+		return nil
+	}
+
+	// export cluster-info config map
+	cmClusterInfo, err := kubeclient.Core().ConfigMaps(consts.KubeSystem).Get(consts.ClusterInfo, metav1.GetOptions{})
+	if err != nil {
+		err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
+
+		setEnv("CLUSTER_ID", "dummyClusterID")
+		setEnv("CLUSTER_NAME", "dummyClusterName")
+		setEnv("DATACENTER", "dummyDC")
+		setEnv("CUSTOMER_ID", "dummyCustomerID")
+		return nil
+	}
+
+	logger.Debug("configmap details", zap.Reflect(consts.ClusterInfo, cmClusterInfo))
+	clusterInfoData := cmClusterInfo.Data[consts.ClusterInfoData]
+	clusteInfo := ClusterInfo{}
+	err = json.Unmarshal([]byte(clusterInfoData), &clusteInfo)
+	if err != nil {
+		err = fmt.Errorf("Error while parsing cluster-config %s. Error: %v", consts.ClusterInfo, err)
+		return err
+	}
+
+	logger.Info("Exporting cluster-config", zap.Reflect(consts.ClusterInfo, clusteInfo))
+	if clusteInfo.ClusterID == "" {
+		err = fmt.Errorf("cluster_id is not found in map %s", consts.ClusterInfo)
+		return err
+	}
+	setEnv("CLUSTER_ID", clusteInfo.ClusterID)
+	setEnv("CLUSTER_NAME", clusteInfo.ClusterName)
+	setEnv("DATACENTER", clusteInfo.DataCenter)
+	setEnv("CUSTOMER_ID", clusteInfo.CustomerID)
+	logger.Debug("Exit LoadClusterInfoMap")
+	return nil
 }
