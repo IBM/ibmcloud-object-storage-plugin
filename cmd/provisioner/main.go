@@ -129,13 +129,14 @@ func main() {
 		*provisioner,
 		s3fsProvisioner,
 		serverVersion.GitVersion,
+		controller.LeaderElection(false),
 		controller.ResyncPeriod(resyncPeriod),
 		controller.ExponentialBackOffOnError(true),
 		controller.FailedProvisionThreshold(failedRetryThreshold),
 		controller.LeaseDuration(*leaseDuration),
 		controller.RenewDeadline(*leaseRenewDeadline),
 		controller.RetryPeriod(*leaseRetryPeriod),
-		controller.TermLimit(*leaseTermLimit),
+		//controller.TermLimit(*leaseTermLimit),
 	)
 
 	stopCh := make(chan struct{})

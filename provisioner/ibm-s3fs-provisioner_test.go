@@ -215,7 +215,7 @@ func getAutoDeletePersistentVolume() *v1.PersistentVolume {
 		},
 		Spec: v1.PersistentVolumeSpec{
 			PersistentVolumeSource: v1.PersistentVolumeSource{
-				FlexVolume: &v1.FlexVolumeSource{
+				FlexVolume: &v1.FlexPersistentVolumeSource{
 					Options: map[string]string{"object-store-endpoint": testOSEndpoint, "object-store-storage-class": testStorageClass},
 				},
 			},

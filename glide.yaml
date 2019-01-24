@@ -1,45 +1,43 @@
 package: github.com/IBM/ibmcloud-object-storage-plugin
 import:
 - package: github.com/golang/glog
-- package: k8s.io/apimachinery
-  subpackages:
-  - util/validation
-  - util/validation/field
 - package: github.com/kubernetes-incubator/external-storage
-  version: ^1.8.1
+  version: v5.2.0
+- package: github.com/satori/go.uuid
+  version: v1.2.0
+- package: k8s.io/api
+  version: kubernetes-1.12.2
+- package: k8s.io/apimachinery
+  version: kubernetes-1.12.2
+- package: k8s.io/client-go
+  version: kubernetes-1.12.2
+- package: k8s.io/kubernetes
+  version: 17c77c7898218073f14c8d573582e8d2313dc740 
   subpackages:
-  - lib/controller
+  - pkg/apis/core
+  - pkg/apis/core/helper
+  - pkg/apis/core/v1/helper
+  - pkg/util/goroutinemap
+  - pkg/util/io
+  - pkg/util/mount
+  - pkg/util/version
 - package: github.com/aws/aws-sdk-go
   version: b90ee7ac719c7dec882a13e4c18c59bc1798ddfe
   repo: https://github.com/orozery/aws-sdk-go.git
-  subpackages:
-  - aws/credentials
-  - aws/credentials/ibmcreds
-  - aws
-  - service/s3
-  - session
-  - aws/session
-  - aws/awserr
 - package: gopkg.in/natefinch/lumberjack.v2
-  version: ^2.1.0
+  version: v2.1.0
 - package: go.uber.org/zap
-  version: ^1.8.0
+  version: v1.8.0
   subpackages:
   - zapcore
-- package: k8s.io/kubernetes
-  version: v1.9.2
-- package: k8s.io/client-go
-  version: kubernetes-1.9.2
-  subpackages:
-  - kubernetes
-  - tools/clientcmd
-  - rest
-  - kubernetes/fake
 - package: github.com/jessevdk/go-flags
+  version: v1.4.0
 testImport:
 - package: github.com/stretchr/testify
-  version: 1.2.1
+  version: v1.2.2
   subpackages:
   - assert
 - package: github.com/coreos/go-systemd/dbus
 - package: github.com/godbus/dbus
+excludeDirs:
+- tests
