@@ -108,9 +108,11 @@ EOF
        ibm.io/auto-create-bucket: "true"
        ibm.io/auto-delete-bucket: "false"
        ibm.io/bucket: "<BUCKET_NAME>"
+       ibm.io/object-path: ""    # Bucket's sub-directory to be mounted (OPTIONAL)
        ibm.io/endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
        ibm.io/region: "us-standard"
        ibm.io/secret-name: "test-secret"
+       ibm.io/stat-cache-expire-seconds: ""   # stat-cache-expire time in seconds; default is no expire.
    spec:
      accessModes:
        - ReadWriteOnce

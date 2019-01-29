@@ -10,7 +10,7 @@ import:
   subpackages:
   - lib/controller
 - package: github.com/aws/aws-sdk-go
-  version: a0a03e8bd76da15122ee18cbdb527d5a0f12913e
+  version: b90ee7ac719c7dec882a13e4c18c59bc1798ddfe
   repo: https://github.com/orozery/aws-sdk-go.git
   subpackages:
   - aws/credentials

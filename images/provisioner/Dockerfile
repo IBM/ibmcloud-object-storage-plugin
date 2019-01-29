@@ -1,4 +1,4 @@
-FROM busybox:1.26-glibc
+FROM alpine:3.7
 
 # Default values
 ARG git_commit_id=unknown

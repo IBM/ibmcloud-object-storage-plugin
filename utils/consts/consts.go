@@ -27,4 +27,13 @@ const (
 
 	// PodNameEnvVar is the pod name environment variable
 	PodNameEnvVar = "POD_NAME"
+
+	// KubeSystem ... kube-system constant
+	KubeSystem = "kube-system"
+
+	// ClusterInfo ... culster-info constant
+	ClusterInfo = "cluster-info"
+
+	// ClusterInfoData ...data file-name
+	ClusterInfoData = "cluster-config.json"
 )

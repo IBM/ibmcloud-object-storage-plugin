@@ -1,4 +1,4 @@
-github.com/aws/aws-sdk-go,a0a03e8bd76da15122ee18cbdb527d5a0f12913e
+github.com/aws/aws-sdk-go,b90ee7ac719c7dec882a13e4c18c59bc1798ddfe
 github.com/BurntSushi/toml,a368813c5e648fee92e5f6c30e3944ff9d5e8895
 github.com/coreos/go-systemd,d1b7d058aa2adfc795ad17ff4aaa2bc64ec11c78
 github.com/davecgh/go-spew,04cdfd42973bb9c8589fd6a731800cf222fde1a9

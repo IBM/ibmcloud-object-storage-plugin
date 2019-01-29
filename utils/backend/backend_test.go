@@ -16,26 +16,31 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	"strings"
 	"testing"
 )
 
 type fakeS3API struct {
-	ErrHeadBucket   error
-	ErrCreateBucket error
-	ErrListObjects  error
-	ErrDeleteObject error
-	ErrDeleteBucket error
+	ErrHeadBucket    error
+	ErrCreateBucket  error
+	ErrListObjects   error
+	ErrListObjectsV2 error
+	ErrDeleteObject  error
+	ErrDeleteBucket  error
+	ObjectPath       string
 }
 
 const (
 	errFooMsg             = "foo"
 	testBucket            = "test-bucket"
+	testObjectPath        = "/test/object-path"
 	testEndpoint          = "test-endpoint"
 	testRegion            = "test-region"
 	testAccessKey         = "akey"
 	testSecretKey         = "skey"
 	testAPIKey            = "apikey"
 	testServiceInstanceID = "sid"
+	testIAMEndpoint       = "https://test-iam-endpoint"
 )
 
 var (
@@ -55,6 +60,12 @@ func (a *fakeS3API) ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutp
 	return &s3.ListObjectsOutput{
 		Contents: []*s3.Object{{Key: &testObject}},
 	}, a.ErrListObjects
+}
+
+func (a *fakeS3API) ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	return &s3.ListObjectsV2Output{
+		Contents: []*s3.Object{{Key: &a.ObjectPath}},
+	}, a.ErrListObjectsV2
 }
 
 func (a *fakeS3API) DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error) {
@@ -80,7 +91,8 @@ func Test_NewObjectStorageSession_Positive(t *testing.T) {
 
 func Test_NewObjectStorageIAMSession_Positive(t *testing.T) {
 	f := &COSSessionFactory{}
-	sess := f.NewObjectStorageSession(testEndpoint, testRegion, &ObjectStorageCredentials{ServiceInstanceID: testServiceInstanceID, APIKey: testAPIKey}, zap.NewNop())
+	sess := f.NewObjectStorageSession(testEndpoint, testRegion,
+		&ObjectStorageCredentials{ServiceInstanceID: testServiceInstanceID, APIKey: testAPIKey, IAMEndpoint: testIAMEndpoint}, zap.NewNop())
 	assert.NotNil(t, sess)
 }
 
@@ -96,6 +108,28 @@ func Test_CheckBucketAccess_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
 	err := sess.CheckBucketAccess(testBucket)
 	assert.NoError(t, err)
+}
+
+func Test_CheckObjectPathExistence_Positive(t *testing.T) {
+	sess := getSession(&fakeS3API{ObjectPath: strings.TrimPrefix(testObjectPath, "/")})
+	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
+	assert.NoError(t, err)
+	assert.Equal(t, exist, true)
+}
+
+func Test_CheckObjectPathExistence_PathNotFound(t *testing.T) {
+	sess := getSession(&fakeS3API{ObjectPath: "test/object-path-xxxx"})
+	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
+	assert.NoError(t, err)
+	assert.Equal(t, exist, false)
+}
+
+func Test_CheckObjectPathExistence_Error(t *testing.T) {
+	sess := getSession(&fakeS3API{ErrListObjectsV2: errFoo})
+	_, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot list bucket")
+	}
 }
 
 func Test_CreateBucketAccess_Error(t *testing.T) {

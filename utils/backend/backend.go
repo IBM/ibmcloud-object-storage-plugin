@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"go.uber.org/zap"
+	"strings"
 )
 
 // ObjectStorageCredentials holds credentials for accessing an object storage service
@@ -31,6 +32,8 @@ type ObjectStorageCredentials struct {
 	APIKey string
 	// ServiceInstanceID is the account identifier in IBM IAM authentication
 	ServiceInstanceID string
+	//IAMEndpoint ...
+	IAMEndpoint string
 }
 
 // ObjectStorageSessionFactory is an interface of an object store session factory
@@ -46,6 +49,9 @@ type ObjectStorageSession interface {
 	// CheckBucketAccess method check that a bucket can be accessed
 	CheckBucketAccess(bucket string) error
 
+	// CheckObjectPathExistence method checks that object-path exists inside bucket
+	CheckObjectPathExistence(bucket, objectpath string) (bool, error)
+
 	// CreateBucket methods creates a new bucket
 	CreateBucket(bucket string) (string, error)
 
@@ -60,6 +66,7 @@ type s3API interface {
 	HeadBucket(input *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 	CreateBucket(input *s3.CreateBucketInput) (*s3.CreateBucketOutput, error)
 	ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
+	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 	DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 	DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
 }
@@ -74,7 +81,7 @@ type COSSession struct {
 func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession {
 	var sdkCreds *credentials.Credentials
 	if creds.APIKey != "" {
-		sdkCreds = ibmcreds.NewCredentialsClient(creds.APIKey, creds.ServiceInstanceID)
+		sdkCreds = ibmcreds.NewCredentialsClient(creds.APIKey, creds.ServiceInstanceID, creds.IAMEndpoint)
 	} else {
 		sdkCreds = credentials.NewStaticCredentials(creds.AccessKey, creds.SecretKey, "")
 	}
@@ -98,6 +105,31 @@ func (s *COSSession) CheckBucketAccess(bucket string) error {
 	})
 
 	return err
+}
+
+// CheckObjectPathExistence method checks that object-path exists inside bucket
+func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) {
+	if strings.HasPrefix(objectpath, "/") {
+		objectpath = strings.TrimPrefix(objectpath, "/")
+	}
+	resp, err := s.svc.ListObjectsV2(&s3.ListObjectsV2Input{
+		Bucket:  aws.String(bucket),
+		MaxKeys: aws.Int64(1),
+		Prefix:  aws.String(objectpath),
+	})
+
+	if err != nil {
+		return false, fmt.Errorf("cannot list bucket '%s': %v", bucket, err)
+	}
+
+	if len(resp.Contents) == 1 {
+		object := *(resp.Contents[0].Key)
+		if (object == objectpath) || (strings.TrimSuffix(object, "/") == objectpath) {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 // CreateBucket methods creates a new bucket

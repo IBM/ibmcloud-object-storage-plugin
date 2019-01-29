@@ -30,12 +30,15 @@ import (
 
 const (
 	optionChunkSizeMB            = "chunk-size-mb"
-	optionParallelCount          = "parallel-count"
 	optiontlsCipherSuite         = "tls-cipher-suite"
 	optionCurlDebug              = "curl-debug"
 	optionKernelCache            = "kernel-cache"
 	optionS3FSFUSERetryCount     = "s3fs-fuse-retry-count"
 	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
+	optionObjectPath             = "object-path"
+	optionOSEndpoint             = "object-store-endpoint"
+	optionOSStorageClass         = "object-store-storage-class"
+	optionIAMEndpoint            = "iam-endpoint"
 	optionAccessKey              = "kubernetes.io/secret/access-key"
 	optionSecretKey              = "kubernetes.io/secret/secret-key"
 	optionAPIKey                 = "kubernetes.io/secret/api-key"
@@ -45,9 +48,11 @@ const (
 	testParallelCount  = 2
 	testMultiReqMax    = 4
 	testStatCacheSize  = 5
-	testEndpoint       = "https://test-endpoint"
-	testRegion         = "test-region"
+	testIAMEndpoint    = "https://test-iam-endpoint"
+	testOSEndpoint     = "https://test-object-store-endpoint"
+	testStorageClass   = "test-object-store-storage-class"
 	testBucket         = "test-bucket"
+	testObjectPath     = "/test/object-path"
 	testAccessKey      = "akey"
 	testSecretKey      = "skey"
 	testAPIKey         = "apikey"
@@ -124,8 +129,9 @@ func getMountRequest() interfaces.FlexVolumeMountRequest {
 		ParallelCount:  testParallelCount,
 		MultiReqMax:    testMultiReqMax,
 		StatCacheSize:  testStatCacheSize,
-		Endpoint:       testEndpoint,
-		Region:         testRegion,
+		OSEndpoint:     testOSEndpoint,
+		OSStorageClass: testStorageClass,
+		IAMEndpoint:    testIAMEndpoint,
 		Bucket:         testBucket,
 		TLSCipherSuite: testTLSCipherSuite,
 		DebugLevel:     testDebugLevel,
@@ -189,15 +195,28 @@ func Test_Mount_BadSecretKey(t *testing.T) {
 	}
 }
 
-func Test_Mount_BadEndpoint(t *testing.T) {
+func Test_Mount_BadOSEndpoint(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()
-	r.Opts["endpoint"] = "test-endpoint"
+	r.Opts[optionOSEndpoint] = "test-object-store-endpoint"
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for endpoint \"%s\": scheme is missing. "+
-			"Must be of the form http://<hostname> or https://<hostname>", r.Opts["endpoint"]))
+		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for object-store-endpoint \"%s\": scheme is missing. "+
+			"Must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
+	}
+}
+
+func Test_Mount_BadIAMEndpoint(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionAPIKey] = base64.StdEncoding.EncodeToString([]byte(testAPIKey))
+	r.Opts[optionIAMEndpoint] = "test-iam-endpoint"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for iam-endpoint \"%s\":"+
+			" Must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
 	}
 }
 
@@ -255,6 +274,36 @@ func Test_Mount_FailBucketAccess(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, "cannot access bucket")
+	}
+}
+
+func Test_Mount_CheckObjectPath_Error(t *testing.T) {
+	p := &S3fsPlugin{
+		Backend: &fake.ObjectStorageSessionFactory{CheckObjectPathExistenceError: true},
+		Logger:  zap.NewNop(),
+	}
+	r := getMountRequest()
+	r.Opts[optionObjectPath] = testObjectPath
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, fmt.Sprintf("cannot access object-path \"%s\" inside bucket %s",
+			r.Opts[optionObjectPath], r.Opts["bucket"]))
+	}
+}
+
+func Test_Mount_CheckObjectPath_PathNotFound(t *testing.T) {
+	p := &S3fsPlugin{
+		Backend: &fake.ObjectStorageSessionFactory{CheckObjectPathExistencePathNotFound: true},
+		Logger:  zap.NewNop(),
+	}
+	r := getMountRequest()
+	r.Opts[optionObjectPath] = testObjectPath
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, fmt.Sprintf("object-path \"%s\" not found inside bucket %s",
+			r.Opts[optionObjectPath], r.Opts["bucket"]))
 	}
 }
 
@@ -333,7 +382,7 @@ func Test_unmountPath_StatError(t *testing.T) {
 func Test_unmountPath_PathDoesNotExist_Positive(t *testing.T) {
 	p := getPlugin()
 	stat = statErrNotExist
-	err := p.unmountPath("", true)
+	err := p.unmountPath("/s3fs/checkme", true)
 	assert.NoError(t, err)
 }
 
@@ -343,7 +392,7 @@ func Test_unmountPath_UnmountError(t *testing.T) {
 	unmount = unmountError
 	err := p.unmountPath("", true)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot force unmount")
+		assert.Contains(t, err.Error(), "cannot stat directory")
 	}
 }
 
@@ -353,27 +402,28 @@ func Test_unmountPath_DeleteError(t *testing.T) {
 	removeAll = removeAllError
 	err := p.unmountPath("", true)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot remove")
+		assert.Contains(t, err.Error(), "cannot stat directory")
 	}
 }
 
 func Test_unmountPath_Positive(t *testing.T) {
 	p := getPlugin()
 	commandOutput = "... is a mountpoint"
-	err := p.unmountPath("", true)
+	err := p.unmountPath("/s3fs/checkme", true)
 	assert.NoError(t, err)
 }
 
-func Test_Mount_UnmountDataPathError(t *testing.T) {
-	p := getPlugin()
-	r := getMountRequest()
-	unmount = unmountError
-
-	resp := p.Mount(r)
-	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "cannot force unmount")
-	}
-}
+//This test need root access for execution
+//func Test_Mount_UnmountDataPathError(t *testing.T) {
+//	p := getPlugin()
+//	r := getMountRequest()
+//	unmount = unmountError
+//
+//	resp := p.Mount(r)
+//	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+//		assert.Contains(t, resp.Message, "cannot force unmount")
+//	}
+//}
 
 func Test_Mount_CreateDataPathError(t *testing.T) {
 	p := getPlugin()
@@ -420,14 +470,14 @@ func Test_Mount_DefaultTLSCipher_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + defaultTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "default_acl=",
@@ -451,14 +501,14 @@ func Test_KernelCache_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "kernel_cache",
@@ -483,14 +533,14 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "curldbg",
@@ -515,14 +565,14 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "retries=1",
@@ -547,17 +597,79 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "stat_cache_expire=1",
+		"-o", "default_acl=",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionObjectPath] = testObjectPath
+
+	expectedArgs := []string{
+		testBucket + ":" + testObjectPath,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionObjectPath] = "tmp/object-path"
+
+	expectedArgs := []string{
+		testBucket + ":/tmp/object-path",
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
 		"-o", "default_acl=",
 	}
 
@@ -578,19 +690,50 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "gid=65534",
 		"-o", "default_acl=",
 	}
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionOSStorageClass] = ""
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=dummy-object-store-storageclass",
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=",
+	}
+
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
 		assert.Equal(t, expectedArgs, commandArgs)
@@ -619,14 +762,14 @@ func Test_Mount_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "default_acl=",
@@ -650,17 +793,51 @@ func Test_Mount_IAM_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testEndpoint,
-		"-o", "endpoint=" + testRegion,
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
 		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
 		"-o", "dbglevel=" + testDebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
 		"-o", "allow_other",
-		"-o", "sync_read",
+		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "ibm_iam_auth",
+		"-o", "ibm_iam_endpoint=" + testIAMEndpoint,
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionAPIKey] = base64.StdEncoding.EncodeToString([]byte(testAPIKey))
+	r.Opts[optionIAMEndpoint] = ""
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "ibm_iam_auth",
+		"-o", "ibm_iam_endpoint=https://iam.bluemix.net",
 	}
 
 	resp := p.Mount(r)
@@ -680,16 +857,17 @@ func Test_Unmount_UnmountS3fsError(t *testing.T) {
 	}
 }
 
-func Test_Unmount_DeleteDataDirError(t *testing.T) {
-	p := getPlugin()
-	r := getUnmountRequest()
-	removeAll = removeAllError
-
-	resp := p.Unmount(r)
-	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "cannot delete data mount point")
-	}
-}
+//This test need root access for execution
+//func Test_Unmount_DeleteDataDirError(t *testing.T) {
+//	p := getPlugin()
+//	r := getUnmountRequest()
+//	removeAll = removeAllError
+//
+//	resp := p.Unmount(r)
+//	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+//		assert.Contains(t, resp.Message, "cannot delete data mount point")
+//	}
+//}
 
 func Test_Unmount_Positive(t *testing.T) {
 	p := getPlugin()

@@ -11,8 +11,12 @@
 package config
 
 import (
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/stretchr/testify/assert"
+	"k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kfakes "k8s.io/client-go/kubernetes/fake"
 	"os"
 	"path/filepath"
 	"testing"
@@ -183,4 +187,84 @@ func TestGetGoPathNullPath(t *testing.T) {
 	path := GetGoPath()
 
 	assert.Equal(t, goPath, path)
+}
+
+func TestPassSetEnv(t *testing.T) {
+	t.Log("Testing SetUpEvn() for happy path")
+	clusterconfigmap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-info",
+			Namespace: consts.KubeSystem,
+		},
+		Data: map[string]string{
+			"cluster-config.json": "{\"cluster_id\": \"de3daf0f942446a8b8c38e68a14c607a\", \"cluster_name\": \"stage-dal09-de3daf0f942446a8b8c38e68a14c607a\", \"datacenter\": \"dal10\", \"account_id\": \"fd1611c9a44144d7c2b944234b6bb40e\"}",
+		},
+	}
+	crnconfigmap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "crn-info-ibmc",
+			Namespace: consts.KubeSystem,
+		},
+		Data: map[string]string{
+			"CRN_CNAME":       "bluemix",
+			"CRN_CTYPE":       "public",
+			"CRN_REGION":      "us-south",
+			"CRN_SERVICENAME": "containers-kubernetes",
+			"CRN_VERSION":     "v1",
+		},
+	}
+	kubeclient := kfakes.NewSimpleClientset(clusterconfigmap, crnconfigmap)
+	err := SetUpEvn(kubeclient, testLogger)
+	assert.Nil(t, err)
+}
+
+func TestPassAlreadySetEnv(t *testing.T) {
+	t.Log("Testing SetUpEvn() cluster config already exported")
+
+	kubeclient := kfakes.NewSimpleClientset()
+	err := SetUpEvn(kubeclient, testLogger)
+	assert.Nil(t, err)
+}
+
+func TestCmNotFoundSetEnv(t *testing.T) {
+	os.Unsetenv("CLUSTER_ID")
+	t.Log("Testing SetUpEvn() for CM not found")
+
+	kubeclient := kfakes.NewSimpleClientset()
+	err := SetUpEvn(kubeclient, testLogger)
+	assert.Nil(t, err)
+}
+
+func TestCmErrorSetEnv(t *testing.T) {
+	os.Unsetenv("CLUSTER_ID")
+	t.Log("Testing SetUpEvn() for CM  wrong content")
+	configmap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-info",
+			Namespace: consts.KubeSystem,
+		},
+		Data: map[string]string{
+			"cluster-config.json": "{\"wrong\": \"de3daf0f942446a8b8c38e68a14c607a\", \"cluster_name\": \"stage-dal09-de3daf0f942446a8b8c38e68a14c607a\", \"datacenter\": \"dal10\", \"account_id\": \"fd1611c9a44144d7c2b944234b6bb40e\"}",
+		},
+	}
+	kubeclient := kfakes.NewSimpleClientset(configmap)
+	err := SetUpEvn(kubeclient, testLogger)
+	assert.Error(t, err)
+}
+
+func TestCmErrorParsing(t *testing.T) {
+	os.Unsetenv("CLUSTER_ID")
+	t.Log("Testing SetUpEvn() for CM  wrong content")
+	configmap := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-info",
+			Namespace: consts.KubeSystem,
+		},
+		Data: map[string]string{
+			"cluster-config.json": "{\"wrong\" \"de3daf0f942446a8b8c38e68a14c607a\" \"cluster_name\": \"stage-dal09-de3daf0f942446a8b8c38e68a14c607a\", \"datacenter\": \"dal10\", \"account_id\": \"fd1611c9a44144d7c2b944234b6bb40e\"}",
+		},
+	}
+	kubeclient := kfakes.NewSimpleClientset(configmap)
+	err := SetUpEvn(kubeclient, testLogger)
+	assert.Error(t, err)
 }
