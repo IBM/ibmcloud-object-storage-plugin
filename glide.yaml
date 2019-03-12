@@ -1,18 +1,18 @@
 package: github.com/IBM/ibmcloud-object-storage-plugin
 import:
 - package: github.com/golang/glog
-- package: github.com/kubernetes-incubator/external-storage
-  version: v5.2.0
+- package: github.com/kubernetes-sigs/sig-storage-lib-external-provisioner
+  version: v2.2.0
 - package: github.com/satori/go.uuid
   version: v1.2.0
 - package: k8s.io/api
-  version: kubernetes-1.12.2
+  version: kubernetes-1.13.4
 - package: k8s.io/apimachinery
-  version: kubernetes-1.12.2
+  version: kubernetes-1.13.4
 - package: k8s.io/client-go
-  version: kubernetes-1.12.2
+  version: kubernetes-1.13.4
 - package: k8s.io/kubernetes
-  version: 17c77c7898218073f14c8d573582e8d2313dc740 
+  version: c27b913fddd1a6c480c229191a087698aa92f0b1
   subpackages:
   - pkg/apis/core
   - pkg/apis/core/helper

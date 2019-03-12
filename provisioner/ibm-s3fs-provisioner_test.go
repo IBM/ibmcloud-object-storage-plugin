@@ -17,7 +17,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/fake"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	"github.com/kubernetes-incubator/external-storage/lib/controller"
+	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
