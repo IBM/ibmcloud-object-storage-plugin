@@ -62,27 +62,30 @@ var podUID = ""
 
 // Options are the FlexVolume driver options
 type Options struct {
-	ChunkSizeMB            int    `json:"chunk-size-mb,string"`
-	ParallelCount          int    `json:"parallel-count,string"`
-	MultiReqMax            int    `json:"multireq-max,string"`
-	StatCacheSize          int    `json:"stat-cache-size,string"`
-	FSGroup                string `json:"kubernetes.io/fsGroup,omitempty"`
-	Endpoint               string `json:"endpoint,omitempty"` //Will be deprecated
-	Region                 string `json:"region,omitempty"`   //Will be deprecated
-	Bucket                 string `json:"bucket"`
-	ObjectPath             string `json:"object-path,omitempty"`
-	DebugLevel             string `json:"debug-level"`
-	CurlDebug              bool   `json:"curl-debug,string"`
-	KernelCache            bool   `json:"kernel-cache,string,omitempty"`
-	TLSCipherSuite         string `json:"tls-cipher-suite,omitempty"`
-	S3FSFUSERetryCount     string `json:"s3fs-fuse-retry-count,omitempty"`
-	StatCacheExpireSeconds string `json:"stat-cache-expire-seconds,omitempty"`
-	AccessKeyB64           string `json:"kubernetes.io/secret/access-key,omitempty"`
-	SecretKeyB64           string `json:"kubernetes.io/secret/secret-key,omitempty"`
-	APIKeyB64              string `json:"kubernetes.io/secret/api-key,omitempty"`
-	OSEndpoint             string `json:"object-store-endpoint,omitempty"`
-	OSStorageClass         string `json:"object-store-storage-class,omitempty"`
-	IAMEndpoint            string `json:"iam-endpoint,omitempty"`
+	ChunkSizeMB             int    `json:"chunk-size-mb,string"`
+	ParallelCount           int    `json:"parallel-count,string"`
+	MultiReqMax             int    `json:"multireq-max,string"`
+	StatCacheSize           int    `json:"stat-cache-size,string"`
+	FSGroup                 string `json:"kubernetes.io/fsGroup,omitempty"`
+	Endpoint                string `json:"endpoint,omitempty"` //Will be deprecated
+	Region                  string `json:"region,omitempty"`   //Will be deprecated
+	Bucket                  string `json:"bucket"`
+	ObjectPath              string `json:"object-path,omitempty"`
+	DebugLevel              string `json:"debug-level"`
+	CurlDebug               bool   `json:"curl-debug,string"`
+	KernelCache             bool   `json:"kernel-cache,string,omitempty"`
+	TLSCipherSuite          string `json:"tls-cipher-suite,omitempty"`
+	S3FSFUSERetryCount      string `json:"s3fs-fuse-retry-count,omitempty"`
+	StatCacheExpireSeconds  string `json:"stat-cache-expire-seconds,omitempty"`
+	AccessKeyB64            string `json:"kubernetes.io/secret/access-key,omitempty"`
+	SecretKeyB64            string `json:"kubernetes.io/secret/secret-key,omitempty"`
+	APIKeyB64               string `json:"kubernetes.io/secret/api-key,omitempty"`
+	OSEndpoint              string `json:"object-store-endpoint,omitempty"`
+	OSStorageClass          string `json:"object-store-storage-class,omitempty"`
+	IAMEndpoint             string `json:"iam-endpoint,omitempty"`
+	ConnectTimeoutSeconds   string `json:"connect-timeout,omitempty"`
+	ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
+	UseXattr                bool   `json:"use-xattr,string,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -260,7 +263,7 @@ func (p *S3fsPlugin) Init() interfaces.FlexVolumeResponse {
 	return interfaces.FlexVolumeResponse{
 		Status:       interfaces.StatusSuccess,
 		Message:      "Plugin init successfully",
-		Capabilities: interfaces.CapabilitiesResponse{Attach: false},
+		Capabilities: interfaces.CapabilitiesResponse{Attach: false, FSGroup: false},
 	}
 }
 
@@ -355,11 +358,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				zap.Error(err))
 			return fmt.Errorf("Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		}
-		if retryCount == 0 {
+		if retryCount < 1 {
 			p.Logger.Error(podUID+":"+
-				" value of s3fs-fuse-retry-count should be non-zero",
+				" value of s3fs-fuse-retry-count should be >= 1",
 				zap.Error(err))
-			return fmt.Errorf("value of s3fs-fuse-retry-count should be non-zero")
+			return fmt.Errorf("value of s3fs-fuse-retry-count should be >= 1")
 		}
 	}
 
@@ -367,15 +370,37 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if options.StatCacheExpireSeconds != "" {
 		cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
 		if err != nil {
-			p.Logger.Error(hostname+" Component: S3FS Driver, "+
-				"Message: Cannot convert value of stat-cache-expire-seconds into integer",
+			p.Logger.Error(podUID+":"+
+				" Cannot convert value of stat-cache-expire-seconds into integer",
 				zap.Error(err))
 			return fmt.Errorf("Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
-			p.Logger.Error(hostname+" Component: S3FS Driver, "+
-				"Message: value of stat-cache-expire-seconds should be >= 0",
+			p.Logger.Error(podUID+":"+
+				" value of stat-cache-expire-seconds should be >= 0",
 				zap.Error(err))
 			return fmt.Errorf("value of stat-cache-expire-seconds should be >= 0")
+		}
+	}
+
+	//Check if value of connect_timeout parameter can be converted to integer
+	if options.ConnectTimeoutSeconds != "" {
+		_, err := strconv.Atoi(options.ConnectTimeoutSeconds)
+		if err != nil {
+			p.Logger.Error(podUID+":"+
+				"Cannot convert value of connect-timeout-seconds into integer",
+				zap.Error(err))
+			return fmt.Errorf("Cannot convert value of connect-timeout-seconds into integer: %v", err)
+		}
+	}
+
+	//Check if value of connect_timeout parameter can be converted to integer
+	if options.ReadwriteTimeoutSeconds != "" {
+		_, err := strconv.Atoi(options.ReadwriteTimeoutSeconds)
+		if err != nil {
+			p.Logger.Error(podUID+":"+
+				"Cannot convert value of readwrite-timeout-seconds into integer",
+				zap.Error(err))
+			return fmt.Errorf("Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
 		}
 	}
 
@@ -529,9 +554,8 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 
 	//if options.FSGroup != "" {
 	if _, ok := mountRequest.Opts["kubernetes.io/fsGroup"]; ok {
-		if options.FSGroup == "65534" {
-			args = append(args, "-o", "gid="+options.FSGroup)
-		}
+		args = append(args, "-o", "gid="+options.FSGroup)
+		args = append(args, "-o", "uid="+options.FSGroup)
 	}
 
 	//Number of retries for failed S3 transaction
@@ -556,6 +580,18 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		args = append(args, "-o", "ibm_iam_endpoint="+iamEndpoint)
 	} else {
 		args = append(args, "-o", "default_acl=")
+	}
+
+	if options.ConnectTimeoutSeconds != "" {
+		args = append(args, "-o", "connect_timeout="+options.ConnectTimeoutSeconds)
+	}
+
+	if options.ReadwriteTimeoutSeconds != "" {
+		args = append(args, "-o", "readwrite_timeout="+options.ReadwriteTimeoutSeconds)
+	}
+
+	if options.UseXattr {
+		args = append(args, "-o", "use_xattr")
 	}
 
 	fInfo, err = os.Lstat(mountRequest.MountDir)
