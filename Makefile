@@ -102,4 +102,4 @@ test-integration:
 
 .PHONY: clean
 clean:
-rm -f ibmcloud-object-storage-plugin
+	rm -f ibmcloud-object-storage-plugin
