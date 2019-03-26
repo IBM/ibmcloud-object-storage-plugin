@@ -93,6 +93,7 @@ const (
 	optionObjectPath             = "object-path"
 	optionStorageClass           = "object-store-storage-class"
 	optionIAMEndpoint            = "iam-endpoint"
+	optionAccessMode             = "access-mode"
 )
 
 type clientGoConfig struct {
@@ -185,6 +186,9 @@ func getVolumeOptions() controller.VolumeOptions {
 					annotationSecretName: testSecretName,
 				},
 				Namespace: testNamespace,
+			},
+			Spec: v1.PersistentVolumeClaimSpec{
+				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
 			},
 		},
 		Parameters: map[string]string{
@@ -640,6 +644,36 @@ func Test_Provision_KernelCache_Positive(t *testing.T) {
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionKernelCache])
+}
+
+func Test_Provision_AccessMode_Negative(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadOnlyMany, v1.ReadWriteOnce}
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "More that one access mode is not supported")
+	}
+}
+
+func Test_Provision_AccessMode_ReadWrite_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "ReadWriteMany", pv.Spec.FlexVolume.Options.AccessMode)
+}
+
+func Test_Provision_AccessMode_ReadOnly_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadOnlyMany}
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "ReadOnlyMany", pv.Spec.FlexVolume.Options.AccessMode)
 }
 
 func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {

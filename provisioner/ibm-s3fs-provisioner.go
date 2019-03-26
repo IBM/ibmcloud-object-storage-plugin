@@ -298,6 +298,13 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
+	// Check AccessMode
+	accessMode := options.PVC.Spec.AccessModes
+	contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
+	if len(accessMode) > 1 {
+		return nil, fmt.Errorf(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
+	}
+
 	driverOptions, err := parser.MarshalToMap(&driver.Options{
 		ChunkSizeMB:            sc.ChunkSizeMB,
 		ParallelCount:          sc.ParallelCount,
@@ -314,6 +321,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		OSStorageClass:         sc.OSStorageClass,
 		Bucket:                 pvc.Bucket,
 		ObjectPath:             pvc.ObjectPath,
+		AccessMode:             string(accessMode[0]),
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)

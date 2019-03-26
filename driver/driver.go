@@ -83,6 +83,7 @@ type Options struct {
 	OSEndpoint             string `json:"object-store-endpoint,omitempty"`
 	OSStorageClass         string `json:"object-store-storage-class,omitempty"`
 	IAMEndpoint            string `json:"iam-endpoint,omitempty"`
+	AccessMode             string `json: access-mode,omitempty`
 }
 
 // PathExists returns true if the specified path exists.
@@ -532,6 +533,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		if options.FSGroup == "65534" {
 			args = append(args, "-o", "gid="+options.FSGroup)
 		}
+	}
+
+	// Check if AccessMode is ReadOnlyMany
+	if options.AccessMode == "ReadOnlyMany" {
+		args = append(args, "-o", "ro")
 	}
 
 	//Number of retries for failed S3 transaction

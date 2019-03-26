@@ -709,6 +709,36 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 	}
 }
 
+func Test_Mount_ReadOnly_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts["access-mode"] = "ReadOnlyMany"
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "ro",
+		"-o", "default_acl=",
+	}
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
 func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()
