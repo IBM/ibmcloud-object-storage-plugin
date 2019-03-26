@@ -621,6 +621,7 @@ func Test_Provision_Positive(t *testing.T) {
 			optionBucket:             testBucket,
 			optionStorageClass:       testStorageClass,
 			optionIAMEndpoint:        testIAMEndpoint,
+			optionAccessMode:         "ReadWriteMany",
 		},
 		pv.Spec.FlexVolume.Options,
 	)
@@ -663,7 +664,7 @@ func Test_Provision_AccessMode_ReadWrite_Positive(t *testing.T) {
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
-	assert.Equal(t, "ReadWriteMany", pv.Spec.FlexVolume.Options.AccessMode)
+	assert.Equal(t, "ReadWriteMany", pv.Spec.FlexVolume.Options[optionAccessMode])
 }
 
 func Test_Provision_AccessMode_ReadOnly_Positive(t *testing.T) {
@@ -673,7 +674,7 @@ func Test_Provision_AccessMode_ReadOnly_Positive(t *testing.T) {
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
-	assert.Equal(t, "ReadOnlyMany", pv.Spec.FlexVolume.Options.AccessMode)
+	assert.Equal(t, "ReadOnlyMany", pv.Spec.FlexVolume.Options[optionAccessMode])
 }
 
 func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {

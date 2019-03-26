@@ -83,7 +83,7 @@ type Options struct {
 	OSEndpoint             string `json:"object-store-endpoint,omitempty"`
 	OSStorageClass         string `json:"object-store-storage-class,omitempty"`
 	IAMEndpoint            string `json:"iam-endpoint,omitempty"`
-	AccessMode             string `json: access-mode,omitempty`
+	AccessMode             string `json:"access-mode,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
