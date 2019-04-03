@@ -102,7 +102,7 @@ const (
 	optionReadwriteTimeoutSeconds = "readwrite-timeout"
 	optionConnectTimeoutSeconds   = "connect-timeout"
 	optionUseXattr                = "use-xattr"
-	optionAccessMode             = "access-mode"
+	optionAccessMode              = "access-mode"
 )
 
 type clientGoConfig struct {
