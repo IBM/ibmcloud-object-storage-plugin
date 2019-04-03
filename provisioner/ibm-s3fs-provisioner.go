@@ -346,8 +346,8 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	if pvc.CurlDebug {
 		sc.CurlDebug = pvc.CurlDebug
 	}
-  
-  // Check AccessMode
+
+	// Check AccessMode
 	accessMode := options.PVC.Spec.AccessModes
 	contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
 	if len(accessMode) > 1 {
@@ -373,7 +373,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		ReadwriteTimeoutSeconds: sc.ReadwriteTimeoutSeconds,
 		ConnectTimeoutSeconds:   sc.ConnectTimeoutSeconds,
 		UseXattr:                sc.UseXattr,
-    AccessMode:              string(accessMode[0]),
+		AccessMode:              string(accessMode[0]),
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)

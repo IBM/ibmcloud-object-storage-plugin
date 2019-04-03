@@ -86,7 +86,7 @@ type Options struct {
 	ConnectTimeoutSeconds   string `json:"connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"use-xattr,string,omitempty"`
-  AccessMode              string `json:"access-mode,omitempty"`
+	AccessMode              string `json:"access-mode,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.

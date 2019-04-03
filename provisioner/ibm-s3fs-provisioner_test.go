@@ -102,7 +102,7 @@ const (
 	optionReadwriteTimeoutSeconds = "readwrite-timeout"
 	optionConnectTimeoutSeconds   = "connect-timeout"
 	optionUseXattr                = "use-xattr"
-  optionAccessMode             = "access-mode"
+	optionAccessMode             = "access-mode"
 )
 
 type clientGoConfig struct {
@@ -650,7 +650,7 @@ func Test_Provision_Positive(t *testing.T) {
 			optionBucket:                 testBucket,
 			optionStorageClass:           testStorageClass,
 			optionIAMEndpoint:            testIAMEndpoint,
-      optionAccessMode:             "ReadWriteMany",
+			optionAccessMode:             "ReadWriteMany",
 		},
 		pv.Spec.FlexVolume.Options,
 	)
