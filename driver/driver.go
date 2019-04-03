@@ -86,6 +86,7 @@ type Options struct {
 	ConnectTimeoutSeconds   string `json:"connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"use-xattr,string,omitempty"`
+	AccessMode              string `json:"access-mode,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -556,6 +557,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if _, ok := mountRequest.Opts["kubernetes.io/fsGroup"]; ok {
 		args = append(args, "-o", "gid="+options.FSGroup)
 		args = append(args, "-o", "uid="+options.FSGroup)
+	}
+
+	// Check if AccessMode is ReadOnlyMany
+	if options.AccessMode == "ReadOnlyMany" {
+		args = append(args, "-o", "ro")
 	}
 
 	//Number of retries for failed S3 transaction
