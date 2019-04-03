@@ -29,19 +29,22 @@ import (
 )
 
 const (
-	optionChunkSizeMB            = "chunk-size-mb"
-	optiontlsCipherSuite         = "tls-cipher-suite"
-	optionCurlDebug              = "curl-debug"
-	optionKernelCache            = "kernel-cache"
-	optionS3FSFUSERetryCount     = "s3fs-fuse-retry-count"
-	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
-	optionObjectPath             = "object-path"
-	optionOSEndpoint             = "object-store-endpoint"
-	optionOSStorageClass         = "object-store-storage-class"
-	optionIAMEndpoint            = "iam-endpoint"
-	optionAccessKey              = "kubernetes.io/secret/access-key"
-	optionSecretKey              = "kubernetes.io/secret/secret-key"
-	optionAPIKey                 = "kubernetes.io/secret/api-key"
+	optionChunkSizeMB             = "chunk-size-mb"
+	optiontlsCipherSuite          = "tls-cipher-suite"
+	optionCurlDebug               = "curl-debug"
+	optionKernelCache             = "kernel-cache"
+	optionS3FSFUSERetryCount      = "s3fs-fuse-retry-count"
+	optionStatCacheExpireSeconds  = "stat-cache-expire-seconds"
+	optionObjectPath              = "object-path"
+	optionOSEndpoint              = "object-store-endpoint"
+	optionOSStorageClass          = "object-store-storage-class"
+	optionIAMEndpoint             = "iam-endpoint"
+	optionAccessKey               = "kubernetes.io/secret/access-key"
+	optionSecretKey               = "kubernetes.io/secret/secret-key"
+	optionAPIKey                  = "kubernetes.io/secret/api-key"
+	optionConnectTimeoutSeconds   = "connect-timeout"
+	optionReadwriteTimeoutSeconds = "readwrite-timeout"
+	optionUseXattr                = "use-xattr"
 
 	testDir            = "/tmp/"
 	testChunkSizeMB    = 500
@@ -231,14 +234,14 @@ func Test_Mount_BadS3FSFUSERetryCount(t *testing.T) {
 	}
 }
 
-func Test_Mount_S3FSFUSERetryCount_Zero(t *testing.T) {
+func Test_Mount_S3FSFUSERetryCount_Negative(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()
-	r.Opts[optionS3FSFUSERetryCount] = "0"
+	r.Opts[optionS3FSFUSERetryCount] = "-1"
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "value of s3fs-fuse-retry-count should be non-zero")
+		assert.Contains(t, resp.Message, "value of s3fs-fuse-retry-count should be >= 1")
 	}
 }
 
@@ -701,6 +704,7 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "gid=65534",
+		"-o", "uid=65534",
 		"-o", "default_acl=",
 	}
 	resp := p.Mount(r)
@@ -911,4 +915,120 @@ func Test_Init_Positive(t *testing.T) {
 	p := getPlugin()
 	resp := p.Init()
 	assert.Equal(t, interfaces.StatusSuccess, resp.Status)
+}
+func Test_ConnectTimeoutSeconds_NonInt(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionConnectTimeoutSeconds] = "non-int-value"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "Cannot convert value of connect-timeout-seconds into integer")
+	}
+}
+
+func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionConnectTimeoutSeconds] = "1"
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=",
+		"-o", "connect_timeout=1",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_ReadwriteTimeoutSeconds_NonInt(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionReadwriteTimeoutSeconds] = "non-int-value"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "Cannot convert value of readwrite-timeout-seconds into integer")
+	}
+}
+
+func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionReadwriteTimeoutSeconds] = "1"
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=",
+		"-o", "readwrite_timeout=1",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+func Test_UseXattr_Positive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionUseXattr] = "true"
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=",
+		"-o", "use_xattr",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
 }

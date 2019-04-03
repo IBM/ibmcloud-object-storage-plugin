@@ -42,58 +42,67 @@ const (
 	testOSEndpoint        = "https://test-object-store-endpoint"
 	testIAMEndpoint       = "https://test-iam-endpoint"
 
-	testChunkSizeMB        = 2
-	testParallelCount      = 3
-	testMultiReqMax        = 4
-	testStatCacheSize      = 5
-	testS3FSFUSERetryCount = 1
-	testDebugLevel         = "debug"
-	testCurlDebug          = "false"
-	testTLSCipherSuite     = "test-tls-cipher-suite"
-	testStorageClass       = "test-storage-class"
-	testObjectPath         = "/test/object-path"
+	testChunkSizeMB            = 2
+	testParallelCount          = 3
+	testMultiReqMax            = 4
+	testStatCacheSize          = 5
+	testS3FSFUSERetryCount     = 1
+	testStatCacheExpireSeconds = 1
+	testDebugLevel             = "debug"
+	testCurlDebug              = "false"
+	testTLSCipherSuite         = "test-tls-cipher-suite"
+	testStorageClass           = "test-storage-class"
+	testObjectPath             = "/test/object-path"
+	testValidateBucket         = "yes"
 
-	annotationBucket                 = "ibm.io/bucket"
-	annotationObjectPath             = "ibm.io/object-path"
-	annotationAutoCreateBucket       = "ibm.io/auto-create-bucket"
-	annotationAutoDeleteBucket       = "ibm.io/auto-delete-bucket"
-	annotationEndpoint               = "ibm.io/endpoint"
-	annotationRegion                 = "ibm.io/region"
-	annotationIAMEndpoint            = "ibm.io/iam-endpoint"
-	annotationSecretName             = "ibm.io/secret-name"
-	annotationSecretNamespace        = "ibm.io/secret-namespace"
-	annotationStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
+	annotationBucket                  = "ibm.io/bucket"
+	annotationObjectPath              = "ibm.io/object-path"
+	annotationAutoCreateBucket        = "ibm.io/auto-create-bucket"
+	annotationAutoDeleteBucket        = "ibm.io/auto-delete-bucket"
+	annotationEndpoint                = "ibm.io/endpoint"
+	annotationRegion                  = "ibm.io/region"
+	annotationIAMEndpoint             = "ibm.io/iam-endpoint"
+	annotationSecretName              = "ibm.io/secret-name"
+	annotationSecretNamespace         = "ibm.io/secret-namespace"
+	annotationStatCacheExpireSeconds  = "ibm.io/stat-cache-expire-seconds"
+	annotationValidateBucket          = "ibm.io/validate-bucket"
+	annotationConnectTimeoutSeconds   = "ibm.io/connect-timeout"
+	annotationReadwriteTimeoutSeconds = "ibm.io/readwrite-timeout"
 
-	parameterChunkSizeMB        = "ibm.io/chunk-size-mb"
-	parameterParallelCount      = "ibm.io/parallel-count"
-	parameterMultiReqMax        = "ibm.io/multireq-max"
-	parameterStatCacheSize      = "ibm.io/stat-cache-size"
-	parameterS3FSFUSERetryCount = "ibm.io/s3fs-fuse-retry-count"
-	parameterTLSCipherSuite     = "ibm.io/tls-cipher-suite"
-	parameterDebugLevel         = "ibm.io/debug-level"
-	parameterCurlDebug          = "ibm.io/curl-debug"
-	parameterKernelCache        = "ibm.io/kernel-cache"
-	parameterOSEndpoint         = "ibm.io/object-store-endpoint"
-	parameterIAMEndpoint        = "ibm.io/iam-endpoint"
-	parameterStorageClass       = "ibm.io/object-store-storage-class"
+	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
+	parameterParallelCount          = "ibm.io/parallel-count"
+	parameterMultiReqMax            = "ibm.io/multireq-max"
+	parameterStatCacheSize          = "ibm.io/stat-cache-size"
+	parameterS3FSFUSERetryCount     = "ibm.io/s3fs-fuse-retry-count"
+	parameterTLSCipherSuite         = "ibm.io/tls-cipher-suite"
+	parameterDebugLevel             = "ibm.io/debug-level"
+	parameterCurlDebug              = "ibm.io/curl-debug"
+	parameterKernelCache            = "ibm.io/kernel-cache"
+	parameterOSEndpoint             = "ibm.io/object-store-endpoint"
+	parameterIAMEndpoint            = "ibm.io/iam-endpoint"
+	parameterStorageClass           = "ibm.io/object-store-storage-class"
+	parameterStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
 
-	optionChunkSizeMB            = "chunk-size-mb"
-	optionParallelCount          = "parallel-count"
-	optionMultiReqMax            = "multireq-max"
-	optionStatCacheSize          = "stat-cache-size"
-	optionS3FSFUSERetryCount     = "s3fs-fuse-retry-count"
-	optionTLSCipherSuite         = "tls-cipher-suite"
-	optionDebugLevel             = "debug-level"
-	optionCurlDebug              = "curl-debug"
-	optionKernelCache            = "kernel-cache"
-	optionOSEndpoint             = "object-store-endpoint"
-	optionRegion                 = "region"
-	optionBucket                 = "bucket"
-	optionStatCacheExpireSeconds = "stat-cache-expire-seconds"
-	optionObjectPath             = "object-path"
-	optionStorageClass           = "object-store-storage-class"
-	optionIAMEndpoint            = "iam-endpoint"
-	optionAccessMode             = "access-mode"
+	optionChunkSizeMB             = "chunk-size-mb"
+	optionParallelCount           = "parallel-count"
+	optionMultiReqMax             = "multireq-max"
+	optionStatCacheSize           = "stat-cache-size"
+	optionS3FSFUSERetryCount      = "s3fs-fuse-retry-count"
+	optionTLSCipherSuite          = "tls-cipher-suite"
+	optionDebugLevel              = "debug-level"
+	optionCurlDebug               = "curl-debug"
+	optionKernelCache             = "kernel-cache"
+	optionOSEndpoint              = "object-store-endpoint"
+	optionRegion                  = "region"
+	optionBucket                  = "bucket"
+	optionStatCacheExpireSeconds  = "stat-cache-expire-seconds"
+	optionObjectPath              = "object-path"
+	optionStorageClass            = "object-store-storage-class"
+	optionIAMEndpoint             = "iam-endpoint"
+	optionReadwriteTimeoutSeconds = "readwrite-timeout"
+	optionConnectTimeoutSeconds   = "connect-timeout"
+	optionUseXattr                = "use-xattr"
+  optionAccessMode             = "access-mode"
 )
 
 type clientGoConfig struct {
@@ -102,17 +111,24 @@ type clientGoConfig struct {
 	missingSecretKey      bool
 	withAPIKey            bool
 	withServiceInstanceID bool
+	wrongSecretType       bool
 }
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 	objects := []runtime.Object{}
+	var secret *v1.Secret
 	if !cfg.missingSecret {
-		secret := &v1.Secret{
+		secret = &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testSecretName,
 				Namespace: testNamespace,
 			},
 			Data: make(map[string][]byte),
+		}
+		if cfg.wrongSecretType {
+			secret.Type = "test-type"
+		} else {
+			secret.Type = "ibm/ibmc-s3fs"
 		}
 
 		if cfg.withAPIKey {
@@ -192,16 +208,17 @@ func getVolumeOptions() controller.VolumeOptions {
 			},
 		},
 		Parameters: map[string]string{
-			parameterChunkSizeMB:        strconv.Itoa(testChunkSizeMB),
-			parameterParallelCount:      strconv.Itoa(testParallelCount),
-			parameterMultiReqMax:        strconv.Itoa(testMultiReqMax),
-			parameterStatCacheSize:      strconv.Itoa(testStatCacheSize),
-			parameterS3FSFUSERetryCount: strconv.Itoa(testS3FSFUSERetryCount),
-			parameterTLSCipherSuite:     testTLSCipherSuite,
-			parameterDebugLevel:         testDebugLevel,
-			parameterStorageClass:       testStorageClass,
-			parameterOSEndpoint:         testOSEndpoint,
-			parameterIAMEndpoint:        testIAMEndpoint,
+			parameterChunkSizeMB:            strconv.Itoa(testChunkSizeMB),
+			parameterParallelCount:          strconv.Itoa(testParallelCount),
+			parameterMultiReqMax:            strconv.Itoa(testMultiReqMax),
+			parameterStatCacheSize:          strconv.Itoa(testStatCacheSize),
+			parameterS3FSFUSERetryCount:     strconv.Itoa(testS3FSFUSERetryCount),
+			parameterStatCacheExpireSeconds: strconv.Itoa(testStatCacheExpireSeconds),
+			parameterTLSCipherSuite:         testTLSCipherSuite,
+			parameterDebugLevel:             testDebugLevel,
+			parameterStorageClass:           testStorageClass,
+			parameterOSEndpoint:             testOSEndpoint,
+			parameterIAMEndpoint:            testIAMEndpoint,
 		},
 	}
 
@@ -430,6 +447,17 @@ func Test_Provision_PVCAnnotations_BadS3FSFUSERetryCount(t *testing.T) {
 	}
 }
 
+func Test_Provision_PVCAnnotations_S3FSFUSERetryCount_Negative(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations["ibm.io/s3fs-fuse-retry-count"] = "-1"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "value of s3fs-fuse-retry-count should be >= 1")
+	}
+}
+
 func Test_Provision_PVCAnnotations_S3FSFUSERetryCount_Positive(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
@@ -609,19 +637,20 @@ func Test_Provision_Positive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t,
 		map[string]string{
-			optionChunkSizeMB:        strconv.Itoa(testChunkSizeMB),
-			optionParallelCount:      strconv.Itoa(testParallelCount),
-			optionMultiReqMax:        strconv.Itoa(testMultiReqMax),
-			optionStatCacheSize:      strconv.Itoa(testStatCacheSize),
-			optionS3FSFUSERetryCount: strconv.Itoa(testS3FSFUSERetryCount),
-			optionTLSCipherSuite:     testTLSCipherSuite,
-			optionDebugLevel:         testDebugLevel,
-			optionCurlDebug:          testCurlDebug,
-			optionOSEndpoint:         testOSEndpoint,
-			optionBucket:             testBucket,
-			optionStorageClass:       testStorageClass,
-			optionIAMEndpoint:        testIAMEndpoint,
-			optionAccessMode:         "ReadWriteMany",
+			optionChunkSizeMB:            strconv.Itoa(testChunkSizeMB),
+			optionParallelCount:          strconv.Itoa(testParallelCount),
+			optionMultiReqMax:            strconv.Itoa(testMultiReqMax),
+			optionStatCacheSize:          strconv.Itoa(testStatCacheSize),
+			optionS3FSFUSERetryCount:     strconv.Itoa(testS3FSFUSERetryCount),
+			optionStatCacheExpireSeconds: strconv.Itoa(testStatCacheExpireSeconds),
+			optionTLSCipherSuite:         testTLSCipherSuite,
+			optionDebugLevel:             testDebugLevel,
+			optionCurlDebug:              testCurlDebug,
+			optionOSEndpoint:             testOSEndpoint,
+			optionBucket:                 testBucket,
+			optionStorageClass:           testStorageClass,
+			optionIAMEndpoint:            testIAMEndpoint,
+      optionAccessMode:             "ReadWriteMany",
 		},
 		pv.Spec.FlexVolume.Options,
 	)
@@ -809,4 +838,100 @@ func Test_Provision_Delete_IAM_Positive(t *testing.T) {
 	assert.Equal(t, testAPIKey, factory.LastCredentials.APIKey)
 	assert.Equal(t, testIAMEndpoint, factory.LastCredentials.IAMEndpoint)
 	assert.Equal(t, bucketName, factory.LastDeletedBucket)
+}
+
+func Test_Provision_DifferentSecretNS(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Namespace = "pvc-namespace"
+	v.PVC.Annotations[annotationSecretNamespace] = testNamespace
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, testNamespace, pv.Annotations[annotationSecretNamespace])
+}
+
+func Test_Validate_Bucket_True(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationValidateBucket] = testValidateBucket
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot access bucket")
+	}
+}
+
+func Test_Wrong_Secret_Type_True(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{wrongSecretType: true})
+	v := getVolumeOptions()
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Wrong Secret Type")
+	}
+}
+func Test_Provision_PVCAnnotations_ReadwriteTimeoutSeconds_NonInt(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationReadwriteTimeoutSeconds] = "non-int-value"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Cannot convert value of readwrite-timeout-seconds into integer")
+	}
+}
+
+func Test_Provision_PVCAnnotations_ConnectTimeoutSeconds_NonInt(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConnectTimeoutSeconds] = "non-int-value"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Cannot convert value of connect-timeout-seconds into integer")
+	}
+}
+
+func Test_Provision_PVCAnnotations_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationReadwriteTimeoutSeconds] = "6"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionReadwriteTimeoutSeconds])
+}
+
+func Test_Provision_PVCAnnotations_ConnectTimeoutSeconds_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConnectTimeoutSeconds] = "6"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionConnectTimeoutSeconds])
+}
+func Test_Provision_PVCAnnotations_UseXattr(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations["ibm.io/use-xattr"] = "true"
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionUseXattr])
+}
+
+func Test_Provision_PVCAnnotations_DebugLevel(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations["ibm.io/debug-level"] = "info"
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "info", pv.Spec.FlexVolume.Options[optionDebugLevel])
+}
+
+func Test_Provision_PVCAnnotations_CurlDebug(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations["ibm.io/curl-debug"] = "true"
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionCurlDebug])
 }

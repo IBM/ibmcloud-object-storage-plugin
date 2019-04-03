@@ -30,43 +30,47 @@ import (
 
 // PVC annotations
 type pvcAnnotations struct {
-	AutoCreateBucket       bool   `json:"ibm.io/auto-create-bucket,string"`
-	AutoDeleteBucket       bool   `json:"ibm.io/auto-delete-bucket,string"`
-	Bucket                 string `json:"ibm.io/bucket"`
-	ObjectPath             string `json:"ibm.io/object-path,omitempty"`
-	Endpoint               string `json:"ibm.io/endpoint,omitempty"` //Will be deprecated
-	Region                 string `json:"ibm.io/region,omitempty"`   //Will be deprecated
-	SecretName             string `json:"ibm.io/secret-name"`
-	ChunkSizeMB            string `json:"ibm.io/chunk-size-mb,omitempty"`
-	ParallelCount          string `json:"ibm.io/parallel-count,omitempty"`
-	MultiReqMax            string `json:"ibm.io/multireq-max,omitempty"`
-	StatCacheSize          string `json:"ibm.io/stat-cache-size,omitempty"`
-	S3FSFUSERetryCount     string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
-	StatCacheExpireSeconds string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
-	IAMEndpoint            string `json:"ibm.io/iam-endpoint,omitempty"`
-	ValidateBucket         string `json:"ibm.io/validate-bucket,omitempty"`
-}
-
-// PV annotations
-type pvAnnotations struct {
-	pvcAnnotations
-	SecretNamespace string `json:"ibm.io/secret-namespace"`
+	AutoCreateBucket        bool   `json:"ibm.io/auto-create-bucket,string"`
+	AutoDeleteBucket        bool   `json:"ibm.io/auto-delete-bucket,string"`
+	Bucket                  string `json:"ibm.io/bucket"`
+	ObjectPath              string `json:"ibm.io/object-path,omitempty"`
+	Endpoint                string `json:"ibm.io/endpoint,omitempty"` //Will be deprecated
+	Region                  string `json:"ibm.io/region,omitempty"`   //Will be deprecated
+	SecretName              string `json:"ibm.io/secret-name"`
+	ChunkSizeMB             string `json:"ibm.io/chunk-size-mb,omitempty"`
+	ParallelCount           string `json:"ibm.io/parallel-count,omitempty"`
+	MultiReqMax             string `json:"ibm.io/multireq-max,omitempty"`
+	StatCacheSize           string `json:"ibm.io/stat-cache-size,omitempty"`
+	S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+	StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
+	IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
+	ValidateBucket          string `json:"ibm.io/validate-bucket,omitempty"`
+	SecretNamespace         string `json:"ibm.io/secret-namespace,omitempty"`
+	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
+	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
+	UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
+	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
+	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
 }
 
 // Storage Class options
 type scOptions struct {
-	ChunkSizeMB        int    `json:"ibm.io/chunk-size-mb,string"`
-	ParallelCount      int    `json:"ibm.io/parallel-count,string"`
-	MultiReqMax        int    `json:"ibm.io/multireq-max,string"`
-	StatCacheSize      int    `json:"ibm.io/stat-cache-size,string"`
-	TLSCipherSuite     string `json:"ibm.io/tls-cipher-suite,omitempty"`
-	DebugLevel         string `json:"ibm.io/debug-level"`
-	CurlDebug          bool   `json:"ibm.io/curl-debug,string,omitempty"`
-	KernelCache        bool   `json:"ibm.io/kernel-cache,string,omitempty"`
-	S3FSFUSERetryCount int    `json:"ibm.io/s3fs-fuse-retry-count,string,omitempty"`
-	IAMEndpoint        string `json:"ibm.io/iam-endpoint,omitempty"`
-	OSEndpoint         string `json:"ibm.io/object-store-endpoint,omitempty"`
-	OSStorageClass     string `json:"ibm.io/object-store-storage-class,omitempty"`
+	ChunkSizeMB             int    `json:"ibm.io/chunk-size-mb,string"`
+	ParallelCount           int    `json:"ibm.io/parallel-count,string"`
+	MultiReqMax             int    `json:"ibm.io/multireq-max,string"`
+	StatCacheSize           int    `json:"ibm.io/stat-cache-size,string"`
+	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
+	DebugLevel              string `json:"ibm.io/debug-level"`
+	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
+	KernelCache             bool   `json:"ibm.io/kernel-cache,string,omitempty"`
+	S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+	StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
+	IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
+	OSEndpoint              string `json:"ibm.io/object-store-endpoint,omitempty"`
+	OSStorageClass          string `json:"ibm.io/object-store-storage-class,omitempty"`
+	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
+	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
+	UseXattr                bool   `json:"ibm.io/use-xattr,string"`
 }
 
 const (
@@ -102,6 +106,10 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("cannot get secret %s: %v", secretName, err)
+	}
+
+	if strings.TrimSpace(string(secrets.Type)) != driverName {
+		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -154,6 +162,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
 	}
 
+	if pvc.SecretNamespace == "" {
+		pvc.SecretNamespace = options.PVC.Namespace
+	}
+
 	//Override value of EndPoint defined in storageclass
 	// EndPoint should be defined in storage class.
 	if pvc.Endpoint != "" {
@@ -186,8 +198,27 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//Override value of s3fs-fuse-retry-count defined in storageclass
 	if pvc.S3FSFUSERetryCount != "" {
-		if sc.S3FSFUSERetryCount, err = strconv.Atoi(pvc.S3FSFUSERetryCount); err != nil {
+		sc.S3FSFUSERetryCount = pvc.S3FSFUSERetryCount
+	}
+	if sc.S3FSFUSERetryCount != "" {
+		retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount)
+		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+		} else if retryCount < 1 {
+			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
+		}
+	}
+
+	//Override value of stat-cache-expire-seconds defined in storageclass
+	if pvc.StatCacheExpireSeconds != "" {
+		sc.StatCacheExpireSeconds = pvc.StatCacheExpireSeconds
+	}
+	if sc.StatCacheExpireSeconds != "" {
+		cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds)
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+		} else if cacheExpireSeconds < 0 {
+			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
 		}
 	}
 
@@ -219,14 +250,20 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-	//Check if value of stat-cache-expire-seconds parameter can be converted to integer
-	if pvc.StatCacheExpireSeconds != "" {
-		cacheExpireSeconds, err := strconv.Atoi(pvc.StatCacheExpireSeconds)
+	if pvc.ConnectTimeoutSeconds != "" {
+		_, err = strconv.Atoi(pvc.ConnectTimeoutSeconds)
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
-		} else if cacheExpireSeconds < 0 {
-			return nil, fmt.Errorf(pvcName + ":value of stat-cache-expire-seconds should be >= 0")
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of connect-timeout-seconds into integer: %v", err)
 		}
+		sc.ConnectTimeoutSeconds = pvc.ConnectTimeoutSeconds
+	}
+
+	if pvc.ReadwriteTimeoutSeconds != "" {
+		_, err = strconv.Atoi(pvc.ReadwriteTimeoutSeconds)
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
+		}
+		sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds
 	}
 
 	if pvc.AutoCreateBucket && pvc.ObjectPath != "" {
@@ -260,7 +297,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//var err_msg error
 	if valBucket {
-		creds, err = p.getCredentials(pvc.SecretName, options.PVC.Namespace)
+		creds, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
@@ -298,7 +335,19 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-	// Check AccessMode
+	if pvc.UseXattr {
+		sc.UseXattr = pvc.UseXattr
+	}
+
+	if pvc.DebugLevel != "" {
+		sc.DebugLevel = pvc.DebugLevel
+	}
+
+	if pvc.CurlDebug {
+		sc.CurlDebug = pvc.CurlDebug
+	}
+  
+  // Check AccessMode
 	accessMode := options.PVC.Spec.AccessModes
 	contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
 	if len(accessMode) > 1 {
@@ -306,30 +355,52 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	driverOptions, err := parser.MarshalToMap(&driver.Options{
-		ChunkSizeMB:            sc.ChunkSizeMB,
-		ParallelCount:          sc.ParallelCount,
-		MultiReqMax:            sc.MultiReqMax,
-		StatCacheSize:          sc.StatCacheSize,
-		TLSCipherSuite:         sc.TLSCipherSuite,
-		CurlDebug:              sc.CurlDebug,
-		KernelCache:            sc.KernelCache,
-		DebugLevel:             sc.DebugLevel,
-		S3FSFUSERetryCount:     strconv.Itoa(sc.S3FSFUSERetryCount),
-		StatCacheExpireSeconds: pvc.StatCacheExpireSeconds,
-		IAMEndpoint:            sc.IAMEndpoint,
-		OSEndpoint:             sc.OSEndpoint,
-		OSStorageClass:         sc.OSStorageClass,
-		Bucket:                 pvc.Bucket,
-		ObjectPath:             pvc.ObjectPath,
-		AccessMode:             string(accessMode[0]),
+		ChunkSizeMB:             sc.ChunkSizeMB,
+		ParallelCount:           sc.ParallelCount,
+		MultiReqMax:             sc.MultiReqMax,
+		StatCacheSize:           sc.StatCacheSize,
+		TLSCipherSuite:          sc.TLSCipherSuite,
+		CurlDebug:               sc.CurlDebug,
+		KernelCache:             sc.KernelCache,
+		DebugLevel:              sc.DebugLevel,
+		S3FSFUSERetryCount:      sc.S3FSFUSERetryCount,
+		StatCacheExpireSeconds:  sc.StatCacheExpireSeconds,
+		IAMEndpoint:             sc.IAMEndpoint,
+		OSEndpoint:              sc.OSEndpoint,
+		OSStorageClass:          sc.OSStorageClass,
+		Bucket:                  pvc.Bucket,
+		ObjectPath:              pvc.ObjectPath,
+		ReadwriteTimeoutSeconds: sc.ReadwriteTimeoutSeconds,
+		ConnectTimeoutSeconds:   sc.ConnectTimeoutSeconds,
+		UseXattr:                sc.UseXattr,
+    AccessMode:              string(accessMode[0]),
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
 	}
 
-	pvAnnots, err := parser.MarshalToMap(&pvAnnotations{
-		pvcAnnotations:  pvc,
-		SecretNamespace: options.PVC.Namespace,
+	pvcAnnots, err := parser.MarshalToMap(&pvcAnnotations{
+		AutoCreateBucket:        pvc.AutoCreateBucket,
+		AutoDeleteBucket:        pvc.AutoDeleteBucket,
+		Bucket:                  pvc.Bucket,
+		ObjectPath:              pvc.ObjectPath,
+		Endpoint:                pvc.Endpoint,
+		Region:                  pvc.Region,
+		SecretName:              pvc.SecretName,
+		ChunkSizeMB:             pvc.ChunkSizeMB,
+		ParallelCount:           pvc.ParallelCount,
+		MultiReqMax:             pvc.MultiReqMax,
+		StatCacheSize:           pvc.StatCacheSize,
+		S3FSFUSERetryCount:      pvc.S3FSFUSERetryCount,
+		StatCacheExpireSeconds:  pvc.StatCacheExpireSeconds,
+		IAMEndpoint:             pvc.IAMEndpoint,
+		ValidateBucket:          pvc.ValidateBucket,
+		SecretNamespace:         pvc.SecretNamespace,
+		ReadwriteTimeoutSeconds: pvc.ReadwriteTimeoutSeconds,
+		ConnectTimeoutSeconds:   pvc.ConnectTimeoutSeconds,
+		UseXattr:                pvc.UseXattr,
+		CurlDebug:               pvc.CurlDebug,
+		DebugLevel:              pvc.DebugLevel,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
@@ -338,7 +409,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	return &v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        options.PVName,
-			Annotations: pvAnnots,
+			Annotations: pvcAnnots,
 		},
 		Spec: v1.PersistentVolumeSpec{
 			PersistentVolumeReclaimPolicy: options.PersistentVolumeReclaimPolicy,
@@ -350,7 +421,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 				FlexVolume: &v1.FlexPersistentVolumeSource{
 					Driver:    driverName,
 					FSType:    fsType,
-					SecretRef: &v1.SecretReference{Name: pvc.SecretName},
+					SecretRef: &v1.SecretReference{Name: pvc.SecretName, Namespace: pvc.SecretNamespace},
 					ReadOnly:  false,
 					Options:   driverOptions,
 				},
@@ -361,7 +432,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 // Delete deletes a persistent volume
 func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
-	var pvAnnots pvAnnotations
+	var pvcAnnots pvcAnnotations
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the pvc..")
@@ -370,13 +441,13 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 	regionValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-storage-class"]
 	iamEndpoint := pv.Spec.PersistentVolumeSource.FlexVolume.Options["iam-endpoint"]
 
-	err := parser.UnmarshalMap(&pv.Annotations, &pvAnnots)
+	err := parser.UnmarshalMap(&pv.Annotations, &pvcAnnots)
 	if err != nil {
 		return fmt.Errorf("cannot unmarshal PV annotations: %v", err)
 	}
 
-	if pvAnnots.AutoDeleteBucket {
-		err = p.deleteBucket(&pvAnnots, endpointValue, regionValue, iamEndpoint)
+	if pvcAnnots.AutoDeleteBucket {
+		err = p.deleteBucket(&pvcAnnots, endpointValue, regionValue, iamEndpoint)
 		if err != nil {
 			return fmt.Errorf("cannot delete bucket: %v", err)
 		}
@@ -385,13 +456,13 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 	return nil
 }
 
-func (p *IBMS3fsProvisioner) deleteBucket(pvAnnots *pvAnnotations, endpointValue, regionValue, iamEndpoint string) error {
-	creds, err := p.getCredentials(pvAnnots.SecretName, pvAnnots.SecretNamespace)
+func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error {
+	creds, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}
 	creds.IAMEndpoint = iamEndpoint
 	sess := p.Backend.NewObjectStorageSession(endpointValue, regionValue, creds, p.Logger)
 
-	return sess.DeleteBucket(pvAnnots.Bucket)
+	return sess.DeleteBucket(pvcAnnots.Bucket)
 }
