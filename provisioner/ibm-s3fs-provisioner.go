@@ -51,6 +51,7 @@ type pvcAnnotations struct {
 	UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
+	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
 }
 
 // Storage Class options
@@ -345,6 +346,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	if pvc.CurlDebug {
 		sc.CurlDebug = pvc.CurlDebug
+	}
+
+	if pvc.TLSCipherSuite != "" {
+		sc.TLSCipherSuite = pvc.TLSCipherSuite
 	}
 
 	// Check AccessMode

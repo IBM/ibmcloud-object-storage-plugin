@@ -935,3 +935,12 @@ func Test_Provision_PVCAnnotations_CurlDebug(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionCurlDebug])
 }
+
+func Test_Provision_PVCAnnotations_TLS(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations["ibm.io/tls-cipher-suite"] = "AESGCM"
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "AESGCM", pv.Spec.FlexVolume.Options[optionTLSCipherSuite])
+}
