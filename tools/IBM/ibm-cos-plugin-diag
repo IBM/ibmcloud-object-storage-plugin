@@ -651,8 +651,8 @@ def main():
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
         print cmd_err.strip()
-        print "ERROR: Unable to access cluster.\nIn case of IBM kubernetes Service, export correct KUBECONFIG. " \
-        "For IBM Cloud Private, run \"cloudctl login\" before running this tool.\nExiting!!!"
+        print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n" \
+        "For IBM Cloud Private(ICP), run \"cloudctl login\" before running this tool.\nExiting!!!"
         sys.exit(1)
     else:
         if "IKS" in cmd_out.strip().upper():
