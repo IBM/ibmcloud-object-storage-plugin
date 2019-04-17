@@ -241,10 +241,10 @@ def executeBasicChecks():
     # Check PodSecurityPolicy used by ibm-object-storage-plugin pods, Only for ICP
     if provider == "ICP":
         print "\n****PodSecurityPolicy used by ibm-object-storage-plugin pods****"
-        cmd = "kubectl get RoleBinding -n {0} | grep -e ibmcloud-object-storage-plugin-privileged -e ibmcloud-object-storage-driver| awk '{{print $3}}'".format(provisioner_namespace)
+        cmd = "kubectl get RoleBinding -n {0} | grep -e ibmcloud-object-storage-plugin-privileged -e ibmcloud-object-storage-driver".format(provisioner_namespace)
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
-            if cmd_out.strip():
+            if cmd_out.strip() and (cmd_out.strip() != "No resources found"):
                 customPSPUsed = False
             else:
                 customPSPUsed = True
@@ -639,11 +639,11 @@ def signal_handler(sig, stack):
         signame = "SIGINT"
     print('Signal %s received. Performing cleanup before exiting!!!' % signame)
     cleanupLogs()
+    if diag_pod_installed == True:
+        returnVal = cleanup_daemonset("ibm-cos-plugin-diag", "default")
     if g_labelFlag == 1:
         # Remove labels 'tool:ibm-cos-diag' from worker nodes
         RemoveLabels(g_nlist)
-    if diag_pod_installed == True:
-        returnVal = cleanup_daemonset("ibm-cos-plugin-diag", "default")
     print('Cleanup Completed!!!')
     sys.exit(returnVal)
 
@@ -723,6 +723,9 @@ def main():
             print "ERROR: Unable to create diag POD. Exiting!!!"
             print "> " + REDC + cmd_err.strip() + ENDC
             cleanupLogs()
+            # Remove labels 'tool:ibm-cos-diag' from worker nodes
+            if g_labelFlag == 1:
+                RemoveLabels(g_nlist)
             sys.exit(1)
 
         # wait for the daemonset pod to reach running state
@@ -731,7 +734,8 @@ def main():
             cleanupLogs()
             returnVal = cleanup_daemonset("ibm-cos-plugin-diag", "default")
             # Remove labels 'tool:ibm-cos-diag' from worker nodes
-            RemoveLabels(g_nlist)
+            if g_labelFlag == 1:
+                RemoveLabels(g_nlist)
             sys.exit(returnVal)
 
     if args.pod or args.node_list:
