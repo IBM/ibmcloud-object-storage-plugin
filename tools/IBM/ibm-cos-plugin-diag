@@ -12,12 +12,12 @@ import argparse
 import datetime
 import json
 import os
+import signal
 import subprocess
 import sys
 import threading
 import time
 from Queue import Queue
-# from threading import Thread
 
 nodes = []
 nodeQdl = Queue(maxsize=0)
@@ -33,6 +33,7 @@ ENDC = '\033[0m'
 NOT_OK = REDC + "not ok" + ENDC
 provider=""
 provisioner_namespace=""
+diag_pod_installed=False
 
 ### Create daemonset yaml file in local machine
 ##
@@ -51,7 +52,7 @@ spec:
     spec:
       hostNetwork: true
       containers:
-      - image: ambikanair/ibm-cos-diag-tool:v002
+      - image: nkkashyap/ibm-cos-vol-diag:latest
         imagePullPolicy: Always
         securityContext:
           privileged: true
@@ -288,7 +289,6 @@ def getNodeList4DL(q, driver_log_opts=""):
         for x in nodes:
             q.put(x)
 
-
 def backupDriverLog(q=None):
      while True:
          name = threading.currentThread().getName()
@@ -357,6 +357,7 @@ def cleanup_daemonset(ds_name, ds_namespace="default"):
         return 0
     else:
         print "\n****Could not delete daemonset {0}/{1}****".format(ds_namespace, ds_name)
+        print cmd_err.strip()
         return 1
 
 def inspectSC(sc="", prefix=""):
@@ -607,6 +608,13 @@ def labelNodesForDSDeployment(nodeList=""):
             return rc
     return
 
+def RemoveLabels(nodeList=""):
+    cmd = "kubectl label nodes {0} tool-".format(nodeList)
+    (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    if  cmd_err.strip():
+        print "Error while removing labels from node"
+        print cmd_err
+
 def makeLogFolder():
     currentDir = os.getcwd()
     logFolderPath = currentDir + "/ibm-cos-diagnostic-logs"
@@ -620,6 +628,24 @@ def makeLogFolder():
 def cleanupLogs():
     cmd = "rm -rf diagnostic_daemon.yaml ibm-cos-diagnostic-logs"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+
+# Handler for signal SIGINT
+def signal_handler(sig, stack):
+    returnVal = 0
+    signame = ""
+    if sig == 1:
+        signame = "SIGHUP"
+    elif sig == 2:
+        signame = "SIGINT"
+    print('Signal %s received. Performing cleanup before exiting!!!' % signame)
+    cleanupLogs()
+    if g_labelFlag == 1:
+        # Remove labels 'tool:ibm-cos-diag' from worker nodes
+        RemoveLabels(g_nlist)
+    if diag_pod_installed == True:
+        returnVal = cleanup_daemonset("ibm-cos-plugin-diag", "default")
+    print('Cleanup Completed!!!')
+    sys.exit(returnVal)
 
 def main():
     parser = argparse.ArgumentParser(description='Tool to diagnose object-storage-plugin related issues.')
@@ -643,6 +669,11 @@ def main():
     #if "KUBECONFIG" not in os.environ:
     #    print "ERROR: Env. var. KUBECONFIG not set. Export KUBECONFIG before running this tool.\nExiting!!!"
     #    sys.exit(1)
+
+    # Handle signal SIGINT caused by CTRL+C
+    signal.signal(signal.SIGINT, signal_handler)
+    # Handel signal SIGHUP
+    signal.signal(signal.SIGHUP, signal_handler)
 
     global provider
     global provisioner_namespace
@@ -682,8 +713,10 @@ def main():
     nodeCount = getFinalListofNodes(podnode=podNode, nodeList=args.node_list)
     returnStatus =  labelNodesForDSDeployment(nodes)
 
+    global diag_pod_installed
     if nodeCount != 0:
         # Create diag pod
+        diag_pod_installed = True
         cmd = "kubectl apply -f diagnostic_daemon.yaml"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_err.strip():
@@ -698,11 +731,7 @@ def main():
             cleanupLogs()
             returnVal = cleanup_daemonset("ibm-cos-plugin-diag", "default")
             # Remove labels 'tool:ibm-cos-diag' from worker nodes
-            cmd = "kubectl label nodes {0} tool-".format(g_nlist)
-            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            if  cmd_err.strip():
-                print "Error while removing labels from node"
-                print cmd_err
+            RemoveLabels(g_nlist)
             sys.exit(returnVal)
 
     if args.pod or args.node_list:
@@ -808,11 +837,7 @@ def main():
         cleanup_daemonset("ibm-cos-plugin-diag", "default")
 
     if g_labelFlag == 1:
-        cmd = "kubectl label nodes {0} tool-".format(g_nlist)
-        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-        if  cmd_err.strip():
-            print "Error while removing labels from node"
-            print cmd_err
+        RemoveLabels(g_nlist)
 
 if __name__ == "__main__":
     main()
