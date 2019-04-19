@@ -12,12 +12,12 @@ package backend
 
 import (
 	"fmt"
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/credentials/ibmcreds"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/IBM/ibm-cos-sdk-go/aws"
+	"github.com/IBM/ibm-cos-sdk-go/aws/awserr"
+	"github.com/IBM/ibm-cos-sdk-go/aws/credentials"
+	"github.com/IBM/ibm-cos-sdk-go/aws/credentials/ibmiam"
+	"github.com/IBM/ibm-cos-sdk-go/aws/session"
+	"github.com/IBM/ibm-cos-sdk-go/service/s3"
 	"go.uber.org/zap"
 	"strings"
 )
@@ -66,7 +66,7 @@ type s3API interface {
 	HeadBucket(input *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
 	CreateBucket(input *s3.CreateBucketInput) (*s3.CreateBucketOutput, error)
 	ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
-	ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
+	//ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 	DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 	DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
 }
@@ -81,11 +81,11 @@ type COSSession struct {
 func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession {
 	var sdkCreds *credentials.Credentials
 	if creds.APIKey != "" {
-		sdkCreds = ibmcreds.NewCredentialsClient(creds.APIKey, creds.ServiceInstanceID, creds.IAMEndpoint)
+		sdkCreds = ibmiam.NewStaticCredentials(aws.NewConfig(), creds.IAMEndpoint+"/oidc/token", creds.APIKey, creds.ServiceInstanceID)
 	} else {
 		sdkCreds = credentials.NewStaticCredentials(creds.AccessKey, creds.SecretKey, "")
 	}
-	sess := session.New(&aws.Config{
+	sess, _ := session.NewSession(&aws.Config{
 		S3ForcePathStyle: aws.Bool(true),
 		Endpoint:         aws.String(endpoint),
 		Credentials:      sdkCreds,
@@ -112,7 +112,7 @@ func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, 
 	if strings.HasPrefix(objectpath, "/") {
 		objectpath = strings.TrimPrefix(objectpath, "/")
 	}
-	resp, err := s.svc.ListObjectsV2(&s3.ListObjectsV2Input{
+	resp, err := s.svc.ListObjects(&s3.ListObjectsInput{
 		Bucket:  aws.String(bucket),
 		MaxKeys: aws.Int64(1),
 		Prefix:  aws.String(objectpath),

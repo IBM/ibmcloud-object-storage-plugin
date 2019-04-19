@@ -21,9 +21,6 @@ import:
   - pkg/util/io
   - pkg/util/mount
   - pkg/util/version
-- package: github.com/aws/aws-sdk-go
-  version: b90ee7ac719c7dec882a13e4c18c59bc1798ddfe
-  repo: https://github.com/orozery/aws-sdk-go.git
 - package: gopkg.in/natefinch/lumberjack.v2
   version: v2.1.0
 - package: go.uber.org/zap
@@ -39,5 +36,6 @@ testImport:
   - assert
 - package: github.com/coreos/go-systemd/dbus
 - package: github.com/godbus/dbus
+- package: github.com/IBM/ibm-cos-sdk-go
 excludeDirs:
 - tests
