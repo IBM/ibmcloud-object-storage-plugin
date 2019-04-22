@@ -12,8 +12,8 @@ package backend
 
 import (
 	"errors"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/IBM/ibm-cos-sdk-go/aws/awserr"
+	"github.com/IBM/ibm-cos-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	"strings"
@@ -21,13 +21,12 @@ import (
 )
 
 type fakeS3API struct {
-	ErrHeadBucket    error
-	ErrCreateBucket  error
-	ErrListObjects   error
-	ErrListObjectsV2 error
-	ErrDeleteObject  error
-	ErrDeleteBucket  error
-	ObjectPath       string
+	ErrHeadBucket   error
+	ErrCreateBucket error
+	ErrListObjects  error
+	ErrDeleteObject error
+	ErrDeleteBucket error
+	ObjectPath      string
 }
 
 const (
@@ -60,12 +59,6 @@ func (a *fakeS3API) ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutp
 	return &s3.ListObjectsOutput{
 		Contents: []*s3.Object{{Key: &testObject}},
 	}, a.ErrListObjects
-}
-
-func (a *fakeS3API) ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
-	return &s3.ListObjectsV2Output{
-		Contents: []*s3.Object{{Key: &a.ObjectPath}},
-	}, a.ErrListObjectsV2
 }
 
 func (a *fakeS3API) DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error) {
@@ -112,6 +105,7 @@ func Test_CheckBucketAccess_Positive(t *testing.T) {
 
 func Test_CheckObjectPathExistence_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{ObjectPath: strings.TrimPrefix(testObjectPath, "/")})
+	testObject = strings.TrimPrefix(testObjectPath, "/")
 	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
 	assert.NoError(t, err)
 	assert.Equal(t, exist, true)
@@ -119,13 +113,14 @@ func Test_CheckObjectPathExistence_Positive(t *testing.T) {
 
 func Test_CheckObjectPathExistence_PathNotFound(t *testing.T) {
 	sess := getSession(&fakeS3API{ObjectPath: "test/object-path-xxxx"})
+	testObject = "test/object-path-xxxx"
 	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
 	assert.NoError(t, err)
 	assert.Equal(t, exist, false)
 }
 
 func Test_CheckObjectPathExistence_Error(t *testing.T) {
-	sess := getSession(&fakeS3API{ErrListObjectsV2: errFoo})
+	sess := getSession(&fakeS3API{ErrListObjects: errFoo})
 	_, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot list bucket")

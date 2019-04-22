@@ -87,6 +87,7 @@ type Options struct {
 	ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"use-xattr,string,omitempty"`
 	AccessMode              string `json:"access-mode,omitempty"`
+	ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -312,7 +313,7 @@ func (p *S3fsPlugin) createDirectoryIfNotExists(path string) error {
 // Mount method allows to mount the volume/fileset to a given location for a pod
 func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountRequest) error {
 	var options Options
-	var apiKey, accessKey, secretKey string
+	var apiKey, serviceInstanceId, accessKey, secretKey string
 	var fInfo os.FileInfo
 	var regionValue, endptValue, iamEndpoint string
 	var fullBucketPath string
@@ -413,6 +414,13 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				zap.Error(err))
 			return fmt.Errorf("cannot decode API key: %v", err)
 		}
+		serviceInstanceId, err = parser.DecodeBase64(options.ServiceInstanceIDB64)
+		if err != nil {
+			p.Logger.Error(podUID+":"+
+				" Cannot decode Service Instance ID",
+				zap.Error(err))
+			return fmt.Errorf("cannot decode Service Instance ID: %v", err)
+		}
 	} else {
 		accessKey, err = parser.DecodeBase64(options.AccessKeyB64)
 		if err != nil {
@@ -453,10 +461,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	// check that bucket exists before doing the mount
 	err = p.checkBucket(endptValue, regionValue, options.Bucket,
 		&backend.ObjectStorageCredentials{
-			AccessKey:   accessKey,
-			SecretKey:   secretKey,
-			APIKey:      apiKey,
-			IAMEndpoint: iamEndpoint})
+			AccessKey:         accessKey,
+			SecretKey:         secretKey,
+			APIKey:            apiKey,
+			ServiceInstanceID: serviceInstanceId,
+			IAMEndpoint:       iamEndpoint})
 	if err != nil {
 		p.Logger.Error(podUID+":"+" Cannot access bucket",
 			zap.Error(err))
@@ -467,10 +476,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if options.ObjectPath != "" {
 		exist, err := p.checkObjectPath(endptValue, regionValue, options.Bucket, options.ObjectPath,
 			&backend.ObjectStorageCredentials{
-				AccessKey:   accessKey,
-				SecretKey:   secretKey,
-				APIKey:      apiKey,
-				IAMEndpoint: iamEndpoint})
+				AccessKey:         accessKey,
+				SecretKey:         secretKey,
+				APIKey:            apiKey,
+				ServiceInstanceID: serviceInstanceId,
+				IAMEndpoint:       iamEndpoint})
 		if err != nil {
 			p.Logger.Error(podUID+":"+" Cannot access object-path inside bucket",
 				zap.String("bucket", options.Bucket), zap.String("object-path", options.ObjectPath), zap.Error(err))

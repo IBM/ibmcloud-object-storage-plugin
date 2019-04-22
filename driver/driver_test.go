@@ -45,6 +45,7 @@ const (
 	optionConnectTimeoutSeconds   = "connect-timeout"
 	optionReadwriteTimeoutSeconds = "readwrite-timeout"
 	optionUseXattr                = "use-xattr"
+	optionServiceInstanceID       = "kubernetes.io/secret/service-instance-id"
 
 	testDir            = "/tmp/"
 	testChunkSizeMB    = 500
@@ -1030,5 +1031,17 @@ func Test_UseXattr_Positive(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
 		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_Mount_BadServiceInstanceID(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionAPIKey] = base64.StdEncoding.EncodeToString([]byte(testAPIKey))
+	r.Opts[optionServiceInstanceID] = "illegal-base-64"
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "cannot decode Service Instance ID")
 	}
 }

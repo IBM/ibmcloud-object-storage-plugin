@@ -1,37 +1,6 @@
-hash: 47e4549d513351e14b6608b3b3ba37518a76ade6af5f23834b6d8f339f7fb50e
-updated: 2019-03-12T03:04:06.351834973-07:00
+hash: 5eb4a4d51b0211c13642b1b2ea44519002937ebb0bca3383951cffc0f68f2413
+updated: 2019-04-19T02:07:41.140436971-07:00
 imports:
-- name: github.com/aws/aws-sdk-go
-  version: b90ee7ac719c7dec882a13e4c18c59bc1798ddfe
-  repo: https://github.com/orozery/aws-sdk-go.git
-  subpackages:
-  - aws
-  - aws/awserr
-  - aws/awsutil
-  - aws/client
-  - aws/client/metadata
-  - aws/corehandlers
-  - aws/credentials
-  - aws/credentials/ec2rolecreds
-  - aws/credentials/endpointcreds
-  - aws/credentials/ibmcreds
-  - aws/credentials/stscreds
-  - aws/defaults
-  - aws/ec2metadata
-  - aws/endpoints
-  - aws/request
-  - aws/session
-  - aws/signer/ibm
-  - aws/signer/v4
-  - internal/shareddefaults
-  - private/protocol
-  - private/protocol/query
-  - private/protocol/query/queryutil
-  - private/protocol/rest
-  - private/protocol/restxml
-  - private/protocol/xml/xmlutil
-  - service/s3
-  - service/sts
 - name: github.com/beorn7/perks
   version: 3ac7bf7a47d159a033b107610db8a1b6575507a4
   subpackages:
@@ -44,8 +13,6 @@ imports:
   - spew
 - name: github.com/evanphx/json-patch
   version: 5858425f75500d40c52783dce87d085a483ce135
-- name: github.com/go-ini/ini
-  version: 300e940a926eb277d3901b20bdfcc54928ad3642
 - name: github.com/gogo/protobuf
   version: 342cbe0a04158f6dcb03ca0079991a51a4248c02
   subpackages:
@@ -83,6 +50,40 @@ imports:
   version: a0d98a5f288019575c6d1f4bb1573fef2d1fcdc4
   subpackages:
   - simplelru
+- name: github.com/IBM/ibm-cos-sdk-go
+  version: 08c1143e8d360ade280e076f02d776f558ff620d
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/endpointcreds
+  - aws/credentials/ibmiam
+  - aws/credentials/ibmiam/token
+  - aws/credentials/ibmiam/tokenmanager
+  - aws/credentials/processcreds
+  - aws/defaults
+  - aws/endpoints
+  - aws/request
+  - aws/session
+  - aws/signer
+  - aws/signer/ibmiam
+  - aws/signer/v4
+  - internal/ini
+  - internal/s3err
+  - internal/sdkio
+  - internal/sdkrand
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
 - name: github.com/imdario/mergo
   version: 9316a62528ac99aaecb4e47eadd6dc8aa6533d58
 - name: github.com/jessevdk/go-flags
@@ -483,6 +484,32 @@ imports:
 - name: sigs.k8s.io/yaml
   version: fd68e9863619f6ec2fdd8625fe1f02e7c877e480
 testImports:
+- name: github.com/aws/aws-sdk-go
+  version: d5aa5a300d818462021dbd08510f640533d0ea46
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/credentials
+  - aws/endpoints
+  - aws/request
+  - aws/signer/v4
+  - internal/ini
+  - internal/s3err
+  - internal/sdkio
+  - internal/sdkrand
+  - internal/shareddefaults
+  - private/protocol
+  - private/protocol/eventstream
+  - private/protocol/eventstream/eventstreamapi
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/restxml
+  - private/protocol/xml/xmlutil
+  - service/s3
 - name: github.com/coreos/go-systemd
   version: 9002847aa1425fb6ac49077c0a630b3b67e0fbfd
   subpackages:
