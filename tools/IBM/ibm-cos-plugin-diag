@@ -265,6 +265,7 @@ def executeBasicChecks():
                 print "> ibm-object-storage-plugin pods are deployed using \"{0}\" PodSecurityPolicy instead of \"ibm-privileged-psp\"... ".format(provisionerPodPSP) + NOT_OK
                 print "> " + BOLD +  "To fix this issue, refer to" + ENDC + ": " + \
                 BLUEC + "https://cloud.ibm.com/docs/containers/cs_storage_cos.html#object_storage" + ENDC
+                cleanupLogs()            
                 sys.exit(1)
         else:
             if provisionerPodPSP == "ibm-object-storage-plugin-psp":
@@ -273,6 +274,7 @@ def executeBasicChecks():
                 print "> ibm-object-storage-plugin pods are deployed using \"{0}\" PodSecurityPolicy instead of \"ibm-object-storage-plugin-psp\"... ".format(provisionerPodPSP) + NOT_OK
                 print "> " + BOLD +  "To fix this issue, refer to" + ENDC + ": " + \
                 BLUEC + "https://cloud.ibm.com/docs/containers/cs_storage_cos.html#object_storage" + ENDC
+                cleanupLogs()
                 sys.exit(1)
     return ret
 
@@ -706,6 +708,7 @@ def main():
 
     rc = executeBasicChecks()
     if rc > 2:
+        cleanupLogs()
         sys.exit(1)
 
     logFolder = makeLogFolder()
