@@ -140,6 +140,8 @@ def executeBasicChecks():
             print "> ibmcloud-object-storage-plugin pod is in \"Running\" state... ok"
         else:
             print "> ibmcloud-object-storage-plugin pod is in \"{0}\" state... ".format(cmd_out.strip()) + NOT_OK
+    else:
+        print cmd_err.strip()
 
     print "\n****ibmcloud-object-storage-driver pods status****"
     cmd = "kubectl get pods -n {0} -o wide| grep object-storage-driver| wc -l".format(provisioner_namespace)
@@ -154,6 +156,8 @@ def executeBasicChecks():
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
                 healthyDriverPodsCount = int(cmd_out.strip())
+            else:
+                print cmd_err.strip()
             if driverPodsCount != healthyDriverPodsCount:
                 cmd = "kubectl get pods -n {0} -o wide| grep object-storage-driver| grep -v Running| awk '{{print $7}}'".format(provisioner_namespace)
                 (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -163,8 +167,12 @@ def executeBasicChecks():
                     out_list = cmd_out.strip().splitlines()
                     for line in out_list:
                         print "> " + line
+                else:
+                    print cmd_err.strip()
             else:
                 print "> All ibmcloud-object-storage-driver pods are in \"Running\" state... ok"
+    else:
+        print cmd_err.strip()
 
     print "\n****Default storage class list****"
     cmd = "kubectl get sc | grep s3fs"
@@ -175,6 +183,8 @@ def executeBasicChecks():
             print "> " + line
         if not out_list:
             ret += 1
+    else:
+        print cmd_err.strip()
 
     if provider == "IKS":
         inspectSC(sc="ibmc-s3fs-standard-cross-region")
@@ -190,6 +200,8 @@ def executeBasicChecks():
         else:
             print "> ibmcloud-object-storage-driver is not defined... " + NOT_OK
             ret += 1
+    else:
+        print cmd_err.strip()
 
     if ret > 3:
         print "\n> IBM COS Plug-in not installed... " + NOT_OK
@@ -203,6 +215,8 @@ def executeBasicChecks():
             print "> " + cmd_out.strip() + " is defined... ok"
         else:
             print "> ibmcloud-object-storage-plugin is not defined... " + NOT_OK
+    else:
+        print cmd_err.strip()
 
     print "\n****ClusterRole****"
     cmd = "kubectl get ClusterRole | grep 'ibmcloud-object-storage-plugin ' | awk '{print $1}'"
@@ -212,6 +226,8 @@ def executeBasicChecks():
             print "> " + cmd_out.strip() + " is defined... ok"
         else:
             print "> ibmcloud-object-storage-plugin is not defined... " + NOT_OK
+    else:
+        print cmd_err.strip()
 
     cmd = "kubectl get ClusterRole | grep 'ibmcloud-object-storage-secret-reader ' | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -220,6 +236,8 @@ def executeBasicChecks():
             print "> " + cmd_out.strip() + " is defined... ok"
         else:
             print "> ibmcloud-object-storage-secret-reader is not defined.. " + NOT_OK
+    else:
+        print cmd_err.strip()
 
     print "\n****ClusterRoleBinding****"
     cmd = "kubectl get ClusterRoleBinding | grep 'ibmcloud-object-storage-plugin ' | awk '{print $1}'"
@@ -229,6 +247,8 @@ def executeBasicChecks():
             print "> " + cmd_out.strip() + " is defined... ok"
         else:
             print "> ibmcloud-object-storage-plugin is not defined... " + NOT_OK
+    else:
+        print cmd_err.strip()
 
     cmd = "kubectl get ClusterRoleBinding | grep 'ibmcloud-object-storage-secret-reader ' | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -237,6 +257,8 @@ def executeBasicChecks():
             print "> " + cmd_out.strip() + " is defined... ok\n"
         else:
             print "> ibmcloud-object-storage-secret-reader is not defined... " + NOT_OK + "\n"
+    else:
+        print cmd_err.strip()
 
     # Check PodSecurityPolicy used by ibm-object-storage-plugin pods, Only for ICP
     if provider == "ICP":
@@ -248,6 +270,8 @@ def executeBasicChecks():
                 customPSPUsed = False
             else:
                 customPSPUsed = True
+        else:
+            print cmd_err.strip()
         cmd = "kubectl get pods -n {0} -o wide| grep object-storage-plugin| awk '{{print $1}}'".format(provisioner_namespace)
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
@@ -257,6 +281,10 @@ def executeBasicChecks():
                 if not cmd_err.strip():
                     if cmd_out.strip():
                         provisionerPodPSP = cmd_out.strip()
+                else:
+                    print cmd_err.strip()
+        else:
+            print cmd_err.strip()
 
         if customPSPUsed == False:
             if provisionerPodPSP == "ibm-privileged-psp":
@@ -265,7 +293,7 @@ def executeBasicChecks():
                 print "> ibm-object-storage-plugin pods are deployed using \"{0}\" PodSecurityPolicy instead of \"ibm-privileged-psp\"... ".format(provisionerPodPSP) + NOT_OK
                 print "> " + BOLD +  "To fix this issue, refer to" + ENDC + ": " + \
                 BLUEC + "https://cloud.ibm.com/docs/containers/cs_storage_cos.html#object_storage" + ENDC
-                cleanupLogs()            
+                cleanupLogs()
                 sys.exit(1)
         else:
             if provisionerPodPSP == "ibm-object-storage-plugin-psp":
@@ -292,39 +320,47 @@ def getNodeList4DL(q, driver_log_opts=""):
             q.put(x)
 
 def backupDriverLog(q=None):
-     while True:
-         name = threading.currentThread().getName()
-         x = q.get()
-         print "> {0} Copying driver log from node {1}".format(name, x)
-         cmd = "kubectl get pods -o wide -n default | grep ibm-cos-plugin-diag | grep  \"{0}\" |awk '{{print $1}}'".format(x)
-         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-         if not cmd_err.strip():
-             podname =  cmd_out.strip()
-             cmd = "kubectl cp -n default {0}:var/log/ibmc-s3fs.log ibm-cos-diagnostic-logs/{1}-ibmc-s3fs.log".format(podname, x)
-             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    while True:
+        name = threading.currentThread().getName()
+        x = q.get()
+        print "> {0} Copying driver log from node {1}".format(name, x)
+        cmd = "kubectl get pods -o wide -n default | grep ibm-cos-plugin-diag | grep  \"{0}\" |awk '{{print $1}}'".format(x)
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if not cmd_err.strip():
+            podname =  cmd_out.strip()
+            cmd = "kubectl cp -n default {0}:var/log/ibmc-s3fs.log ibm-cos-diagnostic-logs/{1}-ibmc-s3fs.log".format(podname, x)
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if cmd_err.strip():
+                print cmd_err.strip()
+        else:
+            print cmd_err.strip()
 
-         q.task_done()
+        q.task_done()
 
 def backupdiagnosticLogs(q):
-     while True:
-         name = threading.currentThread().getName()
-         x = q.get()
-         cmd = "kubectl get pods -o wide -n default | grep ibm-cos-plugin-diag | grep  \"{0}\" |awk '{{print $1}}'".format(x)
-         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-         if not cmd_err.strip():
-             podname =  cmd_out.strip()
-             #print "> {0}: Check if diagnostic log is ready for node {1}".format(name, x)
-             cmd = "kubectl exec {0} -n default -- ps | grep check-mount-health".format(podname)
-             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+    while True:
+        name = threading.currentThread().getName()
+        x = q.get()
+        cmd = "kubectl get pods -o wide -n default | grep ibm-cos-plugin-diag | grep  \"{0}\" |awk '{{print $1}}'".format(x)
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if not cmd_err.strip():
+            podname =  cmd_out.strip()
+            #print "> {0}: Check if diagnostic log is ready for node {1}".format(name, x)
+            cmd = "kubectl exec {0} -n default -- ps | grep check-mount-health".format(podname)
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
 
-             if rc == 0:
-                 #print "> {0}: diagnostic log is not ready for node {1}".format(name, x)
-                 q.put(x)
-             else:
-                 print "> {0}: Copying diagnostic log from node {1}".format(name, x)
-                 cmd = "kubectl cp -n default {0}:/var/log/ibm-cos-plugin-diag.log ibm-cos-diagnostic-logs/{1}-ibm-cos-plugin-diag.log".format(podname, x)
-                 (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-         q.task_done()
+            if rc == 0:
+                #print "> {0}: diagnostic log is not ready for node {1}".format(name, x)
+                q.put(x)
+            else:
+                print "> {0}: Copying diagnostic log from node {1}".format(name, x)
+                cmd = "kubectl cp -n default {0}:/var/log/ibm-cos-plugin-diag.log ibm-cos-diagnostic-logs/{1}-ibm-cos-plugin-diag.log".format(podname, x)
+                (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+                if cmd_err.strip():
+                    print cmd_err.strip()
+        else:
+            print cmd_err.strip()
+        q.task_done()
 
 def check_daemonset_state(ds_name, nodes_available, ds_namespace="default"):
     attempts = 0
@@ -489,14 +525,13 @@ def inspectPVC(ns="", pvc=""):
             if line.strip().startswith("Warning") or line.strip().startswith("Error"):
                print ">  > " + REDC + line.strip() + ENDC
 
-        #cmd = "grep pvc-devtest-02 ./ibm-cos-provisioner.log | grep Error"
-        cmd = "grep " + pvc + " ibm-cos-diagnostic-logs/ibm-cos-provisioner.log | grep Error"
+        cmd = "grep " + pvc + " ibm-cos-diagnostic-logs/ibm-cos-provisioner.log | grep -i Error"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
             if out_list[-1].strip():
                 print ">  > " + REDC +  out_list[-1].strip() + ENDC
-                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
+                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://cloud.ibm.com/docs/containers?topic=containers-cs_troubleshoot_storage" + ENDC
     return ret
 
 def inspectPOD(ns="", pod=""):
@@ -539,14 +574,14 @@ def inspectPOD(ns="", pod=""):
             if line.strip().startswith("Warning") or line.strip().startswith("Error"):
                print ">  > " + REDC + line.strip() + ENDC
 
-        cmd = "grep " + pod_uid + " ibm-cos-diagnostic-logs/" + pod_node +"-ibmc-s3fs.log | grep -i Error"
+        cmd = "grep " + pod_uid + " ibm-cos-diagnostic-logs/" + pod_node +"-ibmc-s3fs.log | grep -i Error | tail -n 15"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_out.strip():
             out_list = cmd_out.strip().splitlines()
             if out_list[-1].strip():
                 err_msg = out_list[-1].strip().split('\"msg\":', 1)
                 print ">  > " + REDC + err_msg[1].strip()[:-1] + ENDC
-                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://console.bluemix.net/docs/containers/cs_troubleshoot_storage.html" + ENDC
+                print "\n>  > " + BOLD +  "Refer to Troubleshoot" + ENDC + ": " + BLUEC + "https://cloud.ibm.com/docs/containers?topic=containers-cs_troubleshoot_storage" + ENDC
     return ret
 
 def getPodNode(podname="", podns=""):
@@ -557,6 +592,8 @@ def getPodNode(podname="", podns=""):
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
             pod_node = cmd_out.strip()
+        else:
+            print cmd_err.strip()
     return pod_node
 
 def removeDuplicate(duplicate):
@@ -577,6 +614,8 @@ def getFinalListofNodes(podnode="", nodeList=""):
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
                 workers = cmd_out.strip().split()
+            else:
+                print cmd_err.strip()
         else:
             for x in nodeList:
                 if "," in x:
@@ -607,6 +646,10 @@ def labelNodesForDSDeployment(nodeList=""):
                 g_nlist = g_nlist + ip + " "
             cmd = "kubectl label nodes {0} tool=ibm-cos-diag".format(g_nlist)
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if cmd_err.strip():
+                print cmd_err.strip()
+                cleanupLogs()
+                sys.exit(1)
             return rc
     return
 
@@ -615,7 +658,7 @@ def RemoveLabels(nodeList=""):
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if  cmd_err.strip():
         print "Error while removing labels from node"
-        print cmd_err
+        print cmd_err.strip()
 
 def makeLogFolder():
     currentDir = os.getcwd()
@@ -705,6 +748,8 @@ def main():
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
             provisioner_namespace = cmd_out.strip()
+        else:
+            print cmd_err.strip()
 
     rc = executeBasicChecks()
     if rc > 2:
@@ -792,6 +837,8 @@ def main():
                     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
                     if not cmd_err.strip():
                         print "> Collected provisioner log... ok"
+                    else:
+                        print "> Collecting provisioner log failed... " + NOT_OK
                 else:
                     print "> ibmcloud-object-storage-plugin is in \"{0}\" state. Provisioner log cannot be fetched.".format(plugin_pod_status)
         else:
