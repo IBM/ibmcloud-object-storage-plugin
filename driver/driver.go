@@ -645,7 +645,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if err == nil {
 		s3fsProcStatus := strings.SplitAfterN(string(output), "\n", 2)
 		if s3fsProcStatus[1] == "" {
-			p.Logger.Error(podUID+":"+"s3fs process terminated.")
+			p.Logger.Error(podUID + ":" + "s3fs process terminated.")
 			return fmt.Errorf("s3fs mount failed: s3fs process terminated.")
 		}
 	}
