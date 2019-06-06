@@ -10,11 +10,15 @@ matrix:
   fast_finish: true
   allow_failures:
   - go: tip
+  include:
+    - language: python
+      name: Python
+      before_install: pip install flake8
+      before_script: true
+      script: flake8 . --count --select=E9,F63,F72,F82 --show-source --statistics
 
 cache:
   bundler: true
-
-sudo: true
 
 before_install:
   - sudo sudo curl https://glide.sh/get | sh
