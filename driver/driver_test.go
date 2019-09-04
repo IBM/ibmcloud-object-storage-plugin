@@ -484,7 +484,7 @@ func Test_Mount_DefaultTLSCipher_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -516,7 +516,7 @@ func Test_KernelCache_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "kernel_cache",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -548,7 +548,7 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "curldbg",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -580,7 +580,7 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "retries=1",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -612,7 +612,7 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "stat_cache_expire=1",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -643,7 +643,7 @@ func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -674,7 +674,7 @@ func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -706,7 +706,7 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "gid=65534",
 		"-o", "uid=65534",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
@@ -736,7 +736,7 @@ func Test_Mount_ReadOnly_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "ro",
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
@@ -766,7 +766,7 @@ func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -807,7 +807,7 @@ func Test_Mount_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 	}
 
 	resp := p.Mount(r)
@@ -950,7 +950,7 @@ func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 		"-o", "connect_timeout=1",
 	}
 
@@ -993,7 +993,7 @@ func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 		"-o", "readwrite_timeout=1",
 	}
 
@@ -1024,7 +1024,7 @@ func Test_UseXattr_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=",
+		"-o", "default_acl=private",
 		"-o", "use_xattr",
 	}
 

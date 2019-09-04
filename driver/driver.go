@@ -595,7 +595,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		args = append(args, "-o", "ibm_iam_auth")
 		args = append(args, "-o", "ibm_iam_endpoint="+iamEndpoint)
 	} else {
-		args = append(args, "-o", "default_acl=")
+		args = append(args, "-o", "default_acl=private")
 	}
 
 	if options.ConnectTimeoutSeconds != "" {
