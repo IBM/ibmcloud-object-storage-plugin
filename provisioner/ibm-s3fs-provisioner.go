@@ -20,10 +20,12 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
+	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 )
@@ -52,6 +54,8 @@ type pvcAnnotations struct {
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
+	ServiceName             string `json:"ibm.io/cos-service"`
+	ServiceNamespace        string `json:"ibm.io/cos-service-ns,omitempty"`
 }
 
 // Storage Class options
@@ -78,6 +82,7 @@ const (
 	driverName           = "ibm/ibmc-s3fs"
 	autoBucketNamePrefix = "tmp-s3fs-"
 	fsType               = ""
+	caBundlePath         = "/tmp/"
 )
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
@@ -93,6 +98,7 @@ type IBMS3fsProvisioner struct {
 }
 
 var _ controller.Provisioner = &IBMS3fsProvisioner{}
+var writeFile = ioutil.WriteFile
 
 func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 	bytesVal, ok := secret.Data[keyName]
@@ -102,7 +108,23 @@ func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 
 	return string(bytesVal), nil
 }
-
+func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceName string) error {
+	crtFile := path.Join(caBundlePath, serviceName)
+	os.Setenv("AWS_CA_BUNDLE", crtFile)
+	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	crtKey, err := parseSecret(secrets, driver.CrtBundle)
+	if err != nil {
+		return err
+	}
+	err = writeFile(crtFile, []byte(crtKey), 0600)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
@@ -145,7 +167,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var sc scOptions
 	var pvcName = options.PVC.Name
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg string
+	var msg, svcIp string
 	var valBucket = true
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession
@@ -165,6 +187,20 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	if pvc.SecretNamespace == "" {
 		pvc.SecretNamespace = options.PVC.Namespace
+	}
+	if pvc.ServiceName != "" && pvc.ServiceNamespace != "" {
+		svc, err := p.Client.Core().Services(pvc.ServiceNamespace).Get(pvc.ServiceName, metav1.GetOptions{})
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
+		}
+		port := svc.Spec.Ports[0].Port
+		svcIp = svc.Spec.ClusterIP
+		endPoint := "https://" + pvc.ServiceName + ":" + strconv.Itoa(int(port))
+		pvc.Endpoint = endPoint
+		err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.ServiceName)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create ca crt file: %v", err)
+		}
 	}
 
 	//Override value of EndPoint defined in storageclass
@@ -379,6 +415,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		ConnectTimeoutSeconds:   sc.ConnectTimeoutSeconds,
 		UseXattr:                sc.UseXattr,
 		AccessMode:              string(accessMode[0]),
+		ServiceIP:               svcIp,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
@@ -406,6 +443,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		UseXattr:                pvc.UseXattr,
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
+		ServiceName:             pvc.ServiceName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
@@ -440,7 +478,7 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 	var pvcAnnots pvcAnnotations
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
-	contextLogger.Info("Deleting the pvc..")
+	contextLogger.Info("Deleting the pvc.." + pv.Spec.ClaimRef.Name)
 
 	endpointValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-endpoint"]
 	regionValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-storage-class"]
@@ -462,6 +500,15 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 }
 
 func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error {
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
+	contextLogger.Info("Deleting the bucket..")
+	if pvcAnnots.ServiceName != "" {
+		err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.ServiceName)
+		if err != nil {
+			return fmt.Errorf("cannot create crt file: %v", err)
+		}
+		contextLogger.Info("Created crt file")
+	}
 	creds, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
