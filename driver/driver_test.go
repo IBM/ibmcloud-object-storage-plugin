@@ -46,6 +46,8 @@ const (
 	optionReadwriteTimeoutSeconds = "readwrite-timeout"
 	optionUseXattr                = "use-xattr"
 	optionServiceInstanceID       = "kubernetes.io/secret/service-instance-id"
+	optionCAbundleB64             = "kubernetes.io/secret/ca-bundle-crt"
+	optionServiceIP               = "service-ip"
 
 	testDir            = "/tmp/"
 	testChunkSizeMB    = 500
@@ -62,6 +64,8 @@ const (
 	testAPIKey         = "apikey"
 	testTLSCipherSuite = "test-tls-cipher-suite"
 	testDebugLevel     = "debug"
+	testCABundle       = "test-ca-bundle"
+	testServiceIP      = "1.0.0.0.1"
 )
 
 // these are actually constants
@@ -1043,5 +1047,48 @@ func Test_Mount_BadServiceInstanceID(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, "cannot decode Service Instance ID")
+	}
+}
+
+func Test_Mount_ServiceNameNegative(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionCAbundleB64] = base64.StdEncoding.EncodeToString([]byte(testCABundle))
+	r.Opts[optionServiceIP] = testServiceIP
+	writeFile = writeFileError
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
+		assert.Contains(t, resp.Message, "cannot create ca crt file")
+	}
+}
+
+func Test_Mount_ServiceNamePositive(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionCAbundleB64] = base64.StdEncoding.EncodeToString([]byte(testCABundle))
+	r.Opts[optionServiceIP] = testServiceIP
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "default_acl=private",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
 	}
 }

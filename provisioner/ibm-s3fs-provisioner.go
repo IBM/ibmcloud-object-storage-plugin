@@ -478,7 +478,7 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 	var pvcAnnots pvcAnnotations
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
-	contextLogger.Info("Deleting the pvc.." + pv.Spec.ClaimRef.Name)
+	contextLogger.Info("Deleting the pvc..")
 
 	endpointValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-endpoint"]
 	regionValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-storage-class"]

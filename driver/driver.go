@@ -43,6 +43,8 @@ const (
 	SecretServiceInstanceID = "service-instance-id"
 	// defaultIAMEndPoint is the default URL of the IBM IAM endpoint
 	defaultIAMEndPoint = "https://iam.bluemix.net"
+	// CrtBundle is the base64 encoded crt bundle
+	CrtBundle = "ca-bundle-crt"
 )
 
 var (

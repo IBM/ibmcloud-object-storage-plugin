@@ -12,6 +12,7 @@ package provisioner
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
@@ -22,6 +23,7 @@ import (
 	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	k8fake "k8s.io/client-go/kubernetes/fake"
+	"os"
 	//"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/api/core/v1"
 	//"k8s.io/client-go/pkg/runtime"
@@ -41,6 +43,9 @@ const (
 	testBucket            = "test-bucket"
 	testOSEndpoint        = "https://test-object-store-endpoint"
 	testIAMEndpoint       = "https://test-iam-endpoint"
+	testServiceName       = "test-service"
+	testServiceNamespace  = "test-default"
+	testCAKey             = "cacrt-key"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -68,6 +73,8 @@ const (
 	annotationValidateBucket          = "ibm.io/validate-bucket"
 	annotationConnectTimeoutSeconds   = "ibm.io/connect-timeout"
 	annotationReadwriteTimeoutSeconds = "ibm.io/readwrite-timeout"
+	annotationServiceName             = "ibm.io/cos-service"
+	annotationServiceNamespace        = "ibm.io/cos-service-ns"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
 	parameterParallelCount          = "ibm.io/parallel-count"
@@ -82,6 +89,8 @@ const (
 	parameterIAMEndpoint            = "ibm.io/iam-endpoint"
 	parameterStorageClass           = "ibm.io/object-store-storage-class"
 	parameterStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
+	parameterServiceName            = "ibm.io/cos-service"
+	parameterServiceNamespace       = "ibm.io/cos-service-ns"
 
 	optionChunkSizeMB             = "chunk-size-mb"
 	optionParallelCount           = "parallel-count"
@@ -103,6 +112,7 @@ const (
 	optionConnectTimeoutSeconds   = "connect-timeout"
 	optionUseXattr                = "use-xattr"
 	optionAccessMode              = "access-mode"
+	optionServiceIP               = "service-ip"
 )
 
 type clientGoConfig struct {
@@ -112,11 +122,29 @@ type clientGoConfig struct {
 	withAPIKey            bool
 	withServiceInstanceID bool
 	wrongSecretType       bool
+	isTLS                 bool
+	withcaBundle          bool
 }
+
+var (
+	writeFileError   = func(string, []byte, os.FileMode) error { return errors.New("") }
+	writeFileSuccess = func(string, []byte, os.FileMode) error { return nil }
+)
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 	objects := []runtime.Object{}
 	var secret *v1.Secret
+	var svc *v1.Service
+	if cfg.isTLS {
+		svc = &v1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: testServiceName, Namespace: testServiceNamespace},
+			Spec: v1.ServiceSpec{
+				Selector: map[string]string{},
+				Ports:    []v1.ServicePort{{Port: 80, Protocol: "TCP"}},
+			},
+		}
+		objects = append(objects, runtime.Object(svc))
+	}
 	if !cfg.missingSecret {
 		secret = &v1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -129,6 +157,9 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 			secret.Type = "test-type"
 		} else {
 			secret.Type = "ibm/ibmc-s3fs"
+		}
+		if cfg.withcaBundle {
+			secret.Data[driver.CrtBundle] = []byte(testCAKey)
 		}
 
 		if cfg.withAPIKey {
@@ -219,6 +250,8 @@ func getVolumeOptions() controller.VolumeOptions {
 			parameterStorageClass:           testStorageClass,
 			parameterOSEndpoint:             testOSEndpoint,
 			parameterIAMEndpoint:            testIAMEndpoint,
+			parameterServiceName:            testServiceName,
+			parameterServiceNamespace:       testServiceNamespace,
 		},
 	}
 
@@ -943,4 +976,71 @@ func Test_Provision_PVCAnnotations_TLS(t *testing.T) {
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
 	assert.Equal(t, "AESGCM", pv.Spec.FlexVolume.Options[optionTLSCipherSuite])
+}
+
+func Test_Provision_CASNegative(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationServiceName] = testServiceName
+	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot retrieve service details")
+	}
+}
+
+func Test_Provision_CACrtSecretNegative(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationServiceName] = testServiceName
+	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot create ca crt file: ca-bundle-crt secret missing")
+	}
+}
+
+func Test_Provision_CACrtSecretPositive(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationServiceName] = testServiceName
+	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_CACrtSecretWriteError(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationServiceName] = testServiceName
+	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
+	writeFile = writeFileError
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot create ca crt file")
+	}
+}
+
+func Test_Delete_TLS_Negative(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
+	pv := getAutoDeletePersistentVolume()
+	pv.Annotations[annotationServiceName] = testServiceName
+	pv.Annotations[annotationServiceNamespace] = testServiceNamespace
+	err := p.Delete(pv)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot delete bucket: cannot create crt file")
+	}
+}
+
+func Test_Delete_TLS_Positive(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
+	pv := getAutoDeletePersistentVolume()
+	pv.Annotations[annotationServiceName] = testServiceName
+	pv.Annotations[annotationServiceNamespace] = testServiceNamespace
+	writeFile = writeFileSuccess
+	err := p.Delete(pv)
+	assert.NoError(t, err)
 }
