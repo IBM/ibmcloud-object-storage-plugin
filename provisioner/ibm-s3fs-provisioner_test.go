@@ -89,8 +89,6 @@ const (
 	parameterIAMEndpoint            = "ibm.io/iam-endpoint"
 	parameterStorageClass           = "ibm.io/object-store-storage-class"
 	parameterStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
-	parameterServiceName            = "ibm.io/cos-service"
-	parameterServiceNamespace       = "ibm.io/cos-service-ns"
 
 	optionChunkSizeMB             = "chunk-size-mb"
 	optionParallelCount           = "parallel-count"
@@ -250,8 +248,6 @@ func getVolumeOptions() controller.VolumeOptions {
 			parameterStorageClass:           testStorageClass,
 			parameterOSEndpoint:             testOSEndpoint,
 			parameterIAMEndpoint:            testIAMEndpoint,
-			parameterServiceName:            testServiceName,
-			parameterServiceNamespace:       testServiceNamespace,
 		},
 	}
 
