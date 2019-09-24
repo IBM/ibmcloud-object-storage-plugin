@@ -1008,6 +1008,17 @@ func Test_Provision_CACrtSecretPositive(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func Test_Provision_CACrtNamespaceNegative(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationServiceName] = testServiceName
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cos-service-namespace not provided")
+	}
+}
+
 func Test_Provision_CACrtSecretWriteError(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
 	v := getVolumeOptions()

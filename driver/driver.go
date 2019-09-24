@@ -91,7 +91,7 @@ type Options struct {
 	AccessMode              string `json:"access-mode,omitempty"`
 	ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
 	CAbundleB64             string `json:"kubernetes.io/secret/ca-bundle-crt,omitempty"`
-	ServiceIP               string `json:"service-ip,omitempty"`
+	CosServiceIP            string `json:"service-ip,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -461,10 +461,10 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			}
 		}
 	}
-	if options.CAbundleB64 != "" && options.ServiceIP != "" {
+	if options.CAbundleB64 != "" && options.CosServiceIP != "" {
 		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
 		//caFile := path.Join(mountPath, caFileName)
-		caFileName := options.ServiceIP + "_ ca.crt"
+		caFileName := options.CosServiceIP + "_ ca.crt"
 		caFile := path.Join(caPath, caFileName)
 		err = writeFile(caFile, []byte(CaBundleKey), 0600)
 		if err != nil {

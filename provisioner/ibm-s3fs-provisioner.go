@@ -54,8 +54,8 @@ type pvcAnnotations struct {
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
-	ServiceName             string `json:"ibm.io/cos-service"`
-	ServiceNamespace        string `json:"ibm.io/cos-service-ns,omitempty"`
+	CosServiceName          string `json:"ibm.io/cos-service"`
+	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 }
 
 // Storage Class options
@@ -188,16 +188,19 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	if pvc.SecretNamespace == "" {
 		pvc.SecretNamespace = options.PVC.Namespace
 	}
-	if pvc.ServiceName != "" && pvc.ServiceNamespace != "" {
-		svc, err := p.Client.Core().Services(pvc.ServiceNamespace).Get(pvc.ServiceName, metav1.GetOptions{})
+	if pvc.CosServiceName != "" {
+		if pvc.CosServiceNamespace == "" {
+			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":cos-service-namespace not provided")
+		}
+		svc, err := p.Client.Core().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
 		}
 		port := svc.Spec.Ports[0].Port
 		svcIp = svc.Spec.ClusterIP
-		endPoint := "https://" + pvc.ServiceName + ":" + strconv.Itoa(int(port))
+		endPoint := "https://" + pvc.CosServiceName + ":" + strconv.Itoa(int(port))
 		pvc.Endpoint = endPoint
-		err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.ServiceName)
+		err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create ca crt file: %v", err)
 		}
@@ -415,7 +418,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		ConnectTimeoutSeconds:   sc.ConnectTimeoutSeconds,
 		UseXattr:                sc.UseXattr,
 		AccessMode:              string(accessMode[0]),
-		ServiceIP:               svcIp,
+		CosServiceIP:            svcIp,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
@@ -443,7 +446,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		UseXattr:                pvc.UseXattr,
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
-		ServiceName:             pvc.ServiceName,
+		CosServiceName:          pvc.CosServiceName,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
@@ -502,8 +505,8 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error {
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the bucket..")
-	if pvcAnnots.ServiceName != "" {
-		err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.ServiceName)
+	if pvcAnnots.CosServiceName != "" {
+		err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName)
 		if err != nil {
 			return fmt.Errorf("cannot create crt file: %v", err)
 		}
