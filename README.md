@@ -181,7 +181,59 @@ EOF
    IBM Cloud Object Storage plug-in
    root@s3fs-test-pod:/mnt/s3fs#
    ```
+### Use Custom CA Bundle
 
+   **Note**: It is mandatory to Expose Kube Dns on Worker Nodes before performing below steps.
+
+   Pass the ca-bundle key in the cos secret with parameter `ca-bundle-crt` along with `access-key` and `secret-key`.
+
+   Sample Secret:
+
+   ```
+	apiVersion: v1
+	kind: Secret
+	type: ibm/ibmc-s3fs
+	metadata:
+  	  name: test-secret
+  	  namespace: <NAMESPACE_NAME>
+	data:
+  	  access-key: <access key encoded in base64 (when not using IAM OAuth)>
+	  secret-key: <secret key encoded in base64 (when not using IAM OAuth)>
+	  api-key: <api key encoded in base64 (for IAM OAuth)>
+ 	  service-instance-id: <service-instance-id encoded in base64 (for IAM OAuth + bucket creation)>
+      ca-bundle-crt: < TLS Public cert bundles encoded in base64>
+  ```
+
+   Create PVC by providing COS-Service name and COS-Service namespace
+
+   Sample  PVC template:
+
+   ```
+   kind: PersistentVolumeClaim
+   apiVersion: v1
+   metadata:
+     name: s3fs-test-pvc
+     namespace: <NAMESPACE_NAME>
+     annotations:
+       volume.beta.kubernetes.io/storage-class: "ibmc-s3fs-standard"
+       ibm.io/auto-create-bucket: "true"
+       ibm.io/auto-delete-bucket: "false"
+       ibm.io/bucket: "<BUCKET_NAME>"
+       ibm.io/object-path: ""    # Bucket's sub-directory to be mounted (OPTIONAL)
+       ibm.io/endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
+       ibm.io/region: "us-standard"
+       ibm.io/secret-name: "test-secret"
+       ibm.io/stat-cache-expire-seconds: ""   # stat-cache-expire time in seconds; default is no expire.
+       ibm.io/cos-service: <COS SERVICE NAME>
+       ibm.io/cos-service-ns: <NAMESPACE WHERE COS SERVICE IS CREATED>
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      resources:
+        requests:
+          storage: 8Gi # fictitious value
+
+  ```
 ## Uninstall
    Execute the following commands to uninstall/remove IBM Cloud Object Storage plugin from your Kubernetes cluster:
    ```
