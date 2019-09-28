@@ -183,7 +183,7 @@ EOF
    ```
 ### Use Custom CA Bundle
 
-   **Note**: It is mandatory to Expose Kube Dns on Worker Nodes before performing below steps.
+   **Note**: t is recommended to expose Kube Dns on Worker Nodes before performing below steps.
 
    Pass the ca-bundle key in the cos secret with parameter `ca-bundle-crt` along with `access-key` and `secret-key`.
 
@@ -220,7 +220,6 @@ EOF
        ibm.io/auto-delete-bucket: "false"
        ibm.io/bucket: "<BUCKET_NAME>"
        ibm.io/object-path: ""    # Bucket's sub-directory to be mounted (OPTIONAL)
-       ibm.io/endpoint: "https://s3-api.dal-us-geo.objectstorage.service.networklayer.com"
        ibm.io/region: "us-standard"
        ibm.io/secret-name: "test-secret"
        ibm.io/stat-cache-expire-seconds: ""   # stat-cache-expire time in seconds; default is no expire.
