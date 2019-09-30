@@ -183,7 +183,7 @@ EOF
    ```
 ### Use Custom CA Bundle
 
-   **Note**: t is recommended to expose Kube Dns on Worker Nodes before performing below steps.
+   **Note**: It is recommended to expose Kube Dns on Worker Nodes before performing below steps.
 
    Pass the ca-bundle key in the cos secret with parameter `ca-bundle-crt` along with `access-key` and `secret-key`.
 
