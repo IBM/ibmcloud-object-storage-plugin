@@ -90,6 +90,7 @@ func maskSecrets(m map[string]string) (map[string]string, []byte, error) {
 	mountOptsLogs["kubernetes.io/secret/secret-key"] = "YYY"
 	mountOptsLogs["kubernetes.io/secret/api-key"] = "KKK"
 	mountOptsLogs["kubernetes.io/secret/service-instance-id"] = "MMM"
+	mountOptsLogs["kubernetes.io/secret/ca-bundle-crt"] = "ZZZ"
 	newString, err := json.Marshal(mountOptsLogs)
 
 	return mountOptsLogs, newString, err

@@ -32,7 +32,7 @@ const (
 	passwordFileName      = "passwd"
 	cacheDirectoryName    = "cache"
 	defaultTLSCipherSuite = "AES"
-
+	caPath                = "/tmp"
 	// SecretAccessKey is the key name for the AWS Access Key
 	SecretAccessKey = "access-key"
 	// SecretSecretKey is the key name for the AWS Secret Key
@@ -43,6 +43,8 @@ const (
 	SecretServiceInstanceID = "service-instance-id"
 	// defaultIAMEndPoint is the default URL of the IBM IAM endpoint
 	defaultIAMEndPoint = "https://iam.bluemix.net"
+	// CrtBundle is the base64 encoded crt bundle
+	CrtBundle = "ca-bundle-crt"
 )
 
 var (
@@ -88,6 +90,8 @@ type Options struct {
 	UseXattr                bool   `json:"use-xattr,string,omitempty"`
 	AccessMode              string `json:"access-mode,omitempty"`
 	ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
+	CAbundleB64             string `json:"kubernetes.io/secret/ca-bundle-crt,omitempty"`
+	CosServiceIP            string `json:"service-ip,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -457,7 +461,20 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			}
 		}
 	}
-
+	if options.CAbundleB64 != "" && options.CosServiceIP != "" {
+		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
+		//caFile := path.Join(mountPath, caFileName)
+		caFileName := options.CosServiceIP + "_ ca.crt"
+		caFile := path.Join(caPath, caFileName)
+		err = writeFile(caFile, []byte(CaBundleKey), 0600)
+		if err != nil {
+			p.Logger.Error(podUID+":"+" Cannot create ca crt file",
+				zap.Error(err))
+			return fmt.Errorf("cannot create ca crt file: %v", err)
+		}
+		os.Setenv("CURL_CA_BUNDLE", caFile)
+		os.Setenv("AWS_CA_BUNDLE", caFile)
+	}
 	// check that bucket exists before doing the mount
 	err = p.checkBucket(endptValue, regionValue, options.Bucket,
 		&backend.ObjectStorageCredentials{
@@ -529,7 +546,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			zap.Error(err))
 		return fmt.Errorf("cannot create password file: %v", err)
 	}
-
 	var tlsCipherSuite string
 	if options.TLSCipherSuite != "" {
 		tlsCipherSuite = options.TLSCipherSuite
