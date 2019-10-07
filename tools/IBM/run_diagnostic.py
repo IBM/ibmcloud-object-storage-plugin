@@ -8,6 +8,7 @@
 # * disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 # ******************************************************************************
 
+from __future__ import print_function
 import argparse
 import datetime
 import json
@@ -110,105 +111,105 @@ cmdHandle = cmdHandler()
 
 def executeBasicChecks():
 
-    print "\n****ibmcloud-object-storage-plugin pod status****"
+    print("\n****ibmcloud-object-storage-plugin pod status****")
     cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-plugin| awk '{print $3}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if not cmd_out.strip():
-            print "ERROR: ibmcloud-object-storage-plugin pod not found"
+            print("ERROR: ibmcloud-object-storage-plugin pod not found")
         else:
-            print "ibmcloud-object-storage-plugin pod is in \"{0}\" state.".format(cmd_out.strip())
+            print("ibmcloud-object-storage-plugin pod is in \"{0}\" state.".format(cmd_out.strip()))
 
-    print "\n****Checking storage class details****"
+    print("\n****Checking storage class details****")
     cmd = "kubectl get sc | grep s3fs"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
-        print cmd_out.strip()
+        print(cmd_out.strip())
 
-    print "\n****Total number of storage classes created****"
+    print("\n****Total number of storage classes created****")
     cmd = "kubectl get sc | grep s3fs | wc -l"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
-        print cmd_out.strip()
+        print(cmd_out.strip())
 
-    print "\n****Checking iam-endpoint****"
+    print("\n****Checking iam-endpoint****")
     cmd = "kubectl get sc ibmc-s3fs-standard-cross-region -o jsonpath='{.parameters.ibm\.io/iam-endpoint}' "
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if not cmd_out.strip():
-            print "ERROR: iam-endpoint is empty"
+            print("ERROR: iam-endpoint is empty")
         else:
-            print "iam-endpoint is set"
+            print("iam-endpoint is set")
 
-    print "\n****Checking object-storage-endpoint****"
+    print("\n****Checking object-storage-endpoint****")
     cmd = "kubectl get sc ibmc-s3fs-standard-cross-region -o jsonpath='{.parameters.ibm\.io/object-store-endpoint}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if ("NA" == cmd_out.strip()) or not cmd_out.strip():
-            print "ERROR: object-storage-endpoint is empty"
+            print("ERROR: object-storage-endpoint is empty")
         else:
-            print "object-storage-endpoint is set"
+            print("object-storage-endpoint is set")
 
-    print "\n****Checking object-store-storage-class****"
+    print("\n****Checking object-store-storage-class****")
     cmd = "kubectl get sc ibmc-s3fs-standard-cross-region -o jsonpath='{.parameters.ibm\.io/object-store-storage-class}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if ("NA" == cmd_out.strip()) or not cmd_out.strip():
-            print "ERROR: object-store-storage-class is empty."
+            print("ERROR: object-store-storage-class is empty.")
         else:
-            print "object-store-storage-class is set"
+            print("object-store-storage-class is set")
 
-    print "\nChecking ServiceAccounts, ClusterRoles and ClusterRoleBindings are created"
-    print "****ServiceAccounts****"
+    print("\nChecking ServiceAccounts, ClusterRoles and ClusterRoleBindings are created")
+    print("****ServiceAccounts****")
     cmd = "kubectl get sa -n kube-system | grep ibmcloud-object-storage-driver | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-driver" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-driver is not created"
+            print("ERROR: ibmcloud-object-storage-driver is not created")
 
     cmd = "kubectl get sa -n kube-system | grep ibmcloud-object-storage-plugin | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-plugin" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-plugin is not created"
+            print("ERROR: ibmcloud-object-storage-plugin is not created")
 
-    print "\n****ClusterRole****"
+    print("\n****ClusterRole****")
     cmd = "kubectl get ClusterRole | grep ibmcloud-object-storage-plugin | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-plugin" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-plugin is not created"
+            print("ERROR: ibmcloud-object-storage-plugin is not created")
 
     cmd = "kubectl get ClusterRole | grep ibmcloud-object-storage-secret-reader | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-secret-reader" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-secret-reader is not created"
+            print("ERROR: ibmcloud-object-storage-secret-reader is not created")
 
-    print "\n****ClusterRoleBinding****"
+    print("\n****ClusterRoleBinding****")
     cmd = "kubectl get ClusterRoleBinding | grep ibmcloud-object-storage-plugin | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-plugin" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-plugin is not created"
+            print("ERROR: ibmcloud-object-storage-plugin is not created")
 
     cmd = "kubectl get ClusterRoleBinding | grep ibmcloud-object-storage-secret-reader | awk '{print $1}'"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
         if "ibmcloud-object-storage-secret-reader" == cmd_out.strip():
-            print cmd_out.strip() + " is created"
+            print(cmd_out.strip() + " is created")
         else:
-            print "ERROR: ibmcloud-object-storage-secret-reader is not created"
+            print("ERROR: ibmcloud-object-storage-secret-reader is not created")
 
 def getNodeList(q):
     #cmd = "kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type==\"Hostname\")].address}'"
@@ -225,7 +226,7 @@ def backupDriverLog(q, lockone):
          #print threading.current_thread()
          lockone.acquire()
          x = q.get()
-         print "Copying driver log from node {0}".format(x)
+         print("Copying driver log from node {0}".format(x))
          cmd = "kubectl get pods -o wide | grep s3fs-diagnostic | grep  \"{0}\" |awk '{{print $1}}'".format(x)
          (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
          if not cmd_err.strip():
@@ -241,7 +242,7 @@ def backupdiagnosticLogs(q, locktwo):
          #print threading.current_thread()
          locktwo.acquire()
          x = q.get()
-         print "Copying diagnostic log from node {0}".format(x)
+         print("Copying diagnostic log from node {0}".format(x))
          #print(str(datetime.datetime.now()))
          cmd = "kubectl get pods -o wide | grep s3fs-diagnostic | grep  \"{0}\" |awk '{{print $1}}'".format(x)
          (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
@@ -253,7 +254,7 @@ def backupdiagnosticLogs(q, locktwo):
                  cmd ="cat {0}-s3fsMountStatus.log | grep -e ERROR".format(x)
                  (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
                  if (not cmd_err.strip()) and cmd_out.strip():
-                     print cmd_out.strip()
+                     print(cmd_out.strip())
 
          q.task_done()
          locktwo.release()
@@ -272,27 +273,27 @@ def check_daemonset_state(ds_name):
         ds_status_ready = cmd_out.strip()
 
         if ds_status_ready == nodes_available:
-           print ds_name + " is  running and available ds instances:" +  ds_status_ready
+           print(ds_name + " is  running and available ds instances:" +  ds_status_ready)
            break
 
         if attempts > 30 :
-            print ds_name + "were not running well. Instances Desired:" + nodes_available + ", Instances Available:" + ds_status_ready
+            print(ds_name + "were not running well. Instances Desired:" + nodes_available + ", Instances Available:" + ds_status_ready)
             cmd = "kubectl get ds {0}".format(ds_name)
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
-                print cmd_out.strip()
+                print(cmd_out.strip())
             sys.exit(1)
 
-        print "DS:{0}, Desired:{1}, Available:{2} Sleeping 10 seconds".format(ds_name, nodes_available, ds_status_ready)
+        print("DS:{0}, Desired:{1}, Available:{2} Sleeping 10 seconds".format(ds_name, nodes_available, ds_status_ready))
         time.sleep(10)
 
 def cleanup_daemonset(ds_name):
-    print "****Deleting daemonset {0}****".format(ds_name)
+    print("****Deleting daemonset {0}****".format(ds_name))
 
     cmd = "kubectl delete ds {0}".format(ds_name)
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if not cmd_err.strip():
-        print cmd_out.strip()
+        print(cmd_out.strip())
     else:
         sys.exit(1)
 
@@ -311,41 +312,41 @@ def main():
 
     args = parser.parse_args()
     if "KUBECONFIG" not in os.environ:
-        print "export KUBECONFIG before running this tool.\nExiting!!!"
+        print("export KUBECONFIG before running this tool.\nExiting!!!")
         sys.exit(1)
-    print "****Checking whether cluster nodes are accessible****"
+    print("****Checking whether cluster nodes are accessible****")
     cmd =  "kubectl get nodes"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
-        print "Cluster nodes are not accessible. Please check KUBECONFIG env variable."
+        print("Cluster nodes are not accessible. Please check KUBECONFIG env variable.")
         sys.exit(1)
     else:
-        print "Success!!!"
+        print("Success!!!")
 
     executeBasicChecks()
 
     if args.pvc:
-        print "\n****Checking input PVC status****"
+        print("\n****Checking input PVC status****")
         cmd =  "kubectl describe pvc -n " + args.ns + " " + args.pvc
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
-            print cmd + "\n" + cmd_out
+            print(cmd + "\n" + cmd_out)
 
     if args.pod:
-        print "\n****Checking input POD status****"
+        print("\n****Checking input POD status****")
         cmd =  "kubectl describe pod -n " + args.ns + " " + args.pod
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
-            print cmd + "\n" + cmd_out
+            print(cmd + "\n" + cmd_out)
 
     # Collect provisioner log
     if args.pvc or args.provisioner_log:
-        print "\n****Collecting provisioner log****"
+        print("\n****Collecting provisioner log****")
         cmd = "kubectl get pods -n kube-system -o wide| grep object-storage-plugin| awk '{print $1,$3}'"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if not cmd_err.strip():
             if not cmd_out.strip():
-                print "ERROR: ibmcloud-object-storage-plugin pod not found. Provisioner log cannot be fetched."
+                print("ERROR: ibmcloud-object-storage-plugin pod not found. Provisioner log cannot be fetched.")
             else:
                 plugin_pod = cmd_out.strip().split(" ")
                 plugin_pod_name = plugin_pod[0]
@@ -354,20 +355,20 @@ def main():
                     cmd = "kubectl logs {0} -n kube-system > s3provisioner.log".format(plugin_pod_name)
                     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
                     if not cmd_err.strip():
-                        print "Success!!!"
+                        print("Success!!!")
                 else:
-                    print "ERROR: ibmcloud-object-storage-plugin is in \"{0}\" state. Provisioner log cannot be fetched.".format(plugin_pod_status)
+                    print("ERROR: ibmcloud-object-storage-plugin is in \"{0}\" state. Provisioner log cannot be fetched.".format(plugin_pod_status))
         else:
-            print "Provisioner log cannot be fetched."
+            print("Provisioner log cannot be fetched.")
 
     cmd = "kubectl apply -f diagnostic_daemon.yaml"
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
-        print "Exiting!!!"
+        print("Exiting!!!")
         sys.exit(1)
 
     # wait for the daemonset pod to reach running state
-    print "\n*****Check s3fs-diagnostic daemonset status*****"
+    print("\n*****Check s3fs-diagnostic daemonset status*****")
     check_daemonset_state("s3fs-diagnostic")
 
     #print "\nExecuting checks inside each worker node"
@@ -438,8 +439,8 @@ def main():
         if not cmd_err.strip():
             cmd = "pwd"
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
-            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension
+            print("Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
+            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension)
 
     elif args.driver_log or args.pod:
         cmd = compress_cmd + "*ibmc-s3fs.log *s3fsMountStatus.log"
@@ -447,8 +448,8 @@ def main():
         if not cmd_err.strip():
             cmd = "pwd"
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
-            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension
+            print("Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
+            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension)
 
     elif args.pvc or args.provisioner_log:
         cmd = compress_cmd + "s3provisioner.log *s3fsMountStatus.log"
@@ -456,8 +457,8 @@ def main():
         if not cmd_err.strip():
             cmd = "pwd"
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
-            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension
+            print("Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
+            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension)
 
     else:
         cmd = compress_cmd + "*s3fsMountStatus.log"
@@ -465,8 +466,8 @@ def main():
         if not cmd_err.strip():
             cmd = "pwd"
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
-            print "Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
-            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension
+            print("Successfully created log archive \"s3fs_diagnostic_logs" + file_extension \
+            + "\" and saved it to: " + cmd_out.strip() + "/s3fs_diagnostic_logs" + file_extension)
 
     #cmd = "ls | grep -w \".*s3.*.log\" | xargs -d\"\\n\" rm -rf"
     cmd = "ls | grep -w \".*s3.*.log\" | xargs -L1 rm -rf"
