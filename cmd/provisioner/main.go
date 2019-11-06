@@ -75,11 +75,14 @@ var leaseTermLimit = flag.Duration(
 )
 
 func main() {
-	flag.Set("logtostderr", "true")
-	flag.Parse()
-
+	var err error
 	logger, _ := log.GetZapLogger()
 	loggerLevel := zap.NewAtomicLevel()
+	err = flag.Set("logtostderr", "true")
+	if err != nil {
+		logger.Fatal("Failed to set flag:", zap.Error(err))
+	}
+	flag.Parse()
 
 	// Enable debug trace
 	debugTrace := cfg.GetConfigBool("DEBUG_TRACE", false, *logger)
@@ -97,7 +100,6 @@ func main() {
 	logger.Info("Provisioner specified: ", zap.String("provisioner", *provisioner))
 
 	var config *rest.Config
-	var err error
 	config, err = clientcmd.BuildConfigFromFlags(*master, *kubeconfig)
 	if err != nil {
 		logger.Fatal("Failed to create config:", zap.Error(err))

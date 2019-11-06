@@ -213,19 +213,22 @@ func main() {
 	NullDevice, _ := os.Open(os.DevNull)
 	os.Stdout = NullDevice
 	os.Stderr = NullDevice
-
+	/* #nosec */
 	parser.AddCommand("version",
 		"Prints version",
 		"Prints version and build information",
 		&versionCommand)
+	/* #nosec */
 	parser.AddCommand("init",
 		"Init the plugin",
 		"The info command print the driver name and version.",
 		&initCommand)
+	/* #nosec */
 	parser.AddCommand("mount",
 		"Mount Volume",
 		"Mount a volume Id to a path - returning the path.",
 		&mountCommand)
+	/* #nosec */
 	parser.AddCommand("unmount",
 		"Unmount Volume",
 		"UnMount given a mount dir",
@@ -239,6 +242,7 @@ func main() {
 		} else {
 			status = interfaces.StatusFailure
 		}
+		/* #nosec */
 		printResponse(interfaces.FlexVolumeResponse{
 			Status:  status,
 			Message: fmt.Sprintf("Error parsing arguments: %v", err),
