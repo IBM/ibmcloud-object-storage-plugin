@@ -80,7 +80,7 @@ func main() {
 	loggerLevel := zap.NewAtomicLevel()
 	err = flag.Set("logtostderr", "true")
 	if err != nil {
-		logger.Fatal("Failed to set flag:", zap.Error(err))
+		logger.Info("Failed to set flag:", zap.Error(err))
 	}
 	flag.Parse()
 
