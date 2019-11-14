@@ -35,6 +35,7 @@ func getEnv(key string) string {
 	return os.Getenv(strings.ToUpper(key))
 }
 
+/* #nosec */
 func setEnv(key string, value string) {
 	os.Setenv(strings.ToUpper(key), value)
 }

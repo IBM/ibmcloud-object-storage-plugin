@@ -472,8 +472,19 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				zap.Error(err))
 			return fmt.Errorf("cannot create ca crt file: %v", err)
 		}
-		os.Setenv("CURL_CA_BUNDLE", caFile)
-		os.Setenv("AWS_CA_BUNDLE", caFile)
+
+		err = os.Setenv("CURL_CA_BUNDLE", caFile)
+		if err != nil {
+			p.Logger.Error(podUID+":"+" Cannot set CURL_CA_BUNDLE env var",
+				zap.Error(err))
+			return fmt.Errorf("Cannot set CURL_CA_BUNDLE env var: %v", err)
+		}
+		err = os.Setenv("AWS_CA_BUNDLE", caFile)
+		if err != nil {
+			p.Logger.Error(podUID+":"+" Cannot set AWS_CA_BUNDLE env var",
+				zap.Error(err))
+			return fmt.Errorf("Cannot set AWS_CA_BUNDLE env var: %v", err)
+		}
 	}
 	// check that bucket exists before doing the mount
 	err = p.checkBucket(endptValue, regionValue, options.Bucket,
@@ -530,7 +541,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	defer func() {
 		// try to delete cache upon error or panic
 		if !done {
-			p.unmountPath(mountPath, true)
+			mounterr := p.unmountPath(mountPath, true)
+			if mounterr != nil {
+				p.Logger.Error(podUID+":"+"Error unmounting volume",
+					zap.Error(mounterr))
+			}
 		}
 	}()
 

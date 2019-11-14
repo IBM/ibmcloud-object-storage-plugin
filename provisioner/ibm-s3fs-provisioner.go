@@ -110,7 +110,10 @@ func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 }
 func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceName string) error {
 	crtFile := path.Join(caBundlePath, serviceName)
-	os.Setenv("AWS_CA_BUNDLE", crtFile)
+	err := os.Setenv("AWS_CA_BUNDLE", crtFile)
+	if err != nil {
+		return err
+	}
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
