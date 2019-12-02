@@ -69,6 +69,7 @@ type Options struct {
 	MultiReqMax             int    `json:"multireq-max,string"`
 	StatCacheSize           int    `json:"stat-cache-size,string"`
 	FSGroup                 string `json:"kubernetes.io/fsGroup,omitempty"`
+	FSGroupNew              string `json:"kubernetes.io/mounterArgs.FsGroup,omitempty"`
 	Endpoint                string `json:"endpoint,omitempty"` //Will be deprecated
 	Region                  string `json:"region,omitempty"`   //Will be deprecated
 	Bucket                  string `json:"bucket"`
@@ -598,6 +599,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if _, ok := mountRequest.Opts["kubernetes.io/fsGroup"]; ok {
 		args = append(args, "-o", "gid="+options.FSGroup)
 		args = append(args, "-o", "uid="+options.FSGroup)
+	} else if _, ok := mountRequest.Opts["kubernetes.io/mounterArgs.FsGroup"]; ok {
+		args = append(args, "-o", "gid="+options.FSGroupNew)
+		args = append(args, "-o", "uid="+options.FSGroupNew)
 	}
 
 	// Check if AccessMode is ReadOnlyMany
