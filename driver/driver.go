@@ -93,6 +93,7 @@ type Options struct {
 	ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
 	CAbundleB64             string `json:"kubernetes.io/secret/ca-bundle-crt,omitempty"`
 	CosServiceIP            string `json:"service-ip,omitempty"`
+	AutoCache               bool   `json:"auto_cache,string,omitempty"`
 }
 
 // PathExists returns true if the specified path exists.
@@ -620,6 +621,10 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 
 	if options.CurlDebug {
 		args = append(args, "-o", "curldbg")
+	}
+
+	if options.AutoCache {
+		args = append(args, "-o", "auto_cache")
 	}
 
 	if options.KernelCache {

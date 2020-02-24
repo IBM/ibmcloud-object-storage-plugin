@@ -89,6 +89,7 @@ const (
 	parameterIAMEndpoint            = "ibm.io/iam-endpoint"
 	parameterStorageClass           = "ibm.io/object-store-storage-class"
 	parameterStatCacheExpireSeconds = "ibm.io/stat-cache-expire-seconds"
+	parameterAutoCache              = "ibm.io/auto_cache"
 
 	optionChunkSizeMB             = "chunk-size-mb"
 	optionParallelCount           = "parallel-count"
@@ -111,6 +112,7 @@ const (
 	optionUseXattr                = "use-xattr"
 	optionAccessMode              = "access-mode"
 	optionServiceIP               = "service-ip"
+	optionAutoCache               = "auto_cache"
 )
 
 type clientGoConfig struct {
@@ -1050,4 +1052,14 @@ func Test_Delete_TLS_Positive(t *testing.T) {
 	writeFile = writeFileSuccess
 	err := p.Delete(pv)
 	assert.NoError(t, err)
+}
+
+func Test_Provision_AutoCache_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[parameterAutoCache] = "true"
+
+	pv, err := p.Provision(v)
+	assert.NoError(t, err)
+	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionAutoCache])
 }
