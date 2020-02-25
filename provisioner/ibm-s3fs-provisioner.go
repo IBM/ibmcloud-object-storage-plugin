@@ -77,7 +77,6 @@ type scOptions struct {
 	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string"`
-	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 }
 
 const (
@@ -405,7 +404,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	if pvc.AutoCache {
 		sc.KernelCache = false
-		sc.AutoCache = pvc.AutoCache
 	}
 
 	driverOptions, err := parser.MarshalToMap(&driver.Options{
@@ -429,7 +427,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		UseXattr:                sc.UseXattr,
 		AccessMode:              string(accessMode[0]),
 		CosServiceIP:            svcIp,
-		AutoCache:               sc.AutoCache,
+		AutoCache:               pvc.AutoCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
