@@ -225,12 +225,12 @@ EOF
        ibm.io/stat-cache-expire-seconds: ""   # stat-cache-expire time in seconds; default is no expire.
        ibm.io/cos-service: <COS SERVICE NAME>
        ibm.io/cos-service-ns: <NAMESPACE WHERE COS SERVICE IS CREATED>
-    spec:
-      accessModes:
-        - ReadWriteOnce
-      resources:
-        requests:
-          storage: 8Gi # fictitious value
+   spec:
+     accessModes:
+       - ReadWriteOnce
+     resources:
+       requests:
+         storage: 8Gi # fictitious value
 
   ```
 ## Uninstall
