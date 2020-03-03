@@ -56,6 +56,7 @@ type pvcAnnotations struct {
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
 	CosServiceName          string `json:"ibm.io/cos-service"`
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
+	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 }
 
 // Storage Class options
@@ -401,6 +402,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		return nil, fmt.Errorf(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
 	}
 
+	if pvc.AutoCache {
+		sc.KernelCache = false
+	}
+
 	driverOptions, err := parser.MarshalToMap(&driver.Options{
 		ChunkSizeMB:             sc.ChunkSizeMB,
 		ParallelCount:           sc.ParallelCount,
@@ -422,6 +427,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		UseXattr:                sc.UseXattr,
 		AccessMode:              string(accessMode[0]),
 		CosServiceIP:            svcIp,
+		AutoCache:               pvc.AutoCache,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
