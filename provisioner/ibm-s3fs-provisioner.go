@@ -136,7 +136,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot get secret %s: %v", secretName, err)
+		return nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
