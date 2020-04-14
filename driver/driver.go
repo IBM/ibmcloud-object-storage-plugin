@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -463,11 +464,17 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			}
 		}
 	}
-	if options.CAbundleB64 != "" && options.CosServiceIP != "" {
+	if options.CAbundleB64 != "" {
 		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
-		//caFile := path.Join(mountPath, caFileName)
-		caFileName := options.CosServiceIP + "_ ca.crt"
+		caFileName := "_ca.crt"
+		if options.CosServiceIP != "" {
+			caFileName = options.CosServiceIP + "_ca.crt"
+		} else {
+			pvName := filepath.Base(mountRequest.MountDir)
+			caFileName = pvName + "_ca.crt"
+		}
 		caFile := path.Join(caPath, caFileName)
+		p.Logger.Info(podUID+": CA CERT", zap.String("CA bundle file", caFile))
 		err = writeFile(caFile, []byte(CaBundleKey), 0600)
 		if err != nil {
 			p.Logger.Error(podUID+":"+" Cannot create ca crt file",

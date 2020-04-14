@@ -564,7 +564,7 @@ func Test_Provision_MissingSecret(t *testing.T) {
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot get secret")
+		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
 }
 
@@ -803,7 +803,7 @@ func Test_Delete_MissingSecret(t *testing.T) {
 	pv := getAutoDeletePersistentVolume()
 	err := p.Delete(pv)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot get secret")
+		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
 }
 
@@ -988,16 +988,14 @@ func Test_Provision_CASNegative(t *testing.T) {
 	}
 }
 
-func Test_Provision_CACrtSecretNegative(t *testing.T) {
+func Test_Provision_CACrtSrvcWithDefaultCACert(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
 
 	_, err := p.Provision(v)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create ca crt file: ca-bundle-crt secret missing")
-	}
+	assert.NoError(t, err)
 }
 
 func Test_Provision_CACrtSecretPositive(t *testing.T) {
@@ -1010,15 +1008,13 @@ func Test_Provision_CACrtSecretPositive(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_Provision_CACrtNamespaceNegative(t *testing.T) {
+func Test_Provision_CACrtSrvcNamespaceOptional(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{isTLS: true, withcaBundle: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 
 	_, err := p.Provision(v)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cos-service-namespace not provided")
-	}
+	assert.NoError(t, err)
 }
 
 func Test_Provision_CACrtSecretWriteError(t *testing.T) {
@@ -1029,7 +1025,7 @@ func Test_Provision_CACrtSecretWriteError(t *testing.T) {
 	writeFile = writeFileError
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create ca crt file")
+		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
 }
 
@@ -1040,7 +1036,7 @@ func Test_Delete_TLS_Negative(t *testing.T) {
 	pv.Annotations[annotationServiceNamespace] = testServiceNamespace
 	err := p.Delete(pv)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot delete bucket: cannot create crt file")
+		assert.Contains(t, err.Error(), "cannot delete bucket: cannot retrieve secret")
 	}
 }
 

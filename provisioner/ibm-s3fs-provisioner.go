@@ -110,20 +110,24 @@ func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 	return string(bytesVal), nil
 }
 func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceName string) error {
-	crtFile := path.Join(caBundlePath, serviceName)
-	err := os.Setenv("AWS_CA_BUNDLE", crtFile)
-	if err != nil {
-		return err
+	if serviceName == "" {
+		serviceName = "standard-cos"
 	}
+	crtFile := path.Join(caBundlePath, serviceName)
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 	crtKey, err := parseSecret(secrets, driver.CrtBundle)
 	if err != nil {
-		return err
+		//CA Cert not provided, try default one
+		return nil
 	}
 	err = writeFile(crtFile, []byte(crtKey), 0600)
+	if err != nil {
+		return err
+	}
+	err = os.Setenv("AWS_CA_BUNDLE", crtFile)
 	if err != nil {
 		return err
 	}
@@ -132,7 +136,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot get secret %s: %v", secretName, err)
+		return nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
@@ -192,22 +196,25 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	if pvc.SecretNamespace == "" {
 		pvc.SecretNamespace = options.PVC.Namespace
 	}
+
 	if pvc.CosServiceName != "" {
-		if pvc.CosServiceNamespace == "" {
-			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":cos-service-namespace not provided")
+		// TLS enabled COS Service
+		if pvc.CosServiceNamespace != "" {
+			// Generate the COS Service DNS name
+			svc, err := p.Client.Core().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
+			if err != nil {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
+			}
+			port := svc.Spec.Ports[0].Port
+			svcIp = svc.Spec.ClusterIP
+			endPoint := "https://" + pvc.CosServiceName + "." + pvc.CosServiceNamespace + ".svc.cluster.local:" + strconv.Itoa(int(port))
+			pvc.Endpoint = endPoint
 		}
-		svc, err := p.Client.Core().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
-		}
-		port := svc.Spec.Ports[0].Port
-		svcIp = svc.Spec.ClusterIP
-		endPoint := "https://" + pvc.CosServiceName + ":" + strconv.Itoa(int(port))
-		pvc.Endpoint = endPoint
-		err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName)
-		if err != nil {
-			return nil, fmt.Errorf("cannot create ca crt file: %v", err)
-		}
+	}
+	// retrieve CA Cert if provided in secrets
+	err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName)
+	if err != nil {
+		return nil, fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
 	//Override value of EndPoint defined in storageclass
@@ -514,13 +521,12 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error {
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the bucket..")
-	if pvcAnnots.CosServiceName != "" {
-		err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName)
-		if err != nil {
-			return fmt.Errorf("cannot create crt file: %v", err)
-		}
-		contextLogger.Info("Created crt file")
+	// Retrieve CA Cert if provided in secert
+	err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName)
+	if err != nil {
+		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
+
 	creds, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
