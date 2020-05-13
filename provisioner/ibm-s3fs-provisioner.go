@@ -365,8 +365,18 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + ":" + msg)
 		}
+		// When using existing bucket with auto-create-bucket: true
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
+			if strings.Contains(fmt.Sprintf("%v", err), "BucketAlreadyExists") {
+				err1 := sess.CheckBucketAccess(pvc.Bucket)
+				if err1 != nil {
+					return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
+				}
+				valBucket = false
+				contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' already exists")
+			} else {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
+			}
 		}
 	}
 
