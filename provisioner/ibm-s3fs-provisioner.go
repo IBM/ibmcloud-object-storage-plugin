@@ -151,6 +151,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, err
 	}else{
 		allowedNS = strings.Split(allowedNString, ",")
+		fmt.Printf("Allowed Namespace %v of type %T", allowedNS, allowedNS)
 	}
 
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
@@ -175,7 +176,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
-		AllowedNS:				 allowedNS,
+		AllowedNS:         allowedNS,
 	}, nil
 
 }
@@ -184,6 +185,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.PersistentVolume, error) {
 	var pvc pvcAnnotations
 	var sc scOptions
+	fmt.Println("PVC: ",options.PVC)
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
