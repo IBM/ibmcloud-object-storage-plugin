@@ -143,7 +143,15 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
-	var accessKey, secretKey, apiKey, serviceInstanceID string
+	var accessKey, secretKey, apiKey, serviceInstanceID,allowedNString string
+	var allowedNS []string
+
+	allowedNString, err = parseSecret(secrets, driver.SecretAllowedNS)
+	if err != nil {
+		return nil, err
+	}else{
+		allowedNS = strings.Split(allowedNString, ",")
+	}
 
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
 	if err != nil {
@@ -156,8 +164,10 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		if err != nil {
 			return nil, err
 		}
+
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
+
 	}
 
 	return &backend.ObjectStorageCredentials{
@@ -165,6 +175,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
+		AllowedNS:				 allowedNS,
 	}, nil
 
 }
@@ -174,6 +185,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvc pvcAnnotations
 	var sc scOptions
 	var pvcName = options.PVC.Name
+	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
 	var msg, svcIp string
 	var valBucket = true
@@ -361,6 +373,19 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if creds.APIKey != "" && creds.ServiceInstanceID == "" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
 		}
+
+	if len(creds.AllowedNS)>0{
+		allowed:=false
+		for _, item := range creds.AllowedNS {
+			if item == pvcNamespace {
+				allowed=true
+				break
+			}
+		}
+		if !allowed {
+				return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
+		}
+	}
 		msg, err = sess.CreateBucket(pvc.Bucket)
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + ":" + msg)

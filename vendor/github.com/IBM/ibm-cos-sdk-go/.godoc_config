@@ -1,0 +1,14 @@
+{
+	"PkgHandler": {
+		"Pattern":          "/sdk-for-go/api/",
+		"StripPrefix":     "/sdk-for-go/api",
+		"Include":         ["/src/github.com/IBM/ibm-cos-sdk-go/aws", "/src/github.com/IBM/ibm-cos-sdk-go/service"],
+		"Exclude":         ["/src/cmd", "/src/github.com/IBM/ibm-cos-sdk-go/awstesting", "/src/github.com/IBM/ibm-cos-sdk-go/awsmigrate", "/src/github.com/IBM/ibm-cos-sdk-go/private"],
+		"IgnoredSuffixes": ["iface"]
+	},
+	"Github": {
+		"Tag": "master",
+		"Repo": "/aws/aws-sdk-go",
+		"UseGithub": true
+	}
+}
