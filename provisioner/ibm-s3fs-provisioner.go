@@ -143,6 +143,8 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
+	fmt.Println("Secrets: ",secrets)
+
 	var accessKey, secretKey, apiKey, serviceInstanceID,allowedNS string
 	var allowedNamespace []string
 
@@ -380,20 +382,15 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
 		}
 
-	fmt.Println("PVC Namespace: ",pvcNamespace)
-
 	if len(creds.AllowedNS)>0{
 		allowed:=false
 		for _, item := range creds.AllowedNS {
-			fmt.Println("Allowed Namespace: ",item)
 			if item == pvcNamespace {
 				allowed=true
-				fmt.Println("The namespace is allowed")
 				break
 			}
 		}
 		if !allowed {
-				fmt.Println("The namespace is not allowed")
 				return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
 		}
 	}
