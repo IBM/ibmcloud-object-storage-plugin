@@ -144,6 +144,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	}
 
 	fmt.Println("Secrets: ",secrets)
+	fmt.Printf("Secrets type: %T ",secrets)
 
 	var accessKey, secretKey, apiKey, serviceInstanceID,allowedNS string
 	var allowedNamespace []string
