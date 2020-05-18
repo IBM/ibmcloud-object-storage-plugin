@@ -150,6 +150,10 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	if err != nil {
 		return nil, err
 	}else{
+		allowedNS = strings.Replace(allowedNS, "[", "", -1)
+		allowedNS = strings.Replace(allowedNS, "]", "", -1)
+		allowedNS = strings.Replace(allowedNS, "\"", "", -1)
+
 		allowedNamespace = strings.Split(allowedNS, " ")
 	}
 
