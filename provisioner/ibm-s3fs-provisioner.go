@@ -143,9 +143,6 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
-	fmt.Println("\n\nSecrets: ",secrets)
-	fmt.Printf("\n\nSecrets type: %T \n\n",secrets)
-
 	var accessKey, secretKey, apiKey, serviceInstanceID,allowedNS string
 	var allowedNamespace []string
 
@@ -153,13 +150,9 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	if err != nil {
 		return nil, err
 	}else{
-		allowedNS = strings.Replace(allowedNS, "[", "", -1)
-		allowedNS = strings.Replace(allowedNS, "]", "", -1)
-		allowedNS = strings.Replace(allowedNS, "\"", "", -1)
 
 		allowedNamespace = strings.Split(allowedNS, " ")
-		fmt.Printf("\n\nAllowed Namespace %v of type %T\n\n", allowedNS, allowedNS)
-		fmt.Printf("\n\nAllowed Namespace %v of type %T\n\n", allowedNamespace, allowedNamespace)
+
 	}
 
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
@@ -193,7 +186,6 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.PersistentVolume, error) {
 	var pvc pvcAnnotations
 	var sc scOptions
-	fmt.Println("PVC: ",options.PVC)
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
