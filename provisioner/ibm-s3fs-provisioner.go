@@ -143,16 +143,14 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
-	var accessKey, secretKey, apiKey, serviceInstanceID,allowedNS string
+	var accessKey, secretKey, apiKey, serviceInstanceID, allowedNS string
 	var allowedNamespace []string
 
 	allowedNS, err = parseSecret(secrets, driver.SecretAllowedNS)
 	if err != nil {
 		return nil, err
-	}else{
-
+	} else {
 		allowedNamespace = strings.Split(allowedNS, " ")
-
 	}
 
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
@@ -169,7 +167,6 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
-
 	}
 
 	return &backend.ObjectStorageCredentials{
@@ -376,18 +373,18 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
 		}
 
-	if len(creds.AllowedNS)>0{
-		allowed:=false
-		for _, item := range creds.AllowedNS {
-			if item == pvcNamespace {
-				allowed=true
-				break
+		if len(creds.AllowedNS) > 0 {
+			allowed := false
+			for _, item := range creds.AllowedNS {
+				if item == pvcNamespace {
+					allowed = true
+					break
+				}
+			}
+			if !allowed {
+				return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
 			}
 		}
-		if !allowed {
-				return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
-		}
-	}
 		msg, err = sess.CreateBucket(pvc.Bucket)
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + ":" + msg)
