@@ -603,6 +603,26 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 	}
 }
 
+func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists"})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_FailCreateBucket_BucketOwnedByOther(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists", FailCheckBucketAccess: true})
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot create bucket")
+	}
+}
+
 func Test_Provision_FailCreateBucket(t *testing.T) {
 	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true})
 	v := getVolumeOptions()

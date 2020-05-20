@@ -22,6 +22,8 @@ type ObjectStorageSessionFactory struct {
 	FailCheckBucketAccess bool
 	//FailCreateBucket ...
 	FailCreateBucket bool
+	//FailCreateBucket with specific error msg...
+	FailCreateBucketErrMsg string
 	//FailDeleteBucket ...
 	FailDeleteBucket bool
 	//CheckObjectPathExistenceError ...
@@ -87,7 +89,7 @@ func (s *fakeObjectStorageSession) CheckObjectPathExistence(bucket, objectpath s
 func (s *fakeObjectStorageSession) CreateBucket(bucket string) (string, error) {
 	s.factory.LastCreatedBucket = bucket
 	if s.factory.FailCreateBucket {
-		return "", errors.New("")
+		return "", errors.New(s.factory.FailCreateBucketErrMsg)
 	}
 	return "", nil
 }
