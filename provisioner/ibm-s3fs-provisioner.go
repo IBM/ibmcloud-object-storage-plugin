@@ -370,7 +370,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	if len(allowedNamespace) > 0 {
 		allowed := false
 		fmt.Println("\n\nPVC Namespace: ",pvcNamespace)
-		fmt.Println("\n\Allowed Namespace: ",allowedNamespace,"\n\n")
+		fmt.Println("\n\nAllowed Namespace: ",allowedNamespace,"\n\n")
 
 		for _, item := range allowedNamespace {
 			if item == pvcNamespace {
