@@ -136,7 +136,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("2 cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
@@ -146,11 +146,18 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	var accessKey, secretKey, apiKey, serviceInstanceID, allowedNS string
 	var allowedNamespace []string
 
+	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
+	if ok {
+		allowedNamespace = strings.Split(allowedNS, " ")
+		fmt.Printf("\n\nAllowed Namespace: %v\n\n", allowedNamespace)
+	}
+
+	/*
 	allowedNS, err = parseSecret(secrets, driver.SecretAllowedNS)
 	if err == nil {
 		allowedNamespace = strings.Split(allowedNS, " ")
 	}
-
+	*/
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
@@ -224,7 +231,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	// retrieve CA Cert if provided in secrets
 	err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName)
 	if err != nil {
-		return nil, fmt.Errorf("3 cannot retrieve secret: %v", err)
+		return nil, fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
 	//Override value of EndPoint defined in storageclass
@@ -368,9 +375,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if len(allowedNamespace) > 0 {
-		allowed := false
-		fmt.Println("\n\nPVC Namespace: ",pvcNamespace)
-		fmt.Println("\n\nAllowed Namespace: ",allowedNamespace,"\n\n")
+		var allowed = false
 
 		for _, item := range allowedNamespace {
 			if item == pvcNamespace {
@@ -378,7 +383,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 				break
 			}
 		}
-		if !allowed {
+		if allowed == false {
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
 		}
 	}
@@ -551,7 +556,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 	// Retrieve CA Cert if provided in secert
 	err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName)
 	if err != nil {
-		return fmt.Errorf("1 cannot retrieve secret: %v", err)
+		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
 	creds, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)

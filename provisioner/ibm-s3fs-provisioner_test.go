@@ -46,7 +46,7 @@ const (
 	testServiceName       = "test-service"
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
-	testAllowedNamespace	=	"test-allowednamespace"
+	testAllowedNamespace  = "test-allowednamespace"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -117,15 +117,15 @@ const (
 )
 
 type clientGoConfig struct {
-	missingSecret         			bool
-	missingAccessKey      			bool
-	missingSecretKey      			bool
-	missingAllowedNamespace     bool
-	withAPIKey            			bool
-	withServiceInstanceID 			bool
-	wrongSecretType       			bool
-	isTLS                 			bool
-	withcaBundle          			bool
+	missingSecret           bool
+	missingAccessKey        bool
+	missingSecretKey        bool
+	missingAllowedNamespace bool
+	withAPIKey              bool
+	withServiceInstanceID   bool
+	wrongSecretType         bool
+	isTLS                   bool
+	withcaBundle            bool
 }
 
 var (
