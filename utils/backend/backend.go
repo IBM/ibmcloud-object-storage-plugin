@@ -34,8 +34,6 @@ type ObjectStorageCredentials struct {
 	ServiceInstanceID string
 	//IAMEndpoint ...
 	IAMEndpoint string
-	//SecretAllowedNS is the key name for the Allowed Namespace
-	AllowedNS []string
 }
 
 // ObjectStorageSessionFactory is an interface of an object store session factory
