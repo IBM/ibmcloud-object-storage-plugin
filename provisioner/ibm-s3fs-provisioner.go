@@ -143,12 +143,12 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		return nil, nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
-	var accessKey, secretKey, apiKey, serviceInstanceID, allowedNS string
+	var accessKey, secretKey, apiKey, serviceInstanceID string
 	var allowedNamespace []string
 
 	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
 	if ok {
-		allowedNamespace = strings.Split(allowedNS, " ")
+		allowedNamespace = strings.Split(string(bytesVal), " ")
 		fmt.Printf("\n\nAllowed Namespace: %v\n\n", allowedNamespace)
 	}
 
