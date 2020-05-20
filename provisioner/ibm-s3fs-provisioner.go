@@ -363,21 +363,24 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
 
-		if len(allowedNamespace) > 0 {
-			allowed := false
-			for _, item := range allowedNamespace {
-				if item == pvcNamespace {
-					allowed = true
-					break
-				}
-			}
-			if !allowed {
-				return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
-			}
-		}
-
 		creds.IAMEndpoint = sc.IAMEndpoint
 		sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)
+	}
+
+	if len(allowedNamespace) > 0 {
+		allowed := false
+		fmt.Println("\n\nPVC Namespace: ",pvcNamespace)
+		fmt.Println("\n\Allowed Namespace: ",allowedNamespace,"\n\n")
+
+		for _, item := range allowedNamespace {
+			if item == pvcNamespace {
+				allowed = true
+				break
+			}
+		}
+		if !allowed {
+			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
+		}
 	}
 
 	if pvc.AutoCreateBucket {
