@@ -149,15 +149,8 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
 	if ok {
 		allowedNamespace = strings.Split(string(bytesVal), " ")
-		fmt.Printf("\n\nAllowed Namespace: %v\n\n", allowedNamespace)
 	}
 
-	/*
-	allowedNS, err = parseSecret(secrets, driver.SecretAllowedNS)
-	if err == nil {
-		allowedNamespace = strings.Split(allowedNS, " ")
-	}
-	*/
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)

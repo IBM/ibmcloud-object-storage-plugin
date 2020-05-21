@@ -1,4 +1,8 @@
 mode: atomic
+github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:32.44,34.2 1 1
+github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:37.49,40.34 3 101
+github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:44.2,47.99 3 100
+github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:40.34,42.3 1 1
 github.com/IBM/ibmcloud-object-storage-plugin/utils/logger/logger.go:32.42,33.22 1 15
 github.com/IBM/ibmcloud-object-storage-plugin/utils/logger/logger.go:36.2,36.23 1 0
 github.com/IBM/ibmcloud-object-storage-plugin/utils/logger/logger.go:33.22,35.3 1 15
@@ -47,10 +51,6 @@ github.com/IBM/ibmcloud-object-storage-plugin/utils/parser/parser.go:51.16,53.3 
 github.com/IBM/ibmcloud-object-storage-plugin/utils/parser/parser.go:57.22,59.10 2 2
 github.com/IBM/ibmcloud-object-storage-plugin/utils/parser/parser.go:62.3,62.21 1 1
 github.com/IBM/ibmcloud-object-storage-plugin/utils/parser/parser.go:59.10,61.4 1 1
-github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:32.44,34.2 1 1
-github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:37.49,40.34 3 101
-github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:44.2,47.99 3 100
-github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go:40.34,42.3 1 1
 github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/backend.go:81.152,83.24 2 2
 github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/backend.go:88.2,98.3 2 2
 github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/backend.go:83.24,85.3 1 1

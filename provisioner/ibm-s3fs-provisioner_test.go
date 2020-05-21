@@ -46,7 +46,7 @@ const (
 	testServiceName       = "test-service"
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
-	testAllowedNamespace  = "test-allowednamespace"
+	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -117,15 +117,15 @@ const (
 )
 
 type clientGoConfig struct {
-	missingSecret           bool
-	missingAccessKey        bool
-	missingSecretKey        bool
-	missingAllowedNamespace bool
-	withAPIKey              bool
-	withServiceInstanceID   bool
-	wrongSecretType         bool
-	isTLS                   bool
-	withcaBundle            bool
+	missingSecret         bool
+	missingAccessKey      bool
+	missingSecretKey      bool
+	withAllowedNamespace  bool
+	withAPIKey            bool
+	withServiceInstanceID bool
+	wrongSecretType       bool
+	isTLS                 bool
+	withcaBundle          bool
 }
 
 var (
@@ -180,7 +180,7 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 			secret.Data[driver.SecretSecretKey] = []byte(testSecretKey)
 		}
 
-		if !cfg.missingAllowedNamespace {
+		if cfg.withAllowedNamespace {
 			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
 		objects = append(objects, runtime.Object(secret))
@@ -594,16 +594,6 @@ func Test_Provision_MissingSecretKey(t *testing.T) {
 	}
 }
 
-func Test_Provision_MissingAllowedNamespace(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingAllowedNamespace: true})
-	v := getVolumeOptions()
-
-	_, err := p.Provision(v)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), fmt.Sprintf("%s secret missing", driver.SecretAllowedNS))
-	}
-}
-
 func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T) {
 	p := getCustomProvisioner(
 		&clientGoConfig{withAPIKey: true},
@@ -621,7 +611,7 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 
 func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{missingAllowedNamespace: false},
+		&clientGoConfig{withAllowedNamespace: true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
