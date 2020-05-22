@@ -46,6 +46,7 @@ const (
 	testServiceName       = "test-service"
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
+	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -119,6 +120,7 @@ type clientGoConfig struct {
 	missingSecret         bool
 	missingAccessKey      bool
 	missingSecretKey      bool
+	withAllowedNamespace  bool
 	withAPIKey            bool
 	withServiceInstanceID bool
 	wrongSecretType       bool
@@ -176,6 +178,10 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 
 		if !cfg.missingSecretKey {
 			secret.Data[driver.SecretSecretKey] = []byte(testSecretKey)
+		}
+
+		if cfg.withAllowedNamespace {
+			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
 		objects = append(objects, runtime.Object(secret))
 	}
@@ -600,6 +606,21 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot create bucket using API key without service-instance-id")
+	}
+}
+
+func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedNamespace: true},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot create bucket as PVC creation in this namespace is not allowed")
 	}
 }
 

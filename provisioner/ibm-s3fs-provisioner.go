@@ -133,28 +133,34 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 	}
 	return nil
 }
-func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, error) {
+func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
+	var allowedNamespace []string
+
+	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
+	if ok {
+		allowedNamespace = strings.Split(string(bytesVal), " ")
+	}
 
 	apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
@@ -165,7 +171,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
-	}, nil
+	}, allowedNamespace, nil
 
 }
 
@@ -174,9 +180,11 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvc pvcAnnotations
 	var sc scOptions
 	var pvcName = options.PVC.Name
+	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
 	var msg, svcIp string
 	var valBucket = true
+	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession
 
@@ -348,13 +356,27 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//var err_msg error
 	if valBucket {
-		creds, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
+		creds, allowedNamespace, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
 
 		creds.IAMEndpoint = sc.IAMEndpoint
 		sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)
+	}
+
+	if len(allowedNamespace) > 0 {
+		var allowed = false
+
+		for _, item := range allowedNamespace {
+			if item == pvcNamespace {
+				allowed = true
+				break
+			}
+		}
+		if allowed == false {
+			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
+		}
 	}
 
 	if pvc.AutoCreateBucket {
@@ -537,7 +559,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
-	creds, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+	creds, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}

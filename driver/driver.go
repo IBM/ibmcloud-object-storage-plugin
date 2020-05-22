@@ -40,6 +40,8 @@ const (
 	SecretSecretKey = "secret-key"
 	// SecretAPIKey is the key name for the IBM API Key (IAM Authentication)
 	SecretAPIKey = "api-key"
+	//SecretAllowedNS is the key name for the Allowed Namespace
+	SecretAllowedNS = "allowed_ns"
 	// SecretServiceInstanceID is the key name for the service instance ID (IAM Authentication)
 	SecretServiceInstanceID = "service-instance-id"
 	// defaultIAMEndPoint is the default URL of the IBM IAM endpoint
