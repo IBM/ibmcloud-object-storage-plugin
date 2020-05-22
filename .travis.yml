@@ -19,12 +19,12 @@ sudo: true
 before_install:
   - sudo sudo curl https://glide.sh/get | sh
   - sudo apt-get install bc
-  - sudo apt-get update
 
 before_script:
   - make deps
   - go get github.com/pierrre/gotestcover
   - go get github.com/gin-gonic/gin
+  - sudo apt-get update  
 
 script:
   - make vet
