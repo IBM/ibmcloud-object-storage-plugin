@@ -130,7 +130,7 @@ type clientGoConfig struct {
 var (
 	writeFileError   = func(string, []byte, os.FileMode) error { return errors.New("") }
 	writeFileSuccess = func(string, []byte, os.FileMode) error { return nil }
-	testNamespace		 = "test-namespace"
+	testNamespace    = "test-namespace"
 )
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
@@ -615,7 +615,7 @@ func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "PVC creation in " + v.PVC.Namespace  + " namespace is not allowed")
+		assert.Contains(t, err.Error(), "PVC creation in "+v.PVC.Namespace+" namespace is not allowed")
 	}
 }
 
