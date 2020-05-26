@@ -35,7 +35,6 @@ import (
 
 const (
 	testSecretName        = "test-secret"
-	testNamespace         = "test-namespace"
 	testAccessKey         = "akey"
 	testSecretKey         = "skey"
 	testAPIKey            = "apikey"
@@ -46,6 +45,7 @@ const (
 	testServiceName       = "test-service"
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
+	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -119,6 +119,7 @@ type clientGoConfig struct {
 	missingSecret         bool
 	missingAccessKey      bool
 	missingSecretKey      bool
+	withAllowedNamespace  bool
 	withAPIKey            bool
 	withServiceInstanceID bool
 	wrongSecretType       bool
@@ -129,6 +130,7 @@ type clientGoConfig struct {
 var (
 	writeFileError   = func(string, []byte, os.FileMode) error { return errors.New("") }
 	writeFileSuccess = func(string, []byte, os.FileMode) error { return nil }
+	testNamespace    = "test-namespace"
 )
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
@@ -176,6 +178,10 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 
 		if !cfg.missingSecretKey {
 			secret.Data[driver.SecretSecretKey] = []byte(testSecretKey)
+		}
+
+		if cfg.withAllowedNamespace {
+			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
 		objects = append(objects, runtime.Object(secret))
 	}
@@ -601,6 +607,26 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot create bucket using API key without service-instance-id")
 	}
+}
+
+func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
+	v := getVolumeOptions()
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "PVC creation in "+v.PVC.Namespace+" namespace is not allowed")
+	}
+}
+
+func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
+	testNamespace = "test-allowed-namespace1"
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
+	v := getVolumeOptions()
+
+	_, err := p.Provision(v)
+
+	assert.NoError(t, err)
 }
 
 func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
