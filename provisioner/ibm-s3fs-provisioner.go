@@ -375,7 +375,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			}
 		}
 		if allowed == false {
-			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket as PVC creation in this namespace is not allowed")
+			return nil, errors.New(pvcName + ":" + clusterID + ":PVC creation in " + pvcNamespace + " namespace is not allowed")
 		}
 	}
 

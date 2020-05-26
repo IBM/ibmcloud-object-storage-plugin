@@ -35,7 +35,6 @@ import (
 
 const (
 	testSecretName        = "test-secret"
-	testNamespace         = "test-namespace"
 	testAccessKey         = "akey"
 	testSecretKey         = "skey"
 	testAPIKey            = "apikey"
@@ -131,6 +130,7 @@ type clientGoConfig struct {
 var (
 	writeFileError   = func(string, []byte, os.FileMode) error { return errors.New("") }
 	writeFileSuccess = func(string, []byte, os.FileMode) error { return nil }
+	testNamespace		 = "test-namespace"
 )
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
@@ -610,18 +610,23 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 }
 
 func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedNamespace: true},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create bucket as PVC creation in this namespace is not allowed")
+		assert.Contains(t, err.Error(), "PVC creation in " + v.PVC.Namespace  + " namespace is not allowed")
 	}
+}
+
+func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
+	testNamespace = "test-allowed-namespace1"
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
+	v := getVolumeOptions()
+
+	_, err := p.Provision(v)
+
+	assert.NoError(t, err)
 }
 
 func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
