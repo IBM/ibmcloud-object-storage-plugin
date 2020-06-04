@@ -125,24 +125,29 @@ func main() {
 		Client:        clientset,
 		UUIDGenerator: uuid.NewCryptoGenerator(),
 	}
+	isWatcher := cfg.GetConfigBool("WATCHER", false, *logger)
+	if !isWatcher {
+		pc := controller.NewProvisionController(
+			clientset,
+			*provisioner,
+			s3fsProvisioner,
+			serverVersion.GitVersion,
+			controller.LeaderElection(false),
+			controller.ResyncPeriod(resyncPeriod),
+			controller.ExponentialBackOffOnError(true),
+			controller.FailedProvisionThreshold(failedRetryThreshold),
+			controller.LeaseDuration(*leaseDuration),
+			controller.RenewDeadline(*leaseRenewDeadline),
+			controller.RetryPeriod(*leaseRetryPeriod),
+			//controller.TermLimit(*leaseTermLimit),
+		)
 
-	pc := controller.NewProvisionController(
-		clientset,
-		*provisioner,
-		s3fsProvisioner,
-		serverVersion.GitVersion,
-		controller.LeaderElection(false),
-		controller.ResyncPeriod(resyncPeriod),
-		controller.ExponentialBackOffOnError(true),
-		controller.FailedProvisionThreshold(failedRetryThreshold),
-		controller.LeaseDuration(*leaseDuration),
-		controller.RenewDeadline(*leaseRenewDeadline),
-		controller.RetryPeriod(*leaseRetryPeriod),
-		//controller.TermLimit(*leaseTermLimit),
-	)
-
-	stopCh := make(chan struct{})
-	pc.Run(stopCh)
+		stopCh := make(chan struct{})
+		pc.Run(stopCh)
+	} else {
+		// Start watcher for persistent volumes
+		s3fsprovisioner.WatchPersistentVolumes(clientset, *logger)
+	}
 }
 
 // validateProvisioner tests if provisioner is a valid qualified name.

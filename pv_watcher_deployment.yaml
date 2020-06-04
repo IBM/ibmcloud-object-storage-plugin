@@ -1,0 +1,37 @@
+#ibm-object-storage-plugin-pv-watcher deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ibm-object-storage-plugin-pv-watcher
+  namespace: kube-system
+  labels:
+    app: ibmcloud-object-storage-plugin
+    chart: ibm-object-storage-plugin-bnnp1
+    release: ibm-object-storage-plugin
+spec:
+  selector:
+    matchLabels:
+      app: ibmcloud-object-storage-plugin
+  strategy:
+    type: RollingUpdate
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ibmcloud-object-storage-plugin
+        release: ibm-object-storage-plugin
+    spec:
+      tolerations:
+      - operator: "Exists"
+      serviceAccountName: ibmcloud-object-storage-plugin
+      containers:
+        - name: ibmcloud-object-storage-plugin-pv-watcher-container
+          image: docker.io/narkarum/ibmcloud-object-storage-plugin:bnnp1
+          imagePullPolicy: Always
+          args:
+            - "-provisioner=ibm.io/ibmc-s3fs"
+          env:
+          - name: DEBUG_TRACE
+            value: 'false'
+          - name: WATCHER
+            value: 'true'
