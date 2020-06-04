@@ -42,6 +42,8 @@ const (
 	SecretAPIKey = "api-key"
 	//SecretAllowedNS is the key name for the Allowed Namespace
 	SecretAllowedNS = "allowed_ns"
+	// ResConfApiKeyB64 is used for retrieving IAM Access token(in case of HMAC Keys),  used for setting firewall rules
+	ResConfApiKeyB64 = "res-conf-apikey"
 	// SecretServiceInstanceID is the key name for the service instance ID (IAM Authentication)
 	SecretServiceInstanceID = "service-instance-id"
 	// defaultIAMEndPoint is the default URL of the IBM IAM endpoint

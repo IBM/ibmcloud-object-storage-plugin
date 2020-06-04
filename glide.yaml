@@ -37,5 +37,7 @@ testImport:
 - package: github.com/coreos/go-systemd/dbus
 - package: github.com/godbus/dbus
 - package: github.com/IBM/ibm-cos-sdk-go
+- package: github.com/IBM/go-sdk-core
+  version: v3.0.0
 excludeDirs:
 - tests
