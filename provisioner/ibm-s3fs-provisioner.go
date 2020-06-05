@@ -574,7 +574,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
-	creds, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+	creds, _, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}
