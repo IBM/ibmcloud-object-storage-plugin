@@ -57,7 +57,7 @@ type pvcAnnotations struct {
 	CosServiceName          string `json:"ibm.io/cos-service"`
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
-	AllowedIPs              bool   `json:"ibm.io/allowed_ips,string,omitempty"`
+	AllowedIPs              string `json:"ibm.io/allowed_ips,omitempty"`
 }
 
 // Storage Class options
