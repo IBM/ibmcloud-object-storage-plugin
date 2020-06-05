@@ -21,6 +21,9 @@ import (
 
 func UpdateFirewallRules(allowed_ips, apiKey, bucketName string) error {
   allowedIPs := strings.Split(allowed_ips, ",")
+  for i := range allowedIPs {
+      allowedIPs[i] = strings.TrimSpace(allowedIPs[i])
+    }
 
   authenticator := &core.IamAuthenticator{
         ApiKey:  apiKey,

@@ -422,12 +422,13 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if pvc.AllowedIPs != "" {
-		if creds.AccessKey != "" && resConfApiKey == "" {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Firewall rules cannot be set without api key")
-		} else if creds.APIKey != "" {
-			resConfApiKey = creds.APIKey
+		if resConfApiKey == "" {
+			if creds.AccessKey != "" {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":Firewall rules cannot be set without api key")
+			} else if creds.APIKey != "" {
+				resConfApiKey = creds.APIKey
+			}
 		}
-		contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("Allowed_IPs", pvc.AllowedIPs), zap.String("resConfApiKey", resConfApiKey), zap.String("Bucket", pvc.Bucket))
 		err = UpdateFirewallRules(pvc.AllowedIPs, resConfApiKey, pvc.Bucket)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":Setting firewall rules failed for bucket '%s': %v", pvc.Bucket, err)
