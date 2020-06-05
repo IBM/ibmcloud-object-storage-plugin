@@ -137,11 +137,11 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, string, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -156,12 +156,12 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 
 		secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
@@ -421,13 +421,14 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-	if AllowedIPs != "" {
+	if pvc.AllowedIPs != "" {
 		if creds.AccessKey != "" && resConfApiKey == "" {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":Firewall rules cannot be set without api key")
 		} else if creds.APIKey != "" {
 			resConfApiKey = creds.APIKey
 		}
-		err = UpdateFirewallRules(AllowedIPs, resConfApiKey, pvc.Bucket)
+		contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("Allowed_IPs", pvc.AllowedIPs), zap.String("resConfApiKey", resConfApiKey), zap.String("Bucket", pvc.Bucket))
+		err = UpdateFirewallRules(pvc.AllowedIPs, resConfApiKey, pvc.Bucket)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":Setting firewall rules failed for bucket '%s': %v", pvc.Bucket, err)
 		}
