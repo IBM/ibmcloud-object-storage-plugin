@@ -57,6 +57,7 @@ type pvcAnnotations struct {
 	CosServiceName          string `json:"ibm.io/cos-service"`
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
+	AllowedIPs              string `json:"ibm.io/allowed_ips,omitempty"`
 }
 
 // Storage Class options
@@ -133,14 +134,14 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 	}
 	return nil
 }
-func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, error) {
+func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, string, string, error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -155,23 +156,26 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", "", err
 		}
 
 		secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", "", err
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
 	}
+
+	resConfApiKey, _ := secrets.Data[driver.ResConfApiKeyB64]
+	allowedIPs, _ := secrets.Data[driver.AllowedIPs]
 
 	return &backend.ObjectStorageCredentials{
 		AccessKey:         accessKey,
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
-	}, allowedNamespace, nil
+	}, allowedNamespace, string(resConfApiKey), string(allowedIPs), nil
 
 }
 
@@ -182,7 +186,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, svcIp string
+	var msg, svcIp, resConfApiKey, allowedIPs string
 	var valBucket = true
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
@@ -356,7 +360,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//var err_msg error
 	if valBucket {
-		creds, allowedNamespace, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
+		creds, allowedNamespace, resConfApiKey, allowedIPs, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
@@ -415,6 +419,23 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access object-path \"%s\" inside bucket %s: %v", pvc.ObjectPath, pvc.Bucket, err)
 		} else if !exist {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":object-path \"%s\" not found inside bucket %s", pvc.ObjectPath, pvc.Bucket)
+		}
+	}
+
+	if pvc.AllowedIPs != "" {
+		allowedIPs = pvc.AllowedIPs
+	}
+	if allowedIPs != "" {
+		if resConfApiKey == "" {
+			if creds.AccessKey != "" {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":Firewall rules cannot be set without api key")
+			} else if creds.APIKey != "" {
+				resConfApiKey = creds.APIKey
+			}
+		}
+		err = UpdateFirewallRules(allowedIPs, resConfApiKey, pvc.Bucket)
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Setting firewall rules failed for bucket '%s': %v", pvc.Bucket, err)
 		}
 	}
 
@@ -559,7 +580,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
-	creds, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+	creds, _, _, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}
