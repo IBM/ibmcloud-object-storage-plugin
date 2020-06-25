@@ -32,8 +32,8 @@ import (
 
 // PVC annotations
 type pvcAnnotations struct {
-	AutoCreateBucket        bool   `json:"ibm.io/auto-create-bucket,string"`
-	AutoDeleteBucket        bool   `json:"ibm.io/auto-delete-bucket,string"`
+	AutoCreateBucket        string `json:"ibm.io/auto-create-bucket"`
+	AutoDeleteBucket        string `json:"ibm.io/auto-delete-bucket"`
 	Bucket                  string `json:"ibm.io/bucket"`
 	ObjectPath              string `json:"ibm.io/object-path,omitempty"`
 	Endpoint                string `json:"ibm.io/endpoint,omitempty"` //Will be deprecated
@@ -61,6 +61,7 @@ type pvcAnnotations struct {
 
 // Storage Class options
 type scOptions struct {
+	SecretName              string `json:"ibm.io/secret-name,omitempty"`
 	ChunkSizeMB             int    `json:"ibm.io/chunk-size-mb,string"`
 	ParallelCount           int    `json:"ibm.io/parallel-count,string"`
 	MultiReqMax             int    `json:"ibm.io/multireq-max,string"`
@@ -205,6 +206,26 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		pvc.SecretNamespace = options.PVC.Namespace
 	}
 
+	if pvc.SecretName == "" {
+		if sc.SecretName != "" {
+			pvc.SecretName = sc.SecretName
+		} else {
+			return nil, errors.New(pvcName + ":" + clusterID + ":secretName not specified")
+		}
+	}
+
+	if pvc.AutoCreateBucket == "" {
+		pvc.AutoCreateBucket = "true"
+	} else if _, err = strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot parse PVC annotations: %v", err)
+	}
+
+	if pvc.AutoDeleteBucket == "" {
+		pvc.AutoDeleteBucket = "false"
+	} else if _, err = strconv.ParseBool(pvc.AutoDeleteBucket); err != nil {
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot parse PVC annotations: %v", err)
+	}
+
 	if pvc.CosServiceName != "" {
 		// TLS enabled COS Service
 		if pvc.CosServiceNamespace != "" {
@@ -325,12 +346,12 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds
 	}
 
-	if pvc.AutoCreateBucket && pvc.ObjectPath != "" {
+	if pvc.AutoCreateBucket == "true" && pvc.ObjectPath != "" {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
 	}
 
-	if pvc.AutoDeleteBucket {
-		if !pvc.AutoCreateBucket {
+	if pvc.AutoDeleteBucket == "true" {
+		if pvc.AutoCreateBucket == "false" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
 		}
 
@@ -344,11 +365,9 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 
 		pvc.Bucket = autoBucketNamePrefix + id
-	} else if pvc.Bucket == "" {
-		return nil, errors.New(pvcName + ":" + clusterID + ":bucket name not specified")
 	}
 
-	if pvc.ValidateBucket == "no" && !pvc.AutoCreateBucket {
+	if pvc.ValidateBucket == "no" && pvc.AutoCreateBucket == "false" {
 		valBucket = false
 	} else {
 		valBucket = true
@@ -379,7 +398,15 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-	if pvc.AutoCreateBucket {
+	if pvc.AutoCreateBucket == "true" {
+		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" {
+			id, err := p.UUIDGenerator.New()
+			if err != nil {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
+			}
+			pvc.Bucket = autoBucketNamePrefix + id
+		}
+
 		if creds.APIKey != "" && creds.ServiceInstanceID == "" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
 		}
@@ -399,6 +426,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			} else {
 				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
 			}
+		}
+	} else {
+		if pvc.Bucket == "" {
+			return nil, errors.New(pvcName + ":" + clusterID + ":bucket name not specified")
 		}
 	}
 
@@ -540,11 +571,13 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 		return fmt.Errorf("cannot unmarshal PV annotations: %v", err)
 	}
 
-	if pvcAnnots.AutoDeleteBucket {
+	if pvcAnnots.AutoDeleteBucket == "true" {
 		err = p.deleteBucket(&pvcAnnots, endpointValue, regionValue, iamEndpoint)
 		if err != nil {
 			return fmt.Errorf("cannot delete bucket: %v", err)
 		}
+	} else if _, err = strconv.ParseBool(pvcAnnots.AutoDeleteBucket); err != nil {
+		return fmt.Errorf("cannot parse PVC annotations: %v", err)
 	}
 
 	return nil
