@@ -546,14 +546,6 @@ func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket_BucketName(t *t
 	assert.NoError(t, err)
 }
 
-func Test_Provision_SetDefault_BucketName(t *testing.T) {
-	p := getProvisioner()
-	v := getVolumeOptions()
-
-	_, err := p.Provision(v)
-	assert.NoError(t, err)
-}
-
 func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
