@@ -210,20 +210,20 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if sc.SecretName != "" {
 			pvc.SecretName = sc.SecretName
 		} else {
-			return nil, errors.New(pvcName + ":" + clusterID + ":secretName not specified")
+			return nil, errors.New(pvcName + ":" + clusterID + ":secret-name not specified")
 		}
 	}
 
 	if pvc.AutoCreateBucket == "" {
 		pvc.AutoCreateBucket = "true"
 	} else if _, err = strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot parse PVC annotations: %v", err)
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
 	}
 
 	if pvc.AutoDeleteBucket == "" {
 		pvc.AutoDeleteBucket = "false"
 	} else if _, err = strconv.ParseBool(pvc.AutoDeleteBucket); err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot parse PVC annotations: %v", err)
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
 	}
 
 	if pvc.CosServiceName != "" {
@@ -350,6 +350,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
 	}
 
+	//this handles the case where AutoDeleteBucket is set to true
 	if pvc.AutoDeleteBucket == "true" {
 		if pvc.AutoCreateBucket == "false" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
@@ -399,7 +400,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if pvc.AutoCreateBucket == "true" {
-		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" {
+		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" { //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
 			id, err := p.UUIDGenerator.New()
 			if err != nil {
 				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
@@ -577,7 +578,7 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 			return fmt.Errorf("cannot delete bucket: %v", err)
 		}
 	} else if _, err = strconv.ParseBool(pvcAnnots.AutoDeleteBucket); err != nil {
-		return fmt.Errorf("cannot parse PVC annotations: %v", err)
+		return fmt.Errorf("invalid value for auto-delete-bucket, expects true/false: %v", err)
 	}
 
 	return nil

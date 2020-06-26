@@ -288,7 +288,7 @@ func Test_Provision_BadPVCAnnotations_AutoCreateBucket(t *testing.T) {
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot parse PVC annotations")
+		assert.Contains(t, err.Error(), "invalid value for auto-create-bucket, expects true/false")
 	}
 }
 
@@ -299,7 +299,7 @@ func Test_Provision_BadPVCAnnotations_AutoDeleteBucket(t *testing.T) {
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot parse PVC annotations")
+		assert.Contains(t, err.Error(), "invalid value for auto-delete-bucket, expects true/false")
 	}
 }
 
@@ -310,7 +310,7 @@ func Test_Provision_Empty_SecretName(t *testing.T) {
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "secretName not specified")
+		assert.Contains(t, err.Error(), "secret-name not specified")
 	}
 }
 
@@ -902,7 +902,7 @@ func Test_Delete_BadPVAnnotations(t *testing.T) {
 	pv.Annotations[annotationAutoDeleteBucket] = "non-false-value"
 	err := p.Delete(pv)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot parse PVC annotations")
+		assert.Contains(t, err.Error(), "invalid value for auto-delete-bucket, expects true/false")
 	}
 }
 
