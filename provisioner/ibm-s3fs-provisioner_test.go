@@ -235,7 +235,6 @@ func getVolumeOptions() controller.VolumeOptions {
 		PVC: &v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
-					annotationBucket:     testBucket,
 					annotationSecretName: testSecretName,
 				},
 				Namespace: testNamespace,
@@ -542,9 +541,6 @@ func Test_Provision_AutoDeleteBucketWithoutAutoCreateBucket(t *testing.T) {
 func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket_BucketName(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = ""
-	v.PVC.Annotations[annotationAutoDeleteBucket] = ""
-	v.PVC.Annotations[annotationBucket] = ""
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -553,8 +549,6 @@ func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket_BucketName(t *t
 func Test_Provision_SetDefault_BucketName(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
-	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -563,8 +557,6 @@ func Test_Provision_SetDefault_BucketName(t *testing.T) {
 func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = ""
-	v.PVC.Annotations[annotationAutoDeleteBucket] = ""
 	v.PVC.Annotations[annotationBucket] = testBucket
 
 	_, err := p.Provision(v)
@@ -576,6 +568,7 @@ func Test_Provision_AutoDeleteBucketWithNonEmptyBucket(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -583,17 +576,37 @@ func Test_Provision_AutoDeleteBucketWithNonEmptyBucket(t *testing.T) {
 	}
 }
 
+func Test_Provision_AutoDeleteBucketWithEmptyBucket(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
 func Test_Provision_MissingBucket(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
-	v.PVC.Annotations[annotationBucket] = ""
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "bucket name not specified")
 	}
+}
+
+func Test_Provision_SetBucketWithoutAutoCreateBucketAndWithoutAutoDeleteBucket(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
+	v.PVC.Annotations[annotationBucket] = testBucket
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
 }
 
 func Test_Provision_ObjectPathWithAutoCreateBucket(t *testing.T) {
@@ -733,6 +746,7 @@ func Test_Provision_PVCAnnotations_ObjectPath_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -744,6 +758,7 @@ func Test_Provision_CheckObjectPathExistence_Error(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -757,6 +772,7 @@ func Test_Provision_CheckObjectPathExistence_PathNotFound(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -770,7 +786,7 @@ func Test_Provision_Positive(t *testing.T) {
 	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
-	v.PVC.Annotations[testBucket] = testBucket
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -850,6 +866,7 @@ func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {
 	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationBucket] = testBucket
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
