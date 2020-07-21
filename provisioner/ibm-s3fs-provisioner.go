@@ -137,7 +137,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 	}
 	return nil
 }
-func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string,  resConfApiKey string, allowedIPs string, err error) {
+func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, allowedIPs string, err error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
@@ -394,7 +394,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//var err_msg error
 	if valBucket {
-		creds, allowedNamespace, resConfApiKey, allowedIPs,  err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
+		creds, allowedNamespace, resConfApiKey, allowedIPs, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}

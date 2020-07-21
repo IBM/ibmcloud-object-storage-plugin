@@ -18,7 +18,6 @@ import (
 	"strings"
 )
 
-
 func UpdateFirewallRules(allowed_ips, apiKey, bucketName string) error {
 
 	allowedIPs := strings.Split(allowed_ips, ",")
