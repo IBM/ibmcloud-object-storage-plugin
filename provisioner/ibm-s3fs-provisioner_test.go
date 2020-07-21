@@ -46,6 +46,8 @@ const (
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
 	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
+	testAllowedIps        = "169.55.124.128/29"
+	testResConfApiKey     = "resconfapikey"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -75,6 +77,8 @@ const (
 	annotationReadwriteTimeoutSeconds = "ibm.io/readwrite-timeout"
 	annotationServiceName             = "ibm.io/cos-service"
 	annotationServiceNamespace        = "ibm.io/cos-service-ns"
+	annotationAllowedIPs              = "ibm.io/allowed_ips"
+	annotationConfigureFirewall       = "ibm.io/configure-firewall"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
 	parameterParallelCount          = "ibm.io/parallel-count"
@@ -125,6 +129,8 @@ type clientGoConfig struct {
 	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
+	withResConfApiKey     bool
+	withAllowedIPs        bool
 }
 
 var (
@@ -183,6 +189,15 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 		if cfg.withAllowedNamespace {
 			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
+
+		if cfg.withResConfApiKey {
+			secret.Data[driver.ResConfApiKey] = []byte(testResConfApiKey)
+		}
+
+		if cfg.withAllowedIPs {
+			secret.Data[driver.AllowedIPs] = []byte(testAllowedIps)
+		}
+
 		objects = append(objects, runtime.Object(secret))
 	}
 

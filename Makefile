@@ -29,6 +29,8 @@ BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")"
 #endif
 VERSION := latest
 
+export GO111MODULE=on
+
 .PHONY: all
 all: deps fmt vet test
 
@@ -41,7 +43,8 @@ driver: deps builddriver
 .PHONY: deps
 deps:
 	echo "Installing dependencies ..."
-	glide install --strip-vendor
+	#glide install --strip-vendor
+	go mod vendor
 	go get github.com/pierrre/gotestcover
 
 .PHONY: fmt
