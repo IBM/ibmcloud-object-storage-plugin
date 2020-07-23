@@ -718,9 +718,13 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
-	p := getProvisioner()
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedIPs: true, withResConfApiKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -728,7 +732,7 @@ func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
 
 func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withResConfApiKey: false},
+		&clientGoConfig{},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
@@ -743,7 +747,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: false},
+		&clientGoConfig{},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
@@ -751,14 +755,12 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) 
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, err := p.Provision(v)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. res-conf-apikey is empty")
-	}
+	assert.NoError(t, err)
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: false},
+		&clientGoConfig{},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
@@ -767,15 +769,13 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T
 	v.PVC.Annotations[annotationAllowedIPs] = ""
 
 	_, err := p.Provision(v)
-	assert.NoError(t, err)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. allowed_ips is empty")
+	}
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: true},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
