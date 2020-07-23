@@ -718,7 +718,7 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -772,8 +772,8 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: true, withResConfApiKey:true},
-		&fake.ObjectStorageSessionFactory{},
+		&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true},
+		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewallRules: true},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
