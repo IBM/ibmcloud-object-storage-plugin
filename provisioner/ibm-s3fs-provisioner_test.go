@@ -759,7 +759,8 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
-	p := getProvisioner()
+	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true}
+	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
