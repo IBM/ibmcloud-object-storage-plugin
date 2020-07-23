@@ -129,8 +129,8 @@ type clientGoConfig struct {
 	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
-	missingResConfApiKey  bool
-	missingAllowedIPs     bool
+	withResConfApiKey     bool
+	withAllowedIPs        bool
 }
 
 var (
@@ -190,11 +190,11 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
 
-		if cfg.missingResConfApiKey {
+		if cfg.withResConfApiKey {
 			secret.Data[driver.ResConfApiKey] = []byte(testResConfApiKey)
 		}
 
-		if cfg.missingAllowedIPs {
+		if cfg.withAllowedIPs {
 			secret.Data[driver.AllowedIPs] = []byte(testAllowedIps)
 		}
 
@@ -718,7 +718,7 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
-	p := getProvisioner()
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -727,7 +727,7 @@ func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingAllowedIPs: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -738,7 +738,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingResConfApiKey: true, missingAllowedIPs: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -747,7 +747,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) 
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingResConfApiKey: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 	v.PVC.Annotations[annotationAllowedIPs] = ""
@@ -771,7 +771,7 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{missingAllowedIPs: true, missingResConfApiKey:true},
+		&clientGoConfig{withAllowedIPs: true, withResConfApiKey:true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
