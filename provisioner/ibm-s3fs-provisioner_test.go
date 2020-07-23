@@ -317,6 +317,17 @@ func Test_Provision_BadPVCAnnotations_AutoDeleteBucket(t *testing.T) {
 	}
 }
 
+func Test_Provision_BadPVCAnnotations_ConfigureFirewall(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConfigureFirewall] = "non-true-value"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid value for configure-firewall, expects true/false")
+	}
+}
+
 func Test_Provision_Empty_SecretName(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
@@ -703,6 +714,89 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 
 	_, err := p.Provision(v)
 
+	assert.NoError(t, err)
+}
+
+func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfApiKey: false},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. res-conf-apikey is empty")
+	}
+}
+
+func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedIPs: false},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. res-conf-apikey is empty")
+	}
+}
+
+func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedIPs: false},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationAllowedIPs] = ""
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedIPs: true},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket")
+	}
+}
+
+func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withAllowedIPs: true},
+		&fake.ObjectStorageSessionFactory{},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
+	v.PVC.Annotations[annotationBucket] = testBucket
+
+	_, err := p.Provision(v)
 	assert.NoError(t, err)
 }
 
