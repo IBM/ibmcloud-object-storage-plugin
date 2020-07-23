@@ -771,7 +771,7 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: true},
+		&clientGoConfig{missingAllowedIPs: true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
