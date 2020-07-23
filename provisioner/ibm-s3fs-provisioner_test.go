@@ -727,7 +727,7 @@ func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingResConfApiKey: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{missingAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -738,7 +738,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingAllowedIPs: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{missingResConfApiKey: true, missingAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -747,7 +747,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) 
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{missingAllowedIPs: true})
+	p := getFakeClientGoProvisioner(&clientGoConfig{missingResConfApiKey: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 	v.PVC.Annotations[annotationAllowedIPs] = ""
@@ -771,7 +771,7 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{missingAllowedIPs: true},
+		&clientGoConfig{missingAllowedIPs: true, missingResConfApiKey:true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
