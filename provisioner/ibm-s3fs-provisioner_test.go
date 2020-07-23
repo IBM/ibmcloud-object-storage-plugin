@@ -731,11 +731,7 @@ func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: false})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
@@ -759,11 +755,7 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) 
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedIPs: false})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	v.PVC.Annotations[annotationAllowedIPs] = ""
