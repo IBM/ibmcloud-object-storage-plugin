@@ -237,6 +237,14 @@ func getFakeBackendProvisioner(factory backend.ObjectStorageSessionFactory) *IBM
 	)
 }
 
+func getFakeUpdateFirewallProvisioner(factory backend.ObjectStorageSessionFactory) *IBMS3fsProvisioner {
+	return getCustomProvisioner(
+		&clientGoConfig{},
+		factory,
+		uuid.NewCryptoGenerator(),
+	)
+}
+
 func getProvisioner() *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
@@ -718,26 +726,18 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: true, withResConfApiKey: true},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedIPs: true})
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -747,25 +747,22 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{},
+		&clientGoConfig{withResConfApiKey: true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+	v.PVC.Annotations[annotationAllowedIPs] = "10.69.208.4/16"
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
-	p := getCustomProvisioner(
-		&clientGoConfig{},
-		&fake.ObjectStorageSessionFactory{},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true})
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 	v.PVC.Annotations[annotationAllowedIPs] = ""
 
 	_, err := p.Provision(v)
@@ -775,9 +772,10 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
-	p := getProvisioner()
+	factory := &fake.ObjectStorageSessionFactory{}
+	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
-	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -785,13 +783,27 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 	}
 }
 
+func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBucket(t *testing.T) {
+	factory := &fake.ObjectStorageSessionFactory{FailDeleteBucket: true}
+	p := getFakeBackendProvisioner(factory)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket")
+		assert.Contains(t, err.Error(), "and cannot delete bucket")
+	}
+}
+
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
-		&clientGoConfig{withAllowedIPs: true},
+		&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true},
 		&fake.ObjectStorageSessionFactory{},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationBucket] = testBucket
