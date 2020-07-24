@@ -740,11 +740,12 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
 	p := getCustomProvisioner(
 		&clientGoConfig{withResConfApiKey: true},
-		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewallRules: true},
+		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewalRules: true},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+	v.PVC.Annotations[annotationAllowedIPs] = "10.69.208.4/16"
 
 	_, err := p.Provision(v)
 	assert.NoError(t, err)
