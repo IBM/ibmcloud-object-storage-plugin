@@ -718,7 +718,7 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 }
 
 func Test_Provision_Set_ConfigureFirewall(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{})
+	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -738,7 +738,11 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 }
 
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true})
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfApiKey: true},
+		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewallRules: true},
+		uuid.NewCryptoGenerator(),
+	)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
 
@@ -767,6 +771,19 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot configure firewall for bucket")
+	}
+}
+
+func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBucket(t *testing.T) {
+	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true, FailDeleteBucket: true}
+	p := getFakeBackendProvisioner(factory)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationConfigureFirewall] = "true"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cannot configure firewall for bucket")
+		assert.Contains(t, err.Error(), "and cannot delete bucket")
 	}
 }
 
