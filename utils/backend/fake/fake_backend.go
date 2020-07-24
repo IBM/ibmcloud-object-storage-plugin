@@ -34,6 +34,8 @@ type ObjectStorageSessionFactory struct {
 	FailUpdateBucketFirewallRules bool
 	//PassUpdateBucketFirewalRules ...
 	PassUpdateBucketFirewalRules bool
+	//FailUpdateBucketFirewallRules with specific error msg...
+	FailUpdateBucketFirewallRulesErrMsg string
 
 	// LastEndpoint holds the endpoint of the last created session
 	LastEndpoint string
@@ -108,7 +110,7 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 
 func (s *fakeObjectStorageSession) UpdateBucketFirewallRules(bucket string) error {
 	if s.factory.FailUpdateBucketFirewallRules {
-		return errors.New("")
+		return errors.New(s.factory.FailUpdateBucketFirewallRulesErrMsg)
 	}
 	return nil
 }

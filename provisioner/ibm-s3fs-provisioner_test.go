@@ -776,7 +776,7 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBucket(t *testing.T) {
-	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true, FailDeleteBucket: true}
+	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true, FailDeleteBucket: true, FailUpdateBucketFirewallRulesErrMsg: "cannot configure firewall for bucket and cannot delete bucket"}
 	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
@@ -791,7 +791,7 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBuck
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
 		&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true},
-		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewallRules: true},
+		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewalRules: true},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
