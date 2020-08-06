@@ -237,6 +237,14 @@ func getFakeBackendProvisioner(factory backend.ObjectStorageSessionFactory) *IBM
 	)
 }
 
+func getFakeUpdateFirewallProvisioner(factory backend.ObjectStorageSessionFactory) *IBMS3fsProvisioner {
+	return getCustomProvisioner(
+		&clientGoConfig{},
+		factory,
+		uuid.NewCryptoGenerator(),
+	)
+}
+
 func getProvisioner() *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
@@ -740,7 +748,11 @@ func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.
 func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
 	p := getCustomProvisioner(
 		&clientGoConfig{withResConfApiKey: true},
+<<<<<<< HEAD
 		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewalRules: true},
+=======
+		&fake.ObjectStorageSessionFactory{},
+>>>>>>> 8789d857256fba1c12095b488cd769de71359e22
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
@@ -764,7 +776,11 @@ func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
+<<<<<<< HEAD
 	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true}
+=======
+	factory := &fake.ObjectStorageSessionFactory{}
+>>>>>>> 8789d857256fba1c12095b488cd769de71359e22
 	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
@@ -776,7 +792,11 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) 
 }
 
 func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBucket(t *testing.T) {
+<<<<<<< HEAD
 	factory := &fake.ObjectStorageSessionFactory{FailUpdateBucketFirewallRules: true, FailDeleteBucket: true, FailUpdateBucketFirewallRulesErrMsg: "cannot configure firewall for bucket and cannot delete bucket"}
+=======
+	factory := &fake.ObjectStorageSessionFactory{FailDeleteBucket: true}
+>>>>>>> 8789d857256fba1c12095b488cd769de71359e22
 	p := getFakeBackendProvisioner(factory)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
@@ -791,7 +811,11 @@ func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules_FailDeleteBuck
 func Test_Provision_Set_ConfigureFirewall_ExistingBucket(t *testing.T) {
 	p := getCustomProvisioner(
 		&clientGoConfig{withResConfApiKey: true, withAllowedIPs: true},
+<<<<<<< HEAD
 		&fake.ObjectStorageSessionFactory{PassUpdateBucketFirewalRules: true},
+=======
+		&fake.ObjectStorageSessionFactory{},
+>>>>>>> 8789d857256fba1c12095b488cd769de71359e22
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()

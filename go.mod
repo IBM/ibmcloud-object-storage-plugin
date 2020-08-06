@@ -7,7 +7,7 @@ require (
 	github.com/IBM/go-sdk-core/v3 v3.3.1
 	github.com/IBM/ibm-cos-sdk-go v1.3.2
 	github.com/IBM/ibm-cos-sdk-go-config v1.0.0
-	github.com/coreos/go-systemd v0.0.0-00010101000000-000000000000
+	github.com/coreos/go-systemd v0.0.0-00010101000000-000000000000 // indirect
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
