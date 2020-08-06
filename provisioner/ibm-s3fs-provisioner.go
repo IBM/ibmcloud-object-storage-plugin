@@ -487,10 +487,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		// when AutoCreateBucket is false, AutoDeleteBucket is false and ConfigureFirewall is true
 		if updateFirewallConfig {
 			//verify if bucket exists and is accessible prior to firewall update for the bucket
-			err = sess.CheckBucketAccess(pvc.Bucket)
-			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access bucket %s: %v", pvc.Bucket, err)
-			}
+			//err = sess.CheckBucketAccess(pvc.Bucket)
+			//if err != nil {
+			//	return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access bucket %s: %v", pvc.Bucket, err)
+			//}
 
 			contextLogger.Info("updating firewall config: " + pvc.ConfigureFirewall)
 			err1 := UpdateFirewallRules(allowedIPs, resConfApiKey, pvc.Bucket)
