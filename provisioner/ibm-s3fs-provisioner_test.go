@@ -46,8 +46,6 @@ const (
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
 	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
-	testAllowedIps        = "169.55.124.128/29"
-	testResConfApiKey     = "resconfapikey"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -77,7 +75,6 @@ const (
 	annotationReadwriteTimeoutSeconds = "ibm.io/readwrite-timeout"
 	annotationServiceName             = "ibm.io/cos-service"
 	annotationServiceNamespace        = "ibm.io/cos-service-ns"
-	annotationAllowedIPs              = "ibm.io/allowed_ips"
 	annotationConfigureFirewall       = "ibm.io/configure-firewall"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
@@ -129,8 +126,6 @@ type clientGoConfig struct {
 	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
-	withResConfApiKey     bool
-	withAllowedIPs        bool
 }
 
 var (
@@ -189,15 +184,6 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 		if cfg.withAllowedNamespace {
 			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
-
-		if cfg.withResConfApiKey {
-			secret.Data[driver.ResConfApiKey] = []byte(testResConfApiKey)
-		}
-
-		if cfg.withAllowedIPs {
-			secret.Data[driver.AllowedIPs] = []byte(testAllowedIps)
-		}
-
 		objects = append(objects, runtime.Object(secret))
 	}
 
@@ -230,14 +216,6 @@ func getFakeClientGoProvisioner(cfg *clientGoConfig) *IBMS3fsProvisioner {
 }
 
 func getFakeBackendProvisioner(factory backend.ObjectStorageSessionFactory) *IBMS3fsProvisioner {
-	return getCustomProvisioner(
-		&clientGoConfig{},
-		factory,
-		uuid.NewCryptoGenerator(),
-	)
-}
-
-func getFakeUpdateFirewallProvisioner(factory backend.ObjectStorageSessionFactory) *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
 		factory,
@@ -733,44 +711,7 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 //	_, err := p.Provision(v)
 //	assert.NoError(t, err)
 //}
-//
-//func Test_Provision_Set_ConfigureFirewall_EmptyResConfApiKeyInSecret(t *testing.T) {
-//	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedIPs: true})
-//	v := getVolumeOptions()
-//	v.PVC.Annotations[annotationConfigureFirewall] = "true"
-//
-//	_, err := p.Provision(v)
-//	if assert.Error(t, err) {
-//		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. res-conf-apikey is empty")
-//	}
-//}
 
-//func Test_Provision_Set_ConfigureFirewall_EmptyAllowedIPsInSecret(t *testing.T) {
-//	p := getCustomProvisioner(
-//		&clientGoConfig{withResConfApiKey: true},
-//		&fake.ObjectStorageSessionFactory{},
-//		uuid.NewCryptoGenerator(),
-//	)
-//	v := getVolumeOptions()
-//	v.PVC.Annotations[annotationConfigureFirewall] = "true"
-//	v.PVC.Annotations[annotationAllowedIPs] = "10.69.208.4/16"
-//
-//	_, err := p.Provision(v)
-//	assert.NoError(t, err)
-//}
-//
-//func Test_Provision_Set_ConfigureFirewall_EmptyAnnotationAllowedIPs(t *testing.T) {
-//	p := getFakeClientGoProvisioner(&clientGoConfig{withResConfApiKey: true})
-//	v := getVolumeOptions()
-//	v.PVC.Annotations[annotationConfigureFirewall] = "true"
-//	v.PVC.Annotations[annotationAllowedIPs] = ""
-//
-//	_, err := p.Provision(v)
-//	if assert.Error(t, err) {
-//		assert.Contains(t, err.Error(), "cannot configure firewall for bucket. allowed_ips is empty")
-//	}
-//}
-//
 //func Test_Provision_Set_ConfigureFirewall_FailUpdateFirewallRules(t *testing.T) {
 //	factory := &fake.ObjectStorageSessionFactory{}
 //	p := getFakeBackendProvisioner(factory)
