@@ -21,7 +21,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	"github.ibm.com/nkashyap/armada-storage-s3fs-plugin/ibm-provider/provider"
+	"github.ibm.com/alchemy-containers/armada-storage-s3fs-plugin/ibm-provider/provider"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"io/ioutil"

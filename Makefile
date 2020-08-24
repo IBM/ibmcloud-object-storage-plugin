@@ -30,7 +30,6 @@ BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")"
 VERSION := latest
 
 export GO111MODULE=on
-export GOPRIVATE="github.ibm.com/nkashyap/armada-storage-s3fs-plugin"
 
 .PHONY: all
 all: deps fmt vet test
