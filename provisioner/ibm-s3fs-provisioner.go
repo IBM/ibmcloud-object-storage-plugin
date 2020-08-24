@@ -21,7 +21,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	"github.ibm.com/alchemy-containers/armada-storage-s3fs-plugin/ibm-provider/provider"
+	"github.com/Bhagyashreek8/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"io/ioutil"
@@ -98,7 +98,7 @@ const (
 
 var (
 	endpoint                 = flag.String("endpoint", "/tmp/provider.sock", "Provider endpoint")
-	configBucketAccessPolicy = flag.Bool("bucketAccessPolicy", true, "Decides either set the access policy or not")
+	configBucketAccessPolicy = flag.Bool("bucketAccessPolicy", false, "Decides either set the access policy or not")
 )
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
