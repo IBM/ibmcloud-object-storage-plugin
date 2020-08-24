@@ -1,4 +1,4 @@
-module github.com/Bhagyashreek8/ibmcloud-object-storage-plugin
+module github.com/IBM/ibmcloud-object-storage-plugin
 
 go 1.13
 
@@ -29,7 +29,6 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.6.1
-	//github.com/Bhagyashreek8/ibmcloud-object-storage-plugin v0.0.0-20200824124023-2bf1093f15d0
 	go.uber.org/zap v1.15.0
 	golang.org/x/crypto v0.0.0-20200709230013-948cd5f35899 // indirect
 	golang.org/x/net v0.0.0-20200707034311-ab3426394381 // indirect

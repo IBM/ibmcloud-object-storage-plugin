@@ -10,7 +10,7 @@
 
 syntax = "proto3";
 
-option go_package = "github.com/Bhagyashreek8/ibmcloud-object-storage-plugin/ibm-provider/provider";
+option go_package = "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider";
 option java_multiple_files = true;
 option java_package = "io.grpc.ibm.provider";
 option java_outer_classname = "IBMProvider";

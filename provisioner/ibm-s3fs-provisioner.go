@@ -15,7 +15,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/Bhagyashreek8/ibmcloud-object-storage-plugin/driver"
+	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/Bhagyashreek8/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
