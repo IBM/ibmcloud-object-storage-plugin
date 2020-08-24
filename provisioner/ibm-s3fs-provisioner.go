@@ -434,6 +434,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	//add check for region = BNNP
 	if pvc.ConfigureFirewall == "true" || *configBucketAccessPolicy {
 
+		contextLogger.Info(pvcName + ":" + ":Entered ConfigureFirewall block")
 		conn, err := grpc.Dial(*endpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":did not connect: %v", err)
