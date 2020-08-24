@@ -348,25 +348,25 @@ func Test_Provision_BadPVCOSEndpoint(t *testing.T) {
 	}
 }
 
-func Test_Provision_PVCAnnotations_OSEndpoint_Positive(t *testing.T) {
-	p := getProvisioner()
-	v := getVolumeOptions()
-	v.PVC.Annotations[annotationEndpoint] = "https://test-object-store-endpoint-defined-in-pvc"
+//func Test_Provision_PVCAnnotations_OSEndpoint_Positive(t *testing.T) {
+//	p := getProvisioner()
+//	v := getVolumeOptions()
+//	v.PVC.Annotations[annotationEndpoint] = "https://test-object-store-endpoint-defined-in-pvc"
 
-	pv, err := p.Provision(v)
-	assert.NoError(t, err)
-	assert.Equal(t, "https://test-object-store-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionOSEndpoint])
-}
+//	pv, err := p.Provision(v)
+//	assert.NoError(t, err)
+//	assert.Equal(t, "https://test-object-store-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionOSEndpoint])
+//}
 
-func Test_Provision_PVCAnnotations_StorageClass_Positive(t *testing.T) {
-	p := getProvisioner()
-	v := getVolumeOptions()
-	v.PVC.Annotations[annotationRegion] = "test-storage-class-defined-in-pvc"
+//func Test_Provision_PVCAnnotations_StorageClass_Positive(t *testing.T) {
+//	p := getProvisioner()
+//	v := getVolumeOptions()
+//	v.PVC.Annotations[annotationRegion] = "test-storage-class-defined-in-pvc"
 
-	pv, err := p.Provision(v)
-	assert.NoError(t, err)
-	assert.Equal(t, "test-storage-class-defined-in-pvc", pv.Spec.FlexVolume.Options[optionStorageClass])
-}
+//	pv, err := p.Provision(v)
+//	assert.NoError(t, err)
+//	assert.Equal(t, "test-storage-class-defined-in-pvc", pv.Spec.FlexVolume.Options[optionStorageClass])
+//}
 
 func Test_Provision_BadPVCIAMEndpoint(t *testing.T) {
 	p := getProvisioner()
@@ -380,15 +380,15 @@ func Test_Provision_BadPVCIAMEndpoint(t *testing.T) {
 	}
 }
 
-func Test_Provision_PVCAnnotations_IAMEndpoint_Positive(t *testing.T) {
-	p := getProvisioner()
-	v := getVolumeOptions()
-	v.PVC.Annotations[annotationIAMEndpoint] = "https://test-iam-endpoint-defined-in-pvc"
+//func Test_Provision_PVCAnnotations_IAMEndpoint_Positive(t *testing.T) {
+//	p := getProvisioner()
+//	v := getVolumeOptions()
+//	v.PVC.Annotations[annotationIAMEndpoint] = "https://test-iam-endpoint-defined-in-pvc"
 
-	pv, err := p.Provision(v)
-	assert.NoError(t, err)
-	assert.Equal(t, "https://test-iam-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionIAMEndpoint])
-}
+//	pv, err := p.Provision(v)
+//	assert.NoError(t, err)
+//	assert.Equal(t, "https://test-iam-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionIAMEndpoint])
+//}
 
 func Test_Provision_PVCAnnotations_BadChunkSizeMB(t *testing.T) {
 	p := getProvisioner()

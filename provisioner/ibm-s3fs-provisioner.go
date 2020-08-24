@@ -97,7 +97,7 @@ const (
 )
 
 var (
-	endpoint   = flag.String("endpoint", "/tmp/provider.sock", "Provider endpoint")
+	endpoint                 = flag.String("endpoint", "/tmp/provider.sock", "Provider endpoint")
 	configBucketAccessPolicy = flag.Bool("bucketAccessPolicy", true, "Decides either set the access policy or not")
 )
 
@@ -106,7 +106,6 @@ func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 	conn, err := net.DialUnix("unix", nil, unix_addr)
 	return conn, err
 }
-
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -432,47 +431,47 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-		//add check for region = BNNP
-		if pvc.ConfigureFirewall == "true" || *configBucketAccessPolicy {
+	//add check for region = BNNP
+	if pvc.ConfigureFirewall == "true" || *configBucketAccessPolicy {
 
-			conn, err := grpc.Dial(*endpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
-			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":did not connect: %v", err)
-			}
-			defer conn.Close()
-			providerClient := provider.NewIBMProviderClient(conn)
-
-			// Contact the server and print out its response.
-			name := defaultName
-			if len(os.Args) > 1 {
-				name = os.Args[1]
-			}
-
-			ctx, cancel := context.WithTimeout(context.Background(), 60 * time.Second)
-			defer cancel()
-			resp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
-			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetProviderType failed: %v", err)
-			}
-			providerType = resp1.GetType()
-			contextLogger.Info("ProviderType: %s" + providerType)
-
-			if strings.Contains(providerType, clusterTypeVpcG2) {
-				resp2, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
-				if err != nil {
-					return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetVPCSvcEndpoint failed: %v", err)
-				}
-				vpcServiceEndpoints = resp2.GetCse()
-				contextLogger.Info("VPCSvcEndpoint: %s" + vpcServiceEndpoints)
-				if vpcServiceEndpoints == "" {
-					return nil, errors.New(pvcName + ":" + clusterID + ":cannot configure firewall for bucket. vpcServiceEndpoints for the cluster vpc returned empty")
-				}
-				updateFirewallConfig = true
-			} else {
-				// check for cluster type classic
-				contextLogger.Info("Cluster is not of type VPC Gen2")
-			}
+		conn, err := grpc.Dial(*endpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":did not connect: %v", err)
 		}
+		defer conn.Close()
+		providerClient := provider.NewIBMProviderClient(conn)
+
+		// Contact the server and print out its response.
+		name := defaultName
+		if len(os.Args) > 1 {
+			name = os.Args[1]
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+		resp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetProviderType failed: %v", err)
+		}
+		providerType = resp1.GetType()
+		contextLogger.Info("ProviderType: %s" + providerType)
+
+		if strings.Contains(providerType, clusterTypeVpcG2) {
+			resp2, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
+			if err != nil {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetVPCSvcEndpoint failed: %v", err)
+			}
+			vpcServiceEndpoints = resp2.GetCse()
+			contextLogger.Info("VPCSvcEndpoint: %s" + vpcServiceEndpoints)
+			if vpcServiceEndpoints == "" {
+				return nil, errors.New(pvcName + ":" + clusterID + ":cannot configure firewall for bucket. vpcServiceEndpoints for the cluster vpc returned empty")
+			}
+			updateFirewallConfig = true
+		} else {
+			// check for cluster type classic
+			contextLogger.Info("Cluster is not of type VPC Gen2")
+		}
+	}
 
 	if pvc.AutoCreateBucket == "true" {
 		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" { //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
