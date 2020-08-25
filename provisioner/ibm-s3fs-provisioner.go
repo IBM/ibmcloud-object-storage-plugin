@@ -11,23 +11,28 @@
 package provisioner
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
+	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"net"
 	"os"
 	"path"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // PVC annotations
@@ -57,6 +62,7 @@ type pvcAnnotations struct {
 	CosServiceName          string `json:"ibm.io/cos-service"`
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
+	ConfigureFirewall       string `json:"ibm.io/configure-firewall,omitempty"`
 }
 
 // Storage Class options
@@ -81,11 +87,23 @@ type scOptions struct {
 }
 
 const (
-	driverName           = "ibm/ibmc-s3fs"
-	autoBucketNamePrefix = "tmp-s3fs-"
-	fsType               = ""
-	caBundlePath         = "/tmp/"
+	driverName            = "ibm/ibmc-s3fs"
+	autoBucketNamePrefix  = "tmp-s3fs-"
+	fsType                = ""
+	caBundlePath          = "/tmp/"
+	defaultName           = "IBMProviderClient"
+	clusterTypeVpcG2      = "vpc-gen2"
+	clusterTypeVpcClassic = "classic"
 )
+
+var Endpoint *string
+var ConfigBucketAccessPolicy *bool
+
+func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
+	unix_addr, err := net.ResolveUnixAddr("unix", addr)
+	conn, err := net.DialUnix("unix", nil, unix_addr)
+	return conn, err
+}
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -134,18 +152,17 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 	}
 	return nil
 }
-func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (*backend.ObjectStorageCredentials, []string, error) {
+func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, err error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
-	var allowedNamespace []string
 
 	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
 	if ok {
@@ -156,15 +173,20 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 
 		secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, "", err
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
+	}
+
+	bytesVal, ok = secrets.Data[driver.ResConfApiKey]
+	if ok {
+		resConfApiKey = string(bytesVal)
 	}
 
 	return &backend.ObjectStorageCredentials{
@@ -172,7 +194,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
-	}, allowedNamespace, nil
+	}, allowedNamespace, resConfApiKey, nil
 
 }
 
@@ -183,11 +205,13 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, svcIp string
+	var msg, svcIp, resConfApiKey string
+	var providerType, vpcServiceEndpoints string
 	var valBucket = true
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession
+	var updateFirewallConfig = false
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
@@ -224,6 +248,12 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		pvc.AutoDeleteBucket = "false"
 	} else if _, err = strconv.ParseBool(pvc.AutoDeleteBucket); err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
+	}
+
+	if pvc.ConfigureFirewall == "" {
+		pvc.ConfigureFirewall = "false"
+	} else if _, err = strconv.ParseBool(pvc.ConfigureFirewall); err != nil {
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for configure-firewall, expects true/false: %v", err)
 	}
 
 	if pvc.CosServiceName != "" {
@@ -376,7 +406,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 	//var err_msg error
 	if valBucket {
-		creds, allowedNamespace, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
+		creds, allowedNamespace, resConfApiKey, err = p.getCredentials(pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
@@ -399,7 +429,57 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
+	//add check for region = BNNP
+	if pvc.ConfigureFirewall == "true" || (ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy) {
+
+		contextLogger.Info(pvcName + ":" + "ConfigureFirewall start:")
+		contextLogger.Info(pvcName + ":" + "endpoint used for socket connection: " + *Endpoint)
+
+		conn, err := grpc.Dial(*Endpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":did not connect: %v", err)
+		}
+		defer conn.Close()
+		providerClient := provider.NewIBMProviderClient(conn)
+
+		name := defaultName
+		if len(os.Args) > 1 {
+			name = os.Args[1]
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+		defer cancel()
+
+		providerResp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetProviderType failed: %v", err)
+		}
+		providerType = providerResp1.GetType()
+		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterType  : " + providerType)
+
+		if strings.Contains(providerType, clusterTypeVpcG2) {
+			providerResp2, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
+			if err != nil {
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetVPCSvcEndpoint failed: %v", err)
+			}
+			vpcServiceEndpoints = providerResp2.GetCse()
+			contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
+			if vpcServiceEndpoints == "" {
+				return nil, errors.New(pvcName + ":" + clusterID + ":cannot configure firewall for bucket. vpcServiceEndpoints for the cluster vpc returned empty")
+			}
+			updateFirewallConfig = true
+
+		} else if strings.Contains(providerType, clusterTypeVpcClassic) {
+			//add logic to fetch cluster subnet ips
+			updateFirewallConfig = true
+
+		} else {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":Invalid Cluster Type: %v", providerType)
+		}
+	}
+
 	if pvc.AutoCreateBucket == "true" {
+		var deleteBucket = true
 		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" { //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
 			id, err := p.UUIDGenerator.New()
 			if err != nil {
@@ -411,6 +491,8 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if creds.APIKey != "" && creds.ServiceInstanceID == "" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
 		}
+
+		contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
 		msg, err = sess.CreateBucket(pvc.Bucket)
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + ":" + msg)
@@ -423,18 +505,47 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 					return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
 				}
 				valBucket = false
+				deleteBucket = false
 				contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' already exists")
 			} else {
 				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
 			}
 		}
+
+		//configure-firewall set to true, so update firewall
+		if updateFirewallConfig {
+			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
+			err := UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+			if err != nil {
+				//revert bucket creation if updateFirewallRules fails
+				if deleteBucket {
+					err1 := sess.DeleteBucket(pvc.Bucket)
+					if err1 != nil {
+						return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
+					}
+				}
+				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall for bucket %s : %v", pvc.Bucket, err)
+			}
+			contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + "' firewall configured for bucket")
+		}
 	} else {
 		if pvc.Bucket == "" {
 			return nil, errors.New(pvcName + ":" + clusterID + ":bucket name not specified")
 		}
+		// this enables to set firewall rules for existing bucket
+		// when AutoCreateBucket is false, AutoDeleteBucket is false and ConfigureFirewall is true
+		if updateFirewallConfig {
+			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
+			err := UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+			if err != nil {
+				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall for bucket %s : %v", pvc.Bucket, err)
+			}
+			contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' firewall configured for bucket")
+		}
 	}
 
 	if valBucket {
+		contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' verifying bucket access")
 		err = sess.CheckBucketAccess(pvc.Bucket)
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access bucket %s: %v", pvc.Bucket, err)
@@ -527,6 +638,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
 		CosServiceName:          pvc.CosServiceName,
+		ConfigureFirewall:       pvc.ConfigureFirewall,
 	})
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
@@ -593,7 +705,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
-	creds, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+	creds, _, _, err := p.getCredentials(pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}

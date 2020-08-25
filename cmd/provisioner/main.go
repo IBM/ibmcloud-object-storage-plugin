@@ -82,6 +82,18 @@ func main() {
 	if err != nil {
 		logger.Info("Failed to set flag:", zap.Error(err))
 	}
+
+	s3fsprovisioner.Endpoint = flag.String(
+		"endpoint",
+		"/tmp/provider.sock",
+		"Provider endpoint",
+	)
+
+	s3fsprovisioner.ConfigBucketAccessPolicy = flag.Bool(
+		"bucketAccessPolicy",
+		false,
+		"Decides either set the access policy or not",
+	)
 	flag.Parse()
 
 	// Enable debug trace
