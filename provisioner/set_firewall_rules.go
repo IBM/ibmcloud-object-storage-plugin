@@ -41,7 +41,7 @@ func UpdateFirewallRules(allowed_ips, apiKey, bucketName string) error {
 	}
 
 	response, err := service.UpdateBucketConfig(updateConfigOptions)
-	if response.StatusCode != nil {
+	if response != nil {
 		fmt.Println("UpdateFirewallRules: Response", response.StatusCode)
 	}
 	return err
