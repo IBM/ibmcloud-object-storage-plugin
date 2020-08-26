@@ -85,7 +85,7 @@ func main() {
 
 	s3fsprovisioner.Endpoint = flag.String(
 		"endpoint",
-		"/tmp/provider.sock",
+		"/ibmprovider/provider.sock",
 		"Provider endpoint",
 	)
 
