@@ -12,6 +12,7 @@ package fake
 
 import (
 	"errors"
+	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"go.uber.org/zap"
 )
@@ -30,6 +31,12 @@ type ObjectStorageSessionFactory struct {
 	CheckObjectPathExistenceError bool
 	//CheckObjectPathExistencePathNotFound ...
 	CheckObjectPathExistencePathNotFound bool
+	//PassUpdateFirewallRules
+	PassUpdateFirewallRules bool
+	//FailUpdateFirewallRules
+	FailUpdateFirewallRules bool
+	//FailUpdateFirewallRules with specific error msg
+	FailUpdateFirewallRulesErrMsg string
 
 	// LastEndpoint holds the endpoint of the last created session
 	LastEndpoint string
@@ -43,6 +50,8 @@ type ObjectStorageSessionFactory struct {
 	LastCreatedBucket string
 	// LastDeletedBucket stores the name of the last bucket that was deleted
 	LastDeletedBucket string
+	//LastUpdatedBucket
+	LastUpdatedBucket string
 }
 
 type fakeObjectStorageSession struct {
@@ -67,6 +76,7 @@ func (f *ObjectStorageSessionFactory) ResetStats() {
 	f.LastCheckedBucket = ""
 	f.LastCreatedBucket = ""
 	f.LastDeletedBucket = ""
+	f.LastUpdatedBucket = ""
 }
 
 func (s *fakeObjectStorageSession) CheckBucketAccess(bucket string) error {
@@ -98,6 +108,17 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 	s.factory.LastDeletedBucket = bucket
 	if s.factory.FailDeleteBucket {
 		return errors.New("")
+	}
+	return nil
+}
+
+func (s *fakeObjectStorageSession) UpdateFirewallRules(allowed_ips, apiKey, bucket string) error {
+	fmt.Println("FakeUpdateFirewallRules in fake_backend: ")
+	s.factory.LastUpdatedBucket = bucket
+	if s.factory.FailUpdateFirewallRules {
+		return errors.New(s.factory.FailUpdateFirewallRulesErrMsg)
+	} else if s.factory.PassUpdateFirewallRules {
+		return nil
 	}
 	return nil
 }
