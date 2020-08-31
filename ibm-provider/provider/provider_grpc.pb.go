@@ -27,15 +27,17 @@ type IBMProviderClient interface {
 	GetVPCSvcEndpoint(ctx context.Context, in *VPCSvcEndpointRequest, opts ...grpc.CallOption) (*VPCSvcEndpointReply, error)
 }
 
-type iBMProviderClient struct {
-	cc grpc.ClientConnInterface
+type IBMProviderClntFactory struct{}
+
+type IBMProviderClnt struct {
+	cc *grpc.ClientConnInterface
 }
 
-func NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient {
-	return &iBMProviderClient{cc}
+func (c *IBMProviderClntFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient {
+	return &IBMProviderClnt{cc}
 }
 
-func (c *iBMProviderClient) GetProviderType(
+func (c *IBMProviderClnt) GetProviderType(
 	ctx context.Context, in *ProviderTypeRequest,
 	opts ...grpc.CallOption,
 ) (*ProviderTypeReply, error) {
@@ -47,7 +49,7 @@ func (c *iBMProviderClient) GetProviderType(
 	return out, nil
 }
 
-func (c *iBMProviderClient) GetVPCSvcEndpoint(
+func (c *IBMProviderClnt) GetVPCSvcEndpoint(
 	ctx context.Context, in *VPCSvcEndpointRequest,
 	opts ...grpc.CallOption,
 ) (*VPCSvcEndpointReply, error) {

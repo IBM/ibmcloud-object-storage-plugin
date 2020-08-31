@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	ibmprovider "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	s3fsprovisioner "github.com/IBM/ibmcloud-object-storage-plugin/provisioner"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	cfg "github.com/IBM/ibmcloud-object-storage-plugin/utils/config"
@@ -83,9 +84,9 @@ func main() {
 		logger.Info("Failed to set flag:", zap.Error(err))
 	}
 
-	s3fsprovisioner.Endpoint = flag.String(
+	s3fsprovisioner.SockEndpoint = flag.String(
 		"endpoint",
-		"/ibmprovider/provider.sock",
+		"/tmp/provider.sock",
 		"Provider endpoint",
 	)
 
@@ -131,8 +132,11 @@ func main() {
 		logger.Fatal("Error getting server version:", zap.Error(err))
 	}
 
+	logger.Info("Getting the provisioner initialized")
 	s3fsProvisioner := &s3fsprovisioner.IBMS3fsProvisioner{
 		Backend:       &backend.COSSessionFactory{},
+		GRPCBackend:   &backend.ConnObjFactory{},
+		IBMProvider:   &ibmprovider.IBMProviderClntFactory{},
 		Logger:        logger,
 		Client:        clientset,
 		UUIDGenerator: uuid.NewCryptoGenerator(),
