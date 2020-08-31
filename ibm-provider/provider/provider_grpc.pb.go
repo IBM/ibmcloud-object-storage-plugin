@@ -30,7 +30,7 @@ type IBMProviderClient interface {
 type IBMProviderClntFactory struct{}
 
 type IBMProviderClnt struct {
-	cc *grpc.ClientConnInterface
+	cc grpc.ClientConnInterface
 }
 
 func (c *IBMProviderClntFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient {
