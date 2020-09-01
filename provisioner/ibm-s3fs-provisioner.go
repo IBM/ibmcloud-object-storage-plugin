@@ -16,7 +16,6 @@ import (
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
-	//"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/mock"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
@@ -432,10 +431,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	//add check for region = BNNP
 	if pvc.ConfigureFirewall == "true" || (ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy) {
 
-		contextLogger.Info(pvcName + ":" + "ConfigureFirewall start:")
-		contextLogger.Info(pvcName + ":" + "endpoint used for socket connection: " + *SockEndpoint)
-
-		fmt.Println("ConfigBucketAccessPolicy: ", *ConfigBucketAccessPolicy)
+		contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + " ConfigBucketAccessPolicy is set to true. Configure Firewall start -")
 
 		grpcSess = p.GRPCBackend.NewGrpcSession()
 

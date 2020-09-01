@@ -11,8 +11,6 @@ const (
 	clusterTypeVpcG2   = "vpc-gen2"
 	clusterTypeClassic = "classic"
 	clusterTypeOther   = "other"
-	failClusterType    = "errorClusterType"
-	failSvcEndpoint    = "errorSvcEndpoint"
 	testSvcEndpoint    = "10.10.10.10"
 	emptySvcEndpoint   = ""
 )
