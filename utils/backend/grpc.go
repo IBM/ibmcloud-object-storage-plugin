@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Container Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
+ * The source code for this program is not  published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
 package backend
 
 import (
@@ -37,11 +47,9 @@ func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 }
 
 func (*ConnObj) GrpcDial(SockEndpoint *string) (*grpc.ClientConn, error) {
-	fmt.Println("SockEndpoint in grpc.go: ", SockEndpoint)
 	conn, err := grpc.Dial(*SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 	if err != nil {
 		return conn, fmt.Errorf("could not not connect to grpc server: %v", err)
 	}
-	defer conn.Close()
 	return conn, err
 }

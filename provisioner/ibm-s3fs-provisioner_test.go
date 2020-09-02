@@ -758,7 +758,6 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_VPC(t *testin
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//v.PVC.Annotations[annotationConfigureFirewall] = "false"
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
@@ -873,8 +872,6 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_VPC_FailGRPC(
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//providerType = clusterTypeVpcG2
-	//svcEndPt = testSvcEndpoint
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
@@ -894,8 +891,6 @@ func Test_Provision_Set_ConfigureFirewall_AnnotationConfigureFirewall_FailUpdate
 	)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConfigureFirewall] = "true"
-	//providerType = clusterTypeVpcG2
-	//svcEndPt = testSvcEndpoint
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -912,7 +907,6 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_FailUpdateFir
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//providerType = clusterTypeVpcG2
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
@@ -931,7 +925,6 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_ExistingBucke
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//providerType = clusterTypeVpcG2
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
@@ -952,7 +945,6 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_ExistingBucke
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//providerType = clusterTypeVpcG2
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
@@ -973,7 +965,7 @@ func Test_Provision_Set_ConfigureFirewall_ConfigBucketAccessPolicy_TmpBucket(t *
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
-	//providerType = clusterTypeVpcG2
+
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 

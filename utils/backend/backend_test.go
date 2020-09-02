@@ -26,8 +26,7 @@ type fakeS3API struct {
 	ErrListObjects  error
 	ErrDeleteObject error
 	ErrDeleteBucket error
-	//ErrUpdateFirewallRules error
-	ObjectPath string
+	ObjectPath      string
 }
 
 const (
