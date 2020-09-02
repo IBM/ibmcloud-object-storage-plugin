@@ -21,11 +21,13 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	"google.golang.org/grpc"
 	"go.uber.org/zap"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"net"
 	"os"
 	"path"
 	"strconv"
@@ -98,6 +100,12 @@ var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
 var ifUnittest = false
 var providerType, svcEndPt string
+
+func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
+	unix_addr, err := net.ResolveUnixAddr("unix", addr)
+	conn, err := net.DialUnix("unix", nil, unix_addr)
+	return conn, err
+}
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -440,6 +448,12 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc connection: %v", err)
 		}
 
+		fmt.Println("grpcSess conn: ", conn)
+
+		conn2, err := grpc.Dial(*SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+
+		fmt.Println("grpc conn2: ", conn2)
+
 		var providerClient provider.IBMProviderClient
 
 		if ifUnittest {
@@ -450,6 +464,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			defer conn.Close()
 		}
 
+		providerClient2 := p.IBMProvider.NewIBMProviderClient(conn2)
+		defer conn.Close()
+
+
 		name := defaultName
 		if len(os.Args) > 1 {
 			name = os.Args[1]
@@ -457,6 +475,13 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
+
+		providerRespTest, err := providerClient2.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
+		if err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetProviderTypeTest failed: %v", err)
+		}
+		providerTypeTest := providerRespTest.GetType()
+		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterTypeTest  : " + providerTypeTest)
 
 		providerResp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
 		if err != nil {
