@@ -92,7 +92,7 @@ const (
 	caBundlePath         = "/tmp/"
 	defaultName          = "IBMProviderClient"
 	clusterTypeVpcG2     = "vpc-gen2"
-	clusterTypeClassic   = "classic"
+	clusterTypeClassic   = "cruiser"
 )
 
 var SockEndpoint *string
@@ -450,7 +450,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		var providerClient provider.IBMProviderClient
 
 		if ifUnittest {
-			fmt.Println("calling mock provider client for UT")
 			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
 		} else {
 			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
