@@ -31,6 +31,7 @@ type fakeS3API struct {
 
 const (
 	errFooMsg             = "foo"
+	errUpdateFirewalMsg   = "Provided API key could not be found"
 	testBucket            = "test-bucket"
 	testObjectPath        = "/test/object-path"
 	testEndpoint          = "test-endpoint"
@@ -40,6 +41,9 @@ const (
 	testAPIKey            = "apikey"
 	testServiceInstanceID = "sid"
 	testIAMEndpoint       = "https://test-iam-endpoint"
+	allowedIps            = "test_ip"
+	resConfApiKey         = "test_api_key"
+	failResConfApikey     = "fail_test_api_key"
 )
 
 var (
@@ -180,5 +184,19 @@ func Test_DeleteBucket_Error(t *testing.T) {
 func Test_DeleteBucket_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
 	err := sess.DeleteBucket(testBucket)
+	assert.NoError(t, err)
+}
+
+func Test_UpdateFirewallRules_Error(t *testing.T) {
+	sess := getSession(&fakeS3API{})
+	err := sess.UpdateFirewallRules(allowedIps, failResConfApikey, testBucket)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), errUpdateFirewalMsg)
+	}
+}
+
+func Test_UpdateFirewallRules_Positive(t *testing.T) {
+	sess := getSession(&fakeS3API{})
+	err := sess.UpdateFirewallRules(allowedIps, resConfApiKey, testBucket)
 	assert.NoError(t, err)
 }

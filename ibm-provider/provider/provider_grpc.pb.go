@@ -3,15 +3,21 @@
 package provider
 
 import (
-	context "context"
-	grpc "google.golang.org/grpc"
-	codes "google.golang.org/grpc/codes"
-	status "google.golang.org/grpc/status"
+	"context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
 const _ = grpc.SupportPackageIsVersion6
+
+type IBMProviderClientFactory interface {
+
+	// NewObjectStorageBackend method creates a new object store session
+	NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient
+}
 
 // IBMProviderClient is the client API for IBMProvider service.
 //
@@ -21,15 +27,17 @@ type IBMProviderClient interface {
 	GetVPCSvcEndpoint(ctx context.Context, in *VPCSvcEndpointRequest, opts ...grpc.CallOption) (*VPCSvcEndpointReply, error)
 }
 
-type iBMProviderClient struct {
+type IBMProviderClntFactory struct{}
+
+type IBMProviderClnt struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient {
-	return &iBMProviderClient{cc}
+func (c *IBMProviderClntFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient {
+	return &IBMProviderClnt{cc}
 }
 
-func (c *iBMProviderClient) GetProviderType(
+func (c *IBMProviderClnt) GetProviderType(
 	ctx context.Context, in *ProviderTypeRequest,
 	opts ...grpc.CallOption,
 ) (*ProviderTypeReply, error) {
@@ -41,7 +49,7 @@ func (c *iBMProviderClient) GetProviderType(
 	return out, nil
 }
 
-func (c *iBMProviderClient) GetVPCSvcEndpoint(
+func (c *IBMProviderClnt) GetVPCSvcEndpoint(
 	ctx context.Context, in *VPCSvcEndpointRequest,
 	opts ...grpc.CallOption,
 ) (*VPCSvcEndpointReply, error) {

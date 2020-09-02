@@ -22,7 +22,6 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -87,17 +86,19 @@ type scOptions struct {
 }
 
 const (
-	driverName            = "ibm/ibmc-s3fs"
-	autoBucketNamePrefix  = "tmp-s3fs-"
-	fsType                = ""
-	caBundlePath          = "/tmp/"
-	defaultName           = "IBMProviderClient"
-	clusterTypeVpcG2      = "vpc-gen2"
-	clusterTypeVpcClassic = "classic"
+	driverName           = "ibm/ibmc-s3fs"
+	autoBucketNamePrefix = "tmp-s3fs-"
+	fsType               = ""
+	caBundlePath         = "/tmp/"
+	defaultName          = "IBMProviderClient"
+	clusterTypeVpcG2     = "vpc-gen2"
+	clusterTypeClassic   = "cruiser"
 )
 
-var Endpoint *string
+var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
+var ifUnittest = false
+var providerType, svcEndPt string
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 	unix_addr, err := net.ResolveUnixAddr("unix", addr)
@@ -109,6 +110,11 @@ func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 type IBMS3fsProvisioner struct {
 	// Backend is the object store session factory
 	Backend backend.ObjectStorageSessionFactory
+	// GRPCBackend is the grpc session factory
+	GRPCBackend backend.GrpcSessionFactory
+	// IBMProvider is the ibm provider client
+	IBMProvider provider.IBMProviderClientFactory
+
 	// Logger will be used for logging
 	Logger *zap.Logger
 	// Client is the Kubernetes Go-Client that will be used to fetch user credentials
@@ -205,12 +211,12 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, svcIp, resConfApiKey string
-	var providerType, vpcServiceEndpoints string
+	var msg, svcIp, resConfApiKey, vpcServiceEndpoints string
 	var valBucket = true
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession
+	var grpcSess backend.GrpcSession
 	var updateFirewallConfig = false
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
@@ -432,15 +438,23 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	//add check for region = BNNP
 	if pvc.ConfigureFirewall == "true" || (ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy) {
 
-		contextLogger.Info(pvcName + ":" + "ConfigureFirewall start:")
-		contextLogger.Info(pvcName + ":" + "endpoint used for socket connection: " + *Endpoint)
+		contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + " ConfigBucketAccessPolicy is set to true. Configure Firewall start -")
 
-		conn, err := grpc.Dial(*Endpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		grpcSess = p.GRPCBackend.NewGrpcSession()
+
+		conn, err := grpcSess.GrpcDial(SockEndpoint)
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":did not connect: %v", err)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc connection: %v", err)
 		}
-		defer conn.Close()
-		providerClient := provider.NewIBMProviderClient(conn)
+
+		var providerClient provider.IBMProviderClient
+
+		if ifUnittest {
+			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
+		} else {
+			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
+			defer conn.Close()
+		}
 
 		name := defaultName
 		if len(os.Args) > 1 {
@@ -452,7 +466,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 		providerResp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetProviderType failed: %v", err)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetProviderType failed: %v", err)
 		}
 		providerType = providerResp1.GetType()
 		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterType  : " + providerType)
@@ -460,7 +474,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if strings.Contains(providerType, clusterTypeVpcG2) {
 			providerResp2, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
 			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":Error GetVPCSvcEndpoint failed: %v", err)
+				return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetVPCSvcEndpoint failed: %v", err)
 			}
 			vpcServiceEndpoints = providerResp2.GetCse()
 			contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
@@ -469,12 +483,13 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			}
 			updateFirewallConfig = true
 
-		} else if strings.Contains(providerType, clusterTypeVpcClassic) {
+		} else if strings.Contains(providerType, clusterTypeClassic) {
 			//add logic to fetch cluster subnet ips
-			updateFirewallConfig = true
+			updateFirewallConfig = false
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":UpdateBucketFirewallConfig not supported for classic clusters: %v", providerType)
 
 		} else {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Invalid Cluster Type: %v", providerType)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid ClusterType or ClusterType not suppoerted: %v", providerType)
 		}
 	}
 
@@ -515,7 +530,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		//configure-firewall set to true, so update firewall
 		if updateFirewallConfig {
 			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
-			err := UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+			err := sess.UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
 			if err != nil {
 				//revert bucket creation if updateFirewallRules fails
 				if deleteBucket {
@@ -536,7 +551,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		// when AutoCreateBucket is false, AutoDeleteBucket is false and ConfigureFirewall is true
 		if updateFirewallConfig {
 			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
-			err := UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+			err := sess.UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
 			if err != nil {
 				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall for bucket %s : %v", pvc.Bucket, err)
 			}
@@ -640,6 +655,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		CosServiceName:          pvc.CosServiceName,
 		ConfigureFirewall:       pvc.ConfigureFirewall,
 	})
+
 	if err != nil {
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
 	}
