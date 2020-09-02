@@ -61,7 +61,7 @@ type ObjectStorageSession interface {
 	// DeleteBucket methods deletes a bucket (with all of its objects)
 	DeleteBucket(bucket string) error
 
-	// UpdateBucketFirewall updates the bucket firewall configuration with given ips
+	// UpdateBucketFirewall updates the bucket firewall with given ips
 	UpdateFirewallRules(allowed_ips, apiKey, bucketName string) error
 }
 
@@ -188,7 +188,7 @@ func (s *COSSession) DeleteBucket(bucket string) error {
 	return err
 }
 
-// UpdateBucketFirewall updates the bucket firewall configuration with given ips
+// UpdateBucketFirewall updates the bucket firewall with given ips
 func (s *COSSession) UpdateFirewallRules(allowed_ips, apiKey, bucketName string) error {
 
 	allowedIPs := strings.Split(allowed_ips, ",")

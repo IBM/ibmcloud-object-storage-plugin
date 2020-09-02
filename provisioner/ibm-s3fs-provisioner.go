@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
+	//"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/mock"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
@@ -26,7 +27,6 @@ import (
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"net"
 	"os"
 	"path"
 	"strconv"
@@ -92,19 +92,13 @@ const (
 	caBundlePath         = "/tmp/"
 	defaultName          = "IBMProviderClient"
 	clusterTypeVpcG2     = "vpc-gen2"
-	clusterTypeClassic   = "cruiser"
+	clusterTypeClassic   = "classic"
 )
 
 var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
 var ifUnittest = false
 var providerType, svcEndPt string
-
-func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, err := net.ResolveUnixAddr("unix", addr)
-	conn, err := net.DialUnix("unix", nil, unix_addr)
-	return conn, err
-}
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -438,7 +432,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	//add check for region = BNNP
 	if pvc.ConfigureFirewall == "true" || (ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy) {
 
-		contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + " ConfigBucketAccessPolicy is set to true. Configure Firewall start -")
+		contextLogger.Info(pvcName + ":" + "ConfigureFirewall start:")
+		contextLogger.Info(pvcName + ":" + "endpoint used for socket connection: " + *SockEndpoint)
+
+		fmt.Println("ConfigBucketAccessPolicy: ", *ConfigBucketAccessPolicy)
 
 		grpcSess = p.GRPCBackend.NewGrpcSession()
 
@@ -450,6 +447,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		var providerClient provider.IBMProviderClient
 
 		if ifUnittest {
+			fmt.Println("calling mock provider client for UT")
 			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
 		} else {
 			providerClient = p.IBMProvider.NewIBMProviderClient(conn)

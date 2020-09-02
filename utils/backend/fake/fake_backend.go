@@ -12,6 +12,7 @@ package fake
 
 import (
 	"errors"
+	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"go.uber.org/zap"
 )
@@ -112,6 +113,7 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 }
 
 func (s *fakeObjectStorageSession) UpdateFirewallRules(allowed_ips, apiKey, bucket string) error {
+	fmt.Println("FakeUpdateFirewallRules in fake_backend: ")
 	s.factory.LastUpdatedBucket = bucket
 	if s.factory.FailUpdateFirewallRules {
 		return errors.New(s.factory.FailUpdateFirewallRulesErrMsg)
