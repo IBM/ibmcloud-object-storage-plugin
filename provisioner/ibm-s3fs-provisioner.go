@@ -22,7 +22,6 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
-	"google.golang.org/grpc"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
