@@ -42,6 +42,5 @@ func (*ConnObj) GrpcDial(SockEndpoint *string) (*grpc.ClientConn, error) {
 	if err != nil {
 		return conn, fmt.Errorf("could not not connect to grpc server: %v", err)
 	}
-	defer conn.Close()
 	return conn, err
 }
