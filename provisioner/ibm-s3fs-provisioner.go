@@ -448,12 +448,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc connection: %v", err)
 		}
 
-		fmt.Println("grpcSess conn: ", conn)
-
-		conn2, err := grpc.Dial(*SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
-
-		fmt.Println("grpc conn2: ", conn2)
-
 		var providerClient provider.IBMProviderClient
 
 		if ifUnittest {
@@ -464,9 +458,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			defer conn.Close()
 		}
 
-		providerClient2 := p.IBMProvider.NewIBMProviderClient(conn2)
-		defer conn.Close()
-
 		name := defaultName
 		if len(os.Args) > 1 {
 			name = os.Args[1]
@@ -474,13 +465,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
-
-		providerRespTest, err := providerClient2.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetProviderTypeTest failed: %v", err)
-		}
-		providerTypeTest := providerRespTest.GetType()
-		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterTypeTest  : " + providerTypeTest)
 
 		providerResp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
 		if err != nil {

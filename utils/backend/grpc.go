@@ -37,7 +37,6 @@ func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 }
 
 func (*ConnObj) GrpcDial(SockEndpoint *string) (*grpc.ClientConn, error) {
-	fmt.Println("SockEndpoint in grpc.go: ", SockEndpoint)
 	conn, err := grpc.Dial(*SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 	if err != nil {
 		return conn, fmt.Errorf("could not not connect to grpc server: %v", err)
