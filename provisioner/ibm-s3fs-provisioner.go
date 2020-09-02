@@ -21,8 +21,8 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
-	"google.golang.org/grpc"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -466,7 +466,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 
 		providerClient2 := p.IBMProvider.NewIBMProviderClient(conn2)
 		defer conn.Close()
-
 
 		name := defaultName
 		if len(os.Args) > 1 {
