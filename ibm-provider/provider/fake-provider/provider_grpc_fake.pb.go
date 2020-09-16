@@ -8,7 +8,7 @@
  * the U.S. Copyright Office.
  ******************************************************************************/
 
-package mock
+package fake_provider
 
 import (
 	"context"
@@ -25,7 +25,8 @@ const (
 	emptySvcEndpoint   = ""
 )
 
-type IBMProviderClientFactory struct {
+//FakeIBMProviderClientFactory implements provider.IBMProviderClientFactory
+type FakeIBMProviderClientFactory struct {
 	ClusterTypeVpcG2      bool
 	ClusterTypeClassic    bool
 	ClusterTypeOther      bool
@@ -37,15 +38,19 @@ type IBMProviderClientFactory struct {
 	EmptySvcEndpoint      bool
 }
 
-type mockIBMProviderClient struct {
-	provider *IBMProviderClientFactory
+var _ provider.IBMProviderClientFactory = (*FakeIBMProviderClientFactory)(nil)
+
+//FakeIBMProviderClient implements provider.IBMProviderClient
+type fakeIBMProviderClient struct {
+	provider *FakeIBMProviderClientFactory
 }
 
-func (pc *IBMProviderClientFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) provider.IBMProviderClient {
-	return &mockIBMProviderClient{provider: pc}
+// NewIBMProviderClient method creates a new fake-grpc-client IBMProviderClient instance
+func (pc *FakeIBMProviderClientFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) provider.IBMProviderClient {
+	return &fakeIBMProviderClient{provider: pc}
 }
 
-func (c *mockIBMProviderClient) GetProviderType(
+func (c *fakeIBMProviderClient) GetProviderType(
 	ctx context.Context, in *provider.ProviderTypeRequest,
 	opts ...grpc.CallOption,
 ) (*provider.ProviderTypeReply, error) {
@@ -63,7 +68,7 @@ func (c *mockIBMProviderClient) GetProviderType(
 	return out, nil
 }
 
-func (c *mockIBMProviderClient) GetVPCSvcEndpoint(
+func (c *fakeIBMProviderClient) GetVPCSvcEndpoint(
 	ctx context.Context, in *provider.VPCSvcEndpointRequest,
 	opts ...grpc.CallOption,
 ) (*provider.VPCSvcEndpointReply, error) {

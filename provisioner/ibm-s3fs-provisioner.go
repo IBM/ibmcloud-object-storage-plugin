@@ -17,11 +17,13 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -61,7 +63,7 @@ type pvcAnnotations struct {
 	CosServiceName          string `json:"ibm.io/cos-service"`
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
-	ConfigureFirewall       string `json:"ibm.io/configure-firewall,omitempty"`
+	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
 }
 
 // Storage Class options
@@ -90,28 +92,23 @@ const (
 	autoBucketNamePrefix = "tmp-s3fs-"
 	fsType               = ""
 	caBundlePath         = "/tmp/"
-	defaultName          = "IBMProviderClient"
+	defaultName          = "IBMGrpcProvider"
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
+	ResConfApiKey        = "res-conf-apikey"
 )
 
 var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
-var ifUnittest = false
-var providerType, svcEndPt string
-
-func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, err := net.ResolveUnixAddr("unix", addr)
-	conn, err := net.DialUnix("unix", nil, unix_addr)
-	return conn, err
-}
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
 	// Backend is the object store session factory
 	Backend backend.ObjectStorageSessionFactory
 	// GRPCBackend is the grpc session factory
-	GRPCBackend backend.GrpcSessionFactory
+	GRPCBackend grpcClient.GrpcSessionFactory
+	// AccessPolicy is the resource configuration session factory
+	AccessPolicy backend.AccessPolicyFactory
 	// IBMProvider is the ibm provider client
 	IBMProvider provider.IBMProviderClientFactory
 
@@ -125,6 +122,12 @@ type IBMS3fsProvisioner struct {
 
 var _ controller.Provisioner = &IBMS3fsProvisioner{}
 var writeFile = ioutil.WriteFile
+
+func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
+	unix_addr, err := net.ResolveUnixAddr("unix", addr)
+	conn, err := net.DialUnix("unix", nil, unix_addr)
+	return conn, err
+}
 
 func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 	bytesVal, ok := secret.Data[keyName]
@@ -190,7 +193,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
 	}
 
-	bytesVal, ok = secrets.Data[driver.ResConfApiKey]
+	bytesVal, ok = secrets.Data[ResConfApiKey]
 	if ok {
 		resConfApiKey = string(bytesVal)
 	}
@@ -211,13 +214,16 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, svcIp, resConfApiKey, vpcServiceEndpoints string
+	var msg, svcIp, resConfApiKey, providerType, vpcServiceEndpoints string
 	var valBucket = true
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession
-	var grpcSess backend.GrpcSession
-	var updateFirewallConfig = false
+	var grpcSess grpcClient.GrpcSession
+	var updateAP backend.AccessPolicy
+	var rcc backend.ResourceConfigurationV1
+	var providerClient provider.IBMProviderClient
+	var setBucketAccessPolicy = false
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
@@ -256,10 +262,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
 	}
 
-	if pvc.ConfigureFirewall == "" {
-		pvc.ConfigureFirewall = "false"
-	} else if _, err = strconv.ParseBool(pvc.ConfigureFirewall); err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for configure-firewall, expects true/false: %v", err)
+	if pvc.SetAccessPolicy != "" {
+		if _, err = strconv.ParseBool(pvc.SetAccessPolicy); err != nil {
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for set-access-policy, expects true/false: %v", err)
+		}
 	}
 
 	if pvc.CosServiceName != "" {
@@ -435,24 +441,19 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
+	contextLogger.Info("ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + pvc.SetAccessPolicy)
+
 	//add check for region = BNNP
-	if pvc.ConfigureFirewall == "true" || (ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy) {
-
-		contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + " ConfigBucketAccessPolicy is set to true. Configure Firewall start -")
-
+	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
 		grpcSess = p.GRPCBackend.NewGrpcSession()
-
-		conn, err := grpcSess.GrpcDial(SockEndpoint)
+		cc := &grpcClient.GrpcSes{}
+		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc connection: %v", err)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc-client connection: %v", err)
 		}
 
-		var providerClient provider.IBMProviderClient
-
-		if ifUnittest {
-			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
-		} else {
-			providerClient = p.IBMProvider.NewIBMProviderClient(conn)
+		providerClient = p.IBMProvider.NewIBMProviderClient(conn)
+		if conn != nil {
 			defer conn.Close()
 		}
 
@@ -464,32 +465,36 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		defer cancel()
 
-		providerResp1, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
+		clusterTypeResp, err := providerClient.GetProviderType(ctx, &provider.ProviderTypeRequest{Id: name})
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetProviderType failed: %v", err)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+" :failed to get provider type for cluster: %v", err)
 		}
-		providerType = providerResp1.GetType()
+		providerType = clusterTypeResp.GetType()
 		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterType  : " + providerType)
 
 		if strings.Contains(providerType, clusterTypeVpcG2) {
-			providerResp2, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
+			svcEndpointResp, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
 			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":error GetVPCSvcEndpoint failed: %v", err)
+				return nil, fmt.Errorf(pvcName+":"+clusterID+" :failed to get VPC service endpoints for cluster: %v", err)
 			}
-			vpcServiceEndpoints = providerResp2.GetCse()
+			vpcServiceEndpoints = svcEndpointResp.GetCse()
 			contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
 			if vpcServiceEndpoints == "" {
-				return nil, errors.New(pvcName + ":" + clusterID + ":cannot configure firewall for bucket. vpcServiceEndpoints for the cluster vpc returned empty")
+				return nil, errors.New(pvcName + ":" + clusterID + " :cannot set access policy for bucket. VPC service endpoints for the cluster not found")
 			}
-			updateFirewallConfig = true
+			setBucketAccessPolicy = true
+			updateAP = p.AccessPolicy.NewAccessPolicy()
+			rcc = &backend.UpdateAPObj{}
 
 		} else if strings.Contains(providerType, clusterTypeClassic) {
 			//add logic to fetch cluster subnet ips
-			updateFirewallConfig = false
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":UpdateBucketFirewallConfig not supported for classic clusters: %v", providerType)
-
+			return nil, fmt.Errorf(pvcName+":"+clusterID+" : set-access-policy not supported for classic cluster: %v", providerType)
 		} else {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid ClusterType or ClusterType not suppoerted: %v", providerType)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+" :cluster-type not suppoerted: %v", providerType)
+		}
+	} else {
+		if pvc.SetAccessPolicy == "false" {
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy is set to false. bucket access policy will not be set")
 		}
 	}
 
@@ -504,75 +509,68 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 
 		if creds.APIKey != "" && creds.ServiceInstanceID == "" {
-			return nil, errors.New(pvcName + ":" + clusterID + ":cannot create bucket using API key without service-instance-id")
+			return nil, errors.New(pvcName + ":" + clusterID + " :cannot create bucket using API key without service-instance-id")
 		}
 
 		contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
 		msg, err = sess.CreateBucket(pvc.Bucket)
 		if msg != "" {
-			contextLogger.Info(pvcName + ":" + clusterID + ":" + msg)
+			contextLogger.Info(pvcName + ":" + clusterID + " : " + msg)
 		}
 		// When using existing bucket with auto-create-bucket: true
 		if err != nil {
 			if strings.Contains(fmt.Sprintf("%v", err), "BucketAlreadyExists") {
-				err1 := sess.CheckBucketAccess(pvc.Bucket)
-				if err1 != nil {
-					return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
-				}
-				valBucket = false
+				valBucket = true
 				deleteBucket = false
-				contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' already exists")
+				contextLogger.Info(pvcName + ":" + clusterID + " :bucket '" + pvc.Bucket + "' already exists")
 			} else {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create bucket %s: %v", pvc.Bucket, err)
+				return nil, fmt.Errorf(pvcName+":"+clusterID+" :cannot create bucket %s: %v", pvc.Bucket, err)
 			}
 		}
 
-		//configure-firewall set to true, so update firewall
-		if updateFirewallConfig {
-			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
-			err := sess.UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+		if setBucketAccessPolicy {
+			err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
 			if err != nil {
-				//revert bucket creation if updateFirewallRules fails
+				//revert bucket creation if updating bucket access policy fails
 				if deleteBucket {
 					err1 := sess.DeleteBucket(pvc.Bucket)
 					if err1 != nil {
-						return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
+						return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set access policy %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
 					}
 				}
-				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall for bucket %s : %v", pvc.Bucket, err)
+				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set access policy for bucket %s : %v", pvc.Bucket, err)
 			}
-			contextLogger.Info(pvcName + ":" + clusterID + "bucket :'" + pvc.Bucket + "' firewall configured for bucket")
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' access policy configured successfully")
 		}
 	} else {
 		if pvc.Bucket == "" {
-			return nil, errors.New(pvcName + ":" + clusterID + ":bucket name not specified")
+			return nil, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
 		}
-		// this enables to set firewall rules for existing bucket
-		// when AutoCreateBucket is false, AutoDeleteBucket is false and ConfigureFirewall is true
-		if updateFirewallConfig {
-			contextLogger.Info(pvcName + ":" + clusterID + " : updating the firewall configuration ")
-			err := sess.UpdateFirewallRules(vpcServiceEndpoints, resConfApiKey, pvc.Bucket)
+		// this enables to set access policy for existing bucket
+		// when AutoCreateBucket is false, AutoDeleteBucket is false and SetAccessPolicy is true
+		if setBucketAccessPolicy {
+			err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
 			if err != nil {
-				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot configure firewall for bucket %s : %v", pvc.Bucket, err)
+				return nil, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set access policy for bucket %s : %v", pvc.Bucket, err)
 			}
-			contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' firewall configured for bucket")
+			valBucket = true
+			contextLogger.Info(pvcName + ":" + clusterID + " :bucket '" + pvc.Bucket + "' access policy configured successfully")
 		}
 	}
 
 	if valBucket {
-		contextLogger.Info(pvcName + ":" + clusterID + ":bucket '" + pvc.Bucket + "' verifying bucket access")
 		err = sess.CheckBucketAccess(pvc.Bucket)
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access bucket %s: %v", pvc.Bucket, err)
+			return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot access bucket %s: %v", pvc.Bucket, err)
 		}
 	}
 
 	if pvc.ObjectPath != "" {
 		exist, err := sess.CheckObjectPathExistence(pvc.Bucket, pvc.ObjectPath)
 		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot access object-path \"%s\" inside bucket %s: %v", pvc.ObjectPath, pvc.Bucket, err)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+" :cannot access object-path \"%s\" inside bucket %s: %v", pvc.ObjectPath, pvc.Bucket, err)
 		} else if !exist {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":object-path \"%s\" not found inside bucket %s", pvc.ObjectPath, pvc.Bucket)
+			return nil, fmt.Errorf(pvcName+":"+clusterID+" :object-path \"%s\" not found inside bucket %s", pvc.ObjectPath, pvc.Bucket)
 		}
 	}
 
@@ -653,7 +651,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
 		CosServiceName:          pvc.CosServiceName,
-		ConfigureFirewall:       pvc.ConfigureFirewall,
+		SetAccessPolicy:         pvc.SetAccessPolicy,
 	})
 
 	if err != nil {

@@ -30,12 +30,6 @@ type ObjectStorageSessionFactory struct {
 	CheckObjectPathExistenceError bool
 	//CheckObjectPathExistencePathNotFound ...
 	CheckObjectPathExistencePathNotFound bool
-	//PassUpdateFirewallRules
-	PassUpdateFirewallRules bool
-	//FailUpdateFirewallRules
-	FailUpdateFirewallRules bool
-	//FailUpdateFirewallRules with specific error msg
-	FailUpdateFirewallRulesErrMsg string
 
 	// LastEndpoint holds the endpoint of the last created session
 	LastEndpoint string
@@ -107,16 +101,6 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 	s.factory.LastDeletedBucket = bucket
 	if s.factory.FailDeleteBucket {
 		return errors.New("")
-	}
-	return nil
-}
-
-func (s *fakeObjectStorageSession) UpdateFirewallRules(allowed_ips, apiKey, bucket string) error {
-	s.factory.LastUpdatedBucket = bucket
-	if s.factory.FailUpdateFirewallRules {
-		return errors.New(s.factory.FailUpdateFirewallRulesErrMsg)
-	} else if s.factory.PassUpdateFirewallRules {
-		return nil
 	}
 	return nil
 }

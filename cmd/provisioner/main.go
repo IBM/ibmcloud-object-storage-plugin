@@ -19,6 +19,7 @@ import (
 	s3fsprovisioner "github.com/IBM/ibmcloud-object-storage-plugin/provisioner"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	cfg "github.com/IBM/ibmcloud-object-storage-plugin/utils/config"
+	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	log "github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
@@ -86,14 +87,14 @@ func main() {
 
 	s3fsprovisioner.SockEndpoint = flag.String(
 		"endpoint",
-		"/tmp/provider.sock",
+		"/ibmprovider/provider.sock",
 		"Provider endpoint",
 	)
 
 	s3fsprovisioner.ConfigBucketAccessPolicy = flag.Bool(
 		"bucketAccessPolicy",
 		false,
-		"Decides either set the access policy or not",
+		"set 'true' to configure bucket access policy",
 	)
 	flag.Parse()
 
@@ -132,10 +133,10 @@ func main() {
 		logger.Fatal("Error getting server version:", zap.Error(err))
 	}
 
-	logger.Info("Getting the provisioner initialized")
 	s3fsProvisioner := &s3fsprovisioner.IBMS3fsProvisioner{
 		Backend:       &backend.COSSessionFactory{},
-		GRPCBackend:   &backend.ConnObjFactory{},
+		GRPCBackend:   &grpcClient.ConnObjFactory{},
+		AccessPolicy:  &backend.UpdateAPFactory{},
 		IBMProvider:   &ibmprovider.IBMProviderClntFactory{},
 		Logger:        logger,
 		Client:        clientset,

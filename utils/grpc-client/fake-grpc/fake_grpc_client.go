@@ -8,16 +8,16 @@
  * the U.S. Copyright Office.
  ******************************************************************************/
 
-package fake
+package fake_grpc
 
 import (
 	"errors"
-	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	"google.golang.org/grpc"
 )
 
-//ObjectStorageSessionFactory is a factory for mocked object storage sessions
-type GrpcSessionFactory struct {
+//FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
+type FakeGrpcSessionFactory struct {
 	//FailGrpcConnection ...
 	FailGrpcConnection bool
 	//FailGrpcConnectionErr with specific error msg...
@@ -26,18 +26,22 @@ type GrpcSessionFactory struct {
 	PassGrpcConnection bool
 }
 
+var _ grpcClient.GrpcSessionFactory = (*FakeGrpcSessionFactory)(nil)
+
+//fakeGrpcSession implements grpcClient.GrpcSession
 type fakeGrpcSession struct {
-	factory *GrpcSessionFactory
+	factory *FakeGrpcSessionFactory
 }
 
-// NewObjectStorageSession method creates a new fake object store session
-func (f *GrpcSessionFactory) NewGrpcSession() backend.GrpcSession {
+// NewGrpcSession method creates a new fakeGrpcSession session
+func (f *FakeGrpcSessionFactory) NewGrpcSession() grpcClient.GrpcSession {
 	return &fakeGrpcSession{
 		factory: f,
 	}
 }
 
-func (c *fakeGrpcSession) GrpcDial(SockEndpoint *string) (conn *grpc.ClientConn, err error) {
+// GrpcDial method creates a fake-grpc-client connection
+func (c *fakeGrpcSession) GrpcDial(clientConn grpcClient.ClientConn, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
 	if c.factory.FailGrpcConnection {
 		return conn, errors.New(c.factory.FailGrpcConnectionErr)
 	}
