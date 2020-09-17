@@ -15,9 +15,11 @@ import (
 	"strings"
 	"time"
 
+	ibmprovider "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	s3fsprovisioner "github.com/IBM/ibmcloud-object-storage-plugin/provisioner"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	cfg "github.com/IBM/ibmcloud-object-storage-plugin/utils/config"
+	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	log "github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
@@ -82,6 +84,18 @@ func main() {
 	if err != nil {
 		logger.Info("Failed to set flag:", zap.Error(err))
 	}
+
+	s3fsprovisioner.SockEndpoint = flag.String(
+		"endpoint",
+		"/ibmprovider/provider.sock",
+		"Provider endpoint",
+	)
+
+	s3fsprovisioner.ConfigBucketAccessPolicy = flag.Bool(
+		"bucketAccessPolicy",
+		false,
+		"set 'true' to configure bucket access policy",
+	)
 	flag.Parse()
 
 	// Enable debug trace
@@ -121,6 +135,9 @@ func main() {
 
 	s3fsProvisioner := &s3fsprovisioner.IBMS3fsProvisioner{
 		Backend:       &backend.COSSessionFactory{},
+		GRPCBackend:   &grpcClient.ConnObjFactory{},
+		AccessPolicy:  &backend.UpdateAPFactory{},
+		IBMProvider:   &ibmprovider.IBMProviderClntFactory{},
 		Logger:        logger,
 		Client:        clientset,
 		UUIDGenerator: uuid.NewCryptoGenerator(),

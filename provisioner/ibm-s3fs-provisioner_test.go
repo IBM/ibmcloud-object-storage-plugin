@@ -15,8 +15,12 @@ import (
 	"errors"
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
+	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
+	fakeProvider "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/fake-provider"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/fake"
+	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
+	fakeGrpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client/fake-grpc"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"github.com/stretchr/testify/assert"
@@ -24,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	k8fake "k8s.io/client-go/kubernetes/fake"
 	"os"
+
 	//"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/api/core/v1"
 	//"k8s.io/client-go/pkg/runtime"
@@ -46,6 +51,7 @@ const (
 	testServiceNamespace  = "test-default"
 	testCAKey             = "cacrt-key"
 	testAllowedNamespace  = "test-allowed-namespace1 test-allowed-namespace2"
+	testResConAPIKey      = "test-resconfapikey"
 
 	testChunkSizeMB            = 2
 	testParallelCount          = 3
@@ -75,6 +81,7 @@ const (
 	annotationReadwriteTimeoutSeconds = "ibm.io/readwrite-timeout"
 	annotationServiceName             = "ibm.io/cos-service"
 	annotationServiceNamespace        = "ibm.io/cos-service-ns"
+	annotationSetAccessPolicy         = "ibm.io/set-access-policy"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
 	parameterParallelCount          = "ibm.io/parallel-count"
@@ -125,6 +132,7 @@ type clientGoConfig struct {
 	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
+	withResConfAPIKey     bool
 }
 
 var (
@@ -132,6 +140,13 @@ var (
 	writeFileSuccess = func(string, []byte, os.FileMode) error { return nil }
 	testNamespace    = "test-namespace"
 )
+
+func init() {
+	endpt := "/ibmprovider/provider.sock"
+	SockEndpoint = &endpt
+	accessPlcy := false
+	ConfigBucketAccessPolicy = &accessPlcy
+}
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 	objects := []runtime.Object{}
@@ -183,18 +198,25 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 		if cfg.withAllowedNamespace {
 			secret.Data[driver.SecretAllowedNS] = []byte(testAllowedNamespace)
 		}
+
+		if cfg.withResConfAPIKey {
+			secret.Data[ResConfApiKey] = []byte(testResConAPIKey)
+		}
 		objects = append(objects, runtime.Object(secret))
 	}
 
 	return k8fake.NewSimpleClientset(objects...)
 }
 
-func getCustomProvisioner(cfg *clientGoConfig, factory backend.ObjectStorageSessionFactory, uuidGen uuid.Generator) *IBMS3fsProvisioner {
+func getCustomProvisioner(cfg *clientGoConfig, factory backend.ObjectStorageSessionFactory, grpcFac grpcClient.GrpcSessionFactory, updateAPFac backend.AccessPolicyFactory, IBMProvider provider.IBMProviderClientFactory, uuidGen uuid.Generator) *IBMS3fsProvisioner {
 	return &IBMS3fsProvisioner{
 		Client:        getFakeClientGo(cfg),
 		Logger:        zap.NewNop(),
 		UUIDGenerator: uuidGen,
 		Backend:       factory,
+		GRPCBackend:   grpcFac,
+		AccessPolicy:  updateAPFac,
+		IBMProvider:   IBMProvider,
 	}
 }
 
@@ -202,6 +224,9 @@ func getFailedUUIDProvisioner() *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
 		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{},
+		&fakeProvider.FakeIBMProviderClientFactory{},
 		&uuid.ReaderGenerator{Reader: bytes.NewReader(nil)},
 	)
 }
@@ -210,14 +235,20 @@ func getFakeClientGoProvisioner(cfg *clientGoConfig) *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		cfg,
 		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{},
+		&fakeProvider.FakeIBMProviderClientFactory{},
 		uuid.NewCryptoGenerator(),
 	)
 }
 
-func getFakeBackendProvisioner(factory backend.ObjectStorageSessionFactory) *IBMS3fsProvisioner {
+func getFakeBackendProvisioner(factory backend.ObjectStorageSessionFactory, grpcFac grpcClient.GrpcSessionFactory, updateAPFac backend.AccessPolicyFactory, IBMProvider provider.IBMProviderClientFactory) *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
 		factory,
+		grpcFac,
+		updateAPFac,
+		IBMProvider,
 		uuid.NewCryptoGenerator(),
 	)
 }
@@ -226,6 +257,9 @@ func getProvisioner() *IBMS3fsProvisioner {
 	return getCustomProvisioner(
 		&clientGoConfig{},
 		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{},
+		&fakeProvider.FakeIBMProviderClientFactory{},
 		uuid.NewCryptoGenerator(),
 	)
 }
@@ -660,6 +694,9 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 	p := getCustomProvisioner(
 		&clientGoConfig{withAPIKey: true},
 		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{},
+		&fakeProvider.FakeIBMProviderClientFactory{},
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
@@ -691,9 +728,281 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists"})
+func Test_Provision_BadPVCAnnotations_SetAccessPolicy(t *testing.T) {
+	p := getProvisioner()
 	v := getVolumeOptions()
+	v.PVC.Annotations[annotationSetAccessPolicy] = "non-true-value"
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid value for set-access-policy, expects true/false")
+	}
+}
+func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_False(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationSetAccessPolicy] = "false"
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_True(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationSetAccessPolicy] = "true"
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_VPCCluster(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_IKSCluster(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeClassic: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "set-access-policy not supported for classic cluster")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_OtherClusterType(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeOther: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "cluster-type not suppoerted")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_FailFetchProviderType(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{FailClusterType: true, FailClusterTypeErrMsg: "failed to get provider type"},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to get provider type for cluster")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_FailFetchVPCEndpoints(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, FailSvcEndpoint: true, FailSvcEndpointErrMsg: "failed to get vpc endpoints"},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to get VPC service endpoints for cluste")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_EmptyVPCEndpoints(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, EmptySvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "VPC service endpoints for the cluster not found")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_VPC_FailGRPC(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{FailGrpcConnection: true, FailGrpcConnectionErr: "failed to establish grpc-client connection"},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to establish grpc-client connection")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_FailUpdateAccessPolicy_VPC(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{PassGrpcConnection: true},
+		&fake.FakeAccessPolicyFactory{FailUpdateAccessPolicy: true, FailUpdateAccessPolicyErrMsg: "failed to set access policy for bucket"},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, err := p.Provision(v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to set access policy for bucket")
+	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_ExistingBucket(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
+	v.PVC.Annotations[annotationBucket] = testBucket
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_AutoCreateBucket(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_ExistingBucket_AutoCreateBucket(t *testing.T) {
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
+	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
+	v.PVC.Annotations[annotationBucket] = testBucket
+
+	_, err := p.Provision(v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists"}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
+	v := getVolumeOptions()
+	accessPlcy := false
+	ConfigBucketAccessPolicy = &accessPlcy
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, err := p.Provision(v)
@@ -701,18 +1010,18 @@ func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) 
 }
 
 func Test_Provision_FailCreateBucket_BucketOwnedByOther(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists", FailCheckBucketAccess: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists", FailCheckBucketAccess: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create bucket")
+		assert.Contains(t, err.Error(), "cannot access bucket")
 	}
 }
 
 func Test_Provision_FailCreateBucket(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
@@ -723,7 +1032,7 @@ func Test_Provision_FailCreateBucket(t *testing.T) {
 }
 
 func Test_Provision_FailCheckBucketAccess(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 
 	_, err := p.Provision(v)
@@ -734,7 +1043,10 @@ func Test_Provision_FailCheckBucketAccess(t *testing.T) {
 
 func Test_Provision_PVCAnnotations_ObjectPath_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
-	p := getFakeBackendProvisioner(factory)
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
+	p := getFakeBackendProvisioner(factory, grpcFac, updateAPFac, ibmProvider)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
@@ -746,7 +1058,7 @@ func Test_Provision_PVCAnnotations_ObjectPath_Positive(t *testing.T) {
 }
 
 func Test_Provision_CheckObjectPathExistence_Error(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistenceError: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistenceError: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
@@ -760,7 +1072,7 @@ func Test_Provision_CheckObjectPathExistence_Error(t *testing.T) {
 }
 
 func Test_Provision_CheckObjectPathExistence_PathNotFound(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistencePathNotFound: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{CheckObjectPathExistencePathNotFound: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
@@ -775,7 +1087,10 @@ func Test_Provision_CheckObjectPathExistence_PathNotFound(t *testing.T) {
 
 func Test_Provision_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
-	p := getFakeBackendProvisioner(factory)
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
+	p := getFakeBackendProvisioner(factory, grpcFac, updateAPFac, ibmProvider)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationBucket] = testBucket
@@ -855,7 +1170,10 @@ func Test_Provision_AccessMode_ReadOnly_Positive(t *testing.T) {
 
 func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
-	p := getFakeBackendProvisioner(factory)
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
+	p := getFakeBackendProvisioner(factory, grpcFac, updateAPFac, ibmProvider)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	v.PVC.Annotations[annotationBucket] = testBucket
@@ -876,9 +1194,15 @@ func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {
 
 func Test_Provision_IAM_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
 	p := getCustomProvisioner(
 		&clientGoConfig{withAPIKey: true, withServiceInstanceID: true},
 		factory,
+		grpcFac,
+		updateAPFac,
+		ibmProvider,
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
@@ -893,7 +1217,10 @@ func Test_Provision_IAM_Positive(t *testing.T) {
 
 func Test_Provision_BucketAutoDelete_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
-	p := getFakeBackendProvisioner(factory)
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
+	p := getFakeBackendProvisioner(factory, grpcFac, updateAPFac, ibmProvider)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
@@ -925,7 +1252,7 @@ func Test_Delete_MissingSecret(t *testing.T) {
 }
 
 func Test_Delete_FailDeleteBucket(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailDeleteBucket: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailDeleteBucket: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	pv := getAutoDeletePersistentVolume()
 	err := p.Delete(pv)
 	if assert.Error(t, err) {
@@ -935,7 +1262,10 @@ func Test_Delete_FailDeleteBucket(t *testing.T) {
 
 func Test_Provision_Delete_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
-	p := getFakeBackendProvisioner(factory)
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
+	p := getFakeBackendProvisioner(factory, grpcFac, updateAPFac, ibmProvider)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
@@ -962,9 +1292,15 @@ func Test_Provision_Delete_Positive(t *testing.T) {
 
 func Test_Provision_Delete_IAM_Positive(t *testing.T) {
 	factory := &fake.ObjectStorageSessionFactory{}
+	grpcFac := &fakeGrpcClient.FakeGrpcSessionFactory{}
+	updateAPFac := &fake.FakeAccessPolicyFactory{}
+	ibmProvider := &fakeProvider.FakeIBMProviderClientFactory{}
 	p := getCustomProvisioner(
 		&clientGoConfig{withAPIKey: true, withServiceInstanceID: true},
 		factory,
+		grpcFac,
+		updateAPFac,
+		ibmProvider,
 		uuid.NewCryptoGenerator(),
 	)
 	v := getVolumeOptions()
@@ -999,7 +1335,7 @@ func Test_Provision_DifferentSecretNS(t *testing.T) {
 }
 
 func Test_Validate_Bucket_True(t *testing.T) {
-	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true})
+	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationValidateBucket] = testValidateBucket
 	_, err := p.Provision(v)

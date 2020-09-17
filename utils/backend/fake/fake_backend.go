@@ -43,6 +43,8 @@ type ObjectStorageSessionFactory struct {
 	LastCreatedBucket string
 	// LastDeletedBucket stores the name of the last bucket that was deleted
 	LastDeletedBucket string
+	//LastUpdatedBucket
+	LastUpdatedBucket string
 }
 
 type fakeObjectStorageSession struct {
@@ -67,6 +69,7 @@ func (f *ObjectStorageSessionFactory) ResetStats() {
 	f.LastCheckedBucket = ""
 	f.LastCreatedBucket = ""
 	f.LastDeletedBucket = ""
+	f.LastUpdatedBucket = ""
 }
 
 func (s *fakeObjectStorageSession) CheckBucketAccess(bucket string) error {

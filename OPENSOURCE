@@ -44,6 +44,7 @@ golang.org/x/crypto,81e90905daefcd6fd217b62423c0908922eadb30
 golang.org/x/net,1c05540f6879653db88113bc4a2b70aec4bd491f
 golang.org/x/sys,a2e06a18b0d52d8cb2010e04b372a1965d8e3439
 golang.org/x/text,b19bf474d317b857955b12035d2c5acb57ce8b01
+google.golang.org/grpc,v1.27.0
 gopkg.in/go-playground/validator.v8,5f1438d3fca68893a817e4a66806cea46a9e4ebf
 gopkg.in/inf.v0,3887ee99ecf07df5b447e9b00d9c0b2adaa9f3e4
 gopkg.in/natefinch/lumberjack.v2,a96e63847dc3c67d17befa69c303767e2f84e54f
