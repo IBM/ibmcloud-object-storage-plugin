@@ -441,7 +441,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
-	contextLogger.Info("ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + pvc.SetAccessPolicy)
+	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + pvc.SetAccessPolicy)
 
 	//add check for region = BNNP
 	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
