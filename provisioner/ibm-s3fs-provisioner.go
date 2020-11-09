@@ -498,6 +498,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 
+	if setBucketAccessPolicy && resConfApiKey == "" {
+		return nil, fmt.Errorf(pvcName+":"+clusterID+": res-conf-apikey missing, cannot set access policy for bucket '%s'", pvc.Bucket)
+	}
+
 	if pvc.AutoCreateBucket == "true" {
 		var deleteBucket = true
 		if pvc.AutoDeleteBucket != "true" && pvc.Bucket == "" { //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
