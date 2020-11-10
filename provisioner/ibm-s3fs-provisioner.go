@@ -68,7 +68,12 @@ type pvcAnnotations struct {
 
 // Storage Class options
 type scOptions struct {
+	AutoCreateBucket        string `json:"ibm.io/auto-create-bucket,omitempty"`
+	AutoDeleteBucket        string `json:"ibm.io/auto-delete-bucket,omitempty"`
+	Bucket                  string `json:"ibm.io/bucket,omitempty"`
+	ObjectPath              string `json:"ibm.io/object-path,omitempty"`
 	SecretName              string `json:"ibm.io/secret-name,omitempty"`
+	SecretNamespace         string `json:"ibm.io/secret-namespace,omitempty"`
 	ChunkSizeMB             int    `json:"ibm.io/chunk-size-mb,string"`
 	ParallelCount           int    `json:"ibm.io/parallel-count,string"`
 	MultiReqMax             int    `json:"ibm.io/multireq-max,string"`
@@ -134,9 +139,9 @@ func parseSecret(secret *v1.Secret, keyName string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("%s secret missing", keyName)
 	}
-
 	return string(bytesVal), nil
 }
+
 func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceName string) error {
 	if serviceName == "" {
 		serviceName = "standard-cos"
@@ -151,16 +156,15 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 		//CA Cert not provided, try default one
 		return nil
 	}
-	err = writeFile(crtFile, []byte(crtKey), 0600)
-	if err != nil {
+	if err = writeFile(crtFile, []byte(crtKey), 0600); err != nil {
 		return err
 	}
-	err = os.Setenv("AWS_CA_BUNDLE", crtFile)
-	if err != nil {
+	if err = os.Setenv("AWS_CA_BUNDLE", crtFile); err != nil {
 		return err
 	}
 	return nil
 }
+
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, err error) {
 	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
@@ -173,8 +177,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
 
-	bytesVal, ok := secrets.Data[driver.SecretAllowedNS]
-	if ok {
+	if bytesVal, ok := secrets.Data[driver.SecretAllowedNS]; ok {
 		allowedNamespace = strings.Split(string(bytesVal), " ")
 	}
 
@@ -193,8 +196,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
 	}
 
-	bytesVal, ok = secrets.Data[ResConfApiKey]
-	if ok {
+	if bytesVal, ok := secrets.Data[ResConfApiKey]; ok {
 		resConfApiKey = string(bytesVal)
 	}
 
@@ -204,67 +206,74 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
 	}, allowedNamespace, resConfApiKey, nil
-
 }
 
-// Provision provisions a new persistent volume
-func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.PersistentVolume, error) {
+func (p *IBMS3fsProvisioner) validateAnnotations(options controller.VolumeOptions) (pvcAnnotations, scOptions, string, error) {
 	var pvc pvcAnnotations
 	var sc scOptions
 	var pvcName = options.PVC.Name
-	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, svcIp, resConfApiKey, providerType, vpcServiceEndpoints string
-	var valBucket = true
-	var allowedNamespace []string
-	var creds *backend.ObjectStorageCredentials
-	var sess backend.ObjectStorageSession
-	var grpcSess grpcClient.GrpcSession
-	var updateAP backend.AccessPolicy
-	var rcc backend.ResourceConfigurationV1
-	var providerClient provider.IBMProviderClient
-	var setBucketAccessPolicy = false
+	var svcIp string
+	var err error
 
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
-	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
-	contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("pvc", options.PVName))
+	contextLogger.Info(pvcName + ":" + clusterID + ":validate annotations and assign default values to annotations")
 
-	err := parser.UnmarshalMap(&options.PVC.Annotations, &pvc)
-	if err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal PVC annotations: %v", err)
-	}
-	err = parser.UnmarshalMap(&options.Parameters, &sc)
-	if err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
+	if err := parser.UnmarshalMap(&options.PVC.Annotations, &pvc); err != nil {
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal PVC annotations: %v", err)
 	}
 
-	if pvc.SecretNamespace == "" {
-		pvc.SecretNamespace = options.PVC.Namespace
+	if err := parser.UnmarshalMap(&options.Parameters, &sc); err != nil {
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
 	}
 
 	if pvc.SecretName == "" {
 		if sc.SecretName != "" {
 			pvc.SecretName = sc.SecretName
 		} else {
-			return nil, errors.New(pvcName + ":" + clusterID + ":secret-name not specified")
+			return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":secret-name not specified")
+		}
+	}
+
+	if pvc.SecretNamespace == "" {
+		if sc.SecretNamespace != "" {
+			pvc.SecretNamespace = sc.SecretNamespace
+		} else {
+			pvc.SecretNamespace = options.PVC.Namespace
 		}
 	}
 
 	if pvc.AutoCreateBucket == "" {
-		pvc.AutoCreateBucket = "true"
-	} else if _, err = strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
+		if sc.AutoCreateBucket != "" {
+			pvc.AutoCreateBucket = sc.AutoCreateBucket
+		} else {
+			pvc.AutoCreateBucket = "true"
+		}
+	} else if _, err := strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
 	}
 
 	if pvc.AutoDeleteBucket == "" {
-		pvc.AutoDeleteBucket = "false"
-	} else if _, err = strconv.ParseBool(pvc.AutoDeleteBucket); err != nil {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
+		if sc.AutoDeleteBucket != "" {
+			pvc.AutoDeleteBucket = sc.AutoDeleteBucket
+		} else {
+			pvc.AutoDeleteBucket = "false"
+		}
+	} else if _, err := strconv.ParseBool(pvc.AutoDeleteBucket); err != nil {
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
+	}
+
+	if pvc.Bucket == "" && sc.Bucket != "" {
+		pvc.Bucket = sc.Bucket
+	}
+
+	if pvc.ObjectPath == "" && sc.ObjectPath != "" {
+		pvc.ObjectPath = sc.ObjectPath
 	}
 
 	if pvc.SetAccessPolicy != "" {
-		if _, err = strconv.ParseBool(pvc.SetAccessPolicy); err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":invalid value for set-access-policy, expects true/false: %v", err)
+		if _, err := strconv.ParseBool(pvc.SetAccessPolicy); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for set-access-policy, expects true/false: %v", err)
 		}
 	}
 
@@ -274,7 +283,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 			// Generate the COS Service DNS name
 			svc, err := p.Client.Core().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
 			if err != nil {
-				return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
+				return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
 			}
 			port := svc.Spec.Ports[0].Port
 			svcIp = svc.Spec.ClusterIP
@@ -283,9 +292,8 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		}
 	}
 	// retrieve CA Cert if provided in secrets
-	err = p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName)
-	if err != nil {
-		return nil, fmt.Errorf("cannot retrieve secret: %v", err)
+	if err := p.writeCrtFile(pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName); err != nil {
+		return pvc, sc, svcIp, fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
 	//Override value of EndPoint defined in storageclass
@@ -301,7 +309,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if !(strings.HasPrefix(sc.OSEndpoint, "https://") || strings.HasPrefix(sc.OSEndpoint, "http://")) {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/object-store-endpoint \"%v\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>",
 			sc.OSEndpoint)
@@ -312,7 +320,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if !(strings.HasPrefix(sc.IAMEndpoint, "https://") || strings.HasPrefix(sc.IAMEndpoint, "http://")) {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/iam-endpoint \"%v\":"+
 			" Must be of the form https://<hostname> or http://<hostname>",
 			sc.IAMEndpoint)
@@ -323,11 +331,10 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		sc.S3FSFUSERetryCount = pvc.S3FSFUSERetryCount
 	}
 	if sc.S3FSFUSERetryCount != "" {
-		retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount)
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+		if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		} else if retryCount < 1 {
-			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
+			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
 		}
 	}
 
@@ -336,60 +343,87 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		sc.StatCacheExpireSeconds = pvc.StatCacheExpireSeconds
 	}
 	if sc.StatCacheExpireSeconds != "" {
-		cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds)
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+		if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
-			return nil, fmt.Errorf(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
+			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
 		}
 	}
 
 	//Override value of chunk-size-mb defined in storageclass
 	if pvc.ChunkSizeMB != "" {
 		if sc.ChunkSizeMB, err = strconv.Atoi(pvc.ChunkSizeMB); err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of chunk-size-mb into integer: %v", err)
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of chunk-size-mb into integer: %v", err)
 		}
 	}
 
 	//Override value of parallel-count defined in storageclass
 	if pvc.ParallelCount != "" {
 		if sc.ParallelCount, err = strconv.Atoi(pvc.ParallelCount); err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of parallel-count into integer: %v", err)
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of parallel-count into integer: %v", err)
 		}
 	}
 
 	//Override value of multireq-max defined in storageclass
 	if pvc.MultiReqMax != "" {
 		if sc.MultiReqMax, err = strconv.Atoi(pvc.MultiReqMax); err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of multireq-max into integer: %v", err)
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of multireq-max into integer: %v", err)
 		}
 	}
 
 	//Override value of stat-cache-size defined in storageclass
 	if pvc.StatCacheSize != "" {
 		if sc.StatCacheSize, err = strconv.Atoi(pvc.StatCacheSize); err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-size into integer: %v", err)
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-size into integer: %v", err)
 		}
 	}
 
 	if pvc.ConnectTimeoutSeconds != "" {
-		_, err = strconv.Atoi(pvc.ConnectTimeoutSeconds)
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of connect-timeout-seconds into integer: %v", err)
+		if _, err := strconv.Atoi(pvc.ConnectTimeoutSeconds); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of connect-timeout-seconds into integer: %v", err)
 		}
 		sc.ConnectTimeoutSeconds = pvc.ConnectTimeoutSeconds
 	}
 
 	if pvc.ReadwriteTimeoutSeconds != "" {
-		_, err = strconv.Atoi(pvc.ReadwriteTimeoutSeconds)
-		if err != nil {
-			return nil, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
+		if _, err := strconv.Atoi(pvc.ReadwriteTimeoutSeconds); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
 		}
 		sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds
 	}
 
 	if pvc.AutoCreateBucket == "true" && pvc.ObjectPath != "" {
-		return nil, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
+		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
+	}
+
+	return pvc, sc, svcIp, nil
+}
+
+// Provision provisions a new persistent volume
+func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.PersistentVolume, error) {
+	//var pvc pvcAnnotations
+	//var sc scOptions
+	var pvcName = options.PVC.Name
+	var pvcNamespace = options.PVC.Namespace
+	var clusterID = os.Getenv("CLUSTER_ID")
+	var msg, resConfApiKey, providerType, vpcServiceEndpoints string
+	var valBucket = true
+	var allowedNamespace []string
+	var creds *backend.ObjectStorageCredentials
+	var sess backend.ObjectStorageSession
+	var grpcSess grpcClient.GrpcSession
+	var updateAP backend.AccessPolicy
+	var rcc backend.ResourceConfigurationV1
+	var providerClient provider.IBMProviderClient
+	var setBucketAccessPolicy = false
+
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
+	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
+	contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("pvc", options.PVName))
+
+	pvc, sc, svcIp, err := p.validateAnnotations(options)
+	if err != nil {
+		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot validate annotations: %v", err)
 	}
 
 	//this handles the case where AutoDeleteBucket is set to true
@@ -406,7 +440,6 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		if err != nil {
 			return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
 		}
-
 		pvc.Bucket = autoBucketNamePrefix + id
 	}
 
@@ -563,8 +596,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 	}
 
 	if valBucket {
-		err = sess.CheckBucketAccess(pvc.Bucket)
-		if err != nil {
+		if err := sess.CheckBucketAccess(pvc.Bucket); err != nil {
 			return nil, fmt.Errorf(pvcName+" : "+clusterID+" :cannot access bucket %s: %v", pvc.Bucket, err)
 		}
 	}
@@ -703,14 +735,12 @@ func (p *IBMS3fsProvisioner) Delete(pv *v1.PersistentVolume) error {
 	}
 
 	if pvcAnnots.AutoDeleteBucket == "true" {
-		err = p.deleteBucket(&pvcAnnots, endpointValue, regionValue, iamEndpoint)
-		if err != nil {
+		if err = p.deleteBucket(&pvcAnnots, endpointValue, regionValue, iamEndpoint); err != nil {
 			return fmt.Errorf("cannot delete bucket: %v", err)
 		}
 	} else if _, err = strconv.ParseBool(pvcAnnots.AutoDeleteBucket); err != nil {
 		return fmt.Errorf("invalid value for auto-delete-bucket, expects true/false: %v", err)
 	}
-
 	return nil
 }
 
@@ -718,8 +748,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(pvcAnnots *pvcAnnotations, endpointVal
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the bucket..")
 	// Retrieve CA Cert if provided in secert
-	err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName)
-	if err != nil {
+	if err := p.writeCrtFile(pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName); err != nil {
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 

@@ -104,11 +104,20 @@ func Test_CheckBucketAccess_Positive(t *testing.T) {
 }
 
 func Test_CheckObjectPathExistence_Positive(t *testing.T) {
-	sess := getSession(&fakeS3API{ObjectPath: strings.TrimPrefix(testObjectPath, "/")})
 	testObject = strings.TrimPrefix(testObjectPath, "/")
+	testObject = testObject + "/"
+	sess := getSession(&fakeS3API{ObjectPath: testObject})
 	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
 	assert.NoError(t, err)
 	assert.Equal(t, exist, true)
+}
+
+func Test_CheckObjectPathExistence_WithoutSuffix(t *testing.T) {
+	testObject = strings.TrimPrefix(testObjectPath, "/")
+	sess := getSession(&fakeS3API{ObjectPath: testObject})
+	exist, err := sess.CheckObjectPathExistence(testBucket, testObjectPath)
+	assert.NoError(t, err)
+	assert.Equal(t, exist, false)
 }
 
 func Test_CheckObjectPathExistence_PathNotFound(t *testing.T) {
