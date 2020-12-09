@@ -103,7 +103,6 @@ func (s *COSSession) CheckBucketAccess(bucket string) error {
 	_, err := s.svc.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
-
 	return err
 }
 
@@ -112,6 +111,10 @@ func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, 
 	if strings.HasPrefix(objectpath, "/") {
 		objectpath = strings.TrimPrefix(objectpath, "/")
 	}
+	if !strings.HasSuffix(objectpath, "/") {
+		objectpath = objectpath + "/"
+	}
+
 	resp, err := s.svc.ListObjects(&s3.ListObjectsInput{
 		Bucket:  aws.String(bucket),
 		MaxKeys: aws.Int64(1),
@@ -128,7 +131,6 @@ func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, 
 			return true, nil
 		}
 	}
-
 	return false, nil
 }
 
@@ -145,7 +147,6 @@ func (s *COSSession) CreateBucket(bucket string) (string, error) {
 		}
 		return "", err
 	}
-
 	return "", nil
 }
 
@@ -178,6 +179,5 @@ func (s *COSSession) DeleteBucket(bucket string) error {
 	_, err = s.svc.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(bucket),
 	})
-
 	return err
 }
