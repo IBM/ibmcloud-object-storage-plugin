@@ -124,7 +124,7 @@ func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) err
 	}
 
 	// export cluster-info config map
-	cmClusterInfo, err := kubeclient.Core().ConfigMaps(consts.KubeSystem).Get(consts.ClusterInfo, metav1.GetOptions{})
+	cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(consts.ClusterInfo, metav1.GetOptions{})
 	if err != nil {
 		err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
 
