@@ -21,7 +21,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	//"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"io/ioutil"
@@ -31,6 +31,7 @@ import (
 	"net"
 	"os"
 	"path"
+	"sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 	"strconv"
 	"strings"
 	"time"
@@ -147,7 +148,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 		serviceName = "standard-cos"
 	}
 	crtFile := path.Join(caBundlePath, serviceName)
-	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+	secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -166,7 +167,7 @@ func (p *IBMS3fsProvisioner) writeCrtFile(secretName, secretNamespace, serviceNa
 }
 
 func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, err error) {
-	secrets, err := p.Client.Core().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+	secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
@@ -208,7 +209,7 @@ func (p *IBMS3fsProvisioner) getCredentials(secretName, secretNamespace string) 
 	}, allowedNamespace, resConfApiKey, nil
 }
 
-func (p *IBMS3fsProvisioner) validateAnnotations(options controller.VolumeOptions) (pvcAnnotations, scOptions, string, error) {
+func (p *IBMS3fsProvisioner) validateAnnotations(options controller.ProvisionOptions) (pvcAnnotations, scOptions, string, error) {
 	var pvc pvcAnnotations
 	var sc scOptions
 	var pvcName = options.PVC.Name
@@ -223,7 +224,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(options controller.VolumeOption
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal PVC annotations: %v", err)
 	}
 
-	if err := parser.UnmarshalMap(&options.Parameters, &sc); err != nil {
+	if err := parser.UnmarshalMap(&options.StorageClass.Parameters, &sc); err != nil {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
 	}
 
@@ -281,7 +282,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(options controller.VolumeOption
 		// TLS enabled COS Service
 		if pvc.CosServiceNamespace != "" {
 			// Generate the COS Service DNS name
-			svc, err := p.Client.Core().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
+			svc, err := p.Client.CoreV1().Services(pvc.CosServiceNamespace).Get(pvc.CosServiceName, metav1.GetOptions{})
 			if err != nil {
 				return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
 			}
@@ -400,7 +401,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(options controller.VolumeOption
 }
 
 // Provision provisions a new persistent volume
-func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.PersistentVolume, error) {
+func (p *IBMS3fsProvisioner) Provision(options controller.ProvisionOptions) (*v1.PersistentVolume, error) {
 	//var pvc pvcAnnotations
 	//var sc scOptions
 	var pvcName = options.PVC.Name
@@ -694,13 +695,14 @@ func (p *IBMS3fsProvisioner) Provision(options controller.VolumeOptions) (*v1.Pe
 		return nil, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
 	}
 
+	reclaimPolicy := options.StorageClass.ReclaimPolicy
 	return &v1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        options.PVName,
 			Annotations: pvcAnnots,
 		},
 		Spec: v1.PersistentVolumeSpec{
-			PersistentVolumeReclaimPolicy: options.PersistentVolumeReclaimPolicy,
+			PersistentVolumeReclaimPolicy: *reclaimPolicy,
 			AccessModes:                   options.PVC.Spec.AccessModes,
 			Capacity: v1.ResourceList{
 				v1.ResourceStorage: options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)],

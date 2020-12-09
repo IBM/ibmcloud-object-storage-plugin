@@ -22,13 +22,14 @@ import (
 	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	log "github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	//"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 )
 
 const (

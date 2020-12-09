@@ -22,13 +22,14 @@ import (
 	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	fakeGrpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client/fake-grpc"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
+	//"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
+	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 	k8fake "k8s.io/client-go/kubernetes/fake"
 	"os"
-
+	"sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
 	//"k8s.io/client-go/pkg/api/v1"
 	"k8s.io/api/core/v1"
 	//"k8s.io/client-go/pkg/runtime"
@@ -264,8 +265,9 @@ func getProvisioner() *IBMS3fsProvisioner {
 	)
 }
 
-func getVolumeOptions() controller.VolumeOptions {
-	v := controller.VolumeOptions{
+func getVolumeOptions() controller.ProvisionOptions {
+	reclaimPolicy := v1.PersistentVolumeReclaimRetain
+	v := controller.ProvisionOptions{
 		PVC: &v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
@@ -277,21 +279,23 @@ func getVolumeOptions() controller.VolumeOptions {
 				AccessModes: []v1.PersistentVolumeAccessMode{v1.ReadWriteMany},
 			},
 		},
-		Parameters: map[string]string{
-			parameterChunkSizeMB:            strconv.Itoa(testChunkSizeMB),
-			parameterParallelCount:          strconv.Itoa(testParallelCount),
-			parameterMultiReqMax:            strconv.Itoa(testMultiReqMax),
-			parameterStatCacheSize:          strconv.Itoa(testStatCacheSize),
-			parameterS3FSFUSERetryCount:     strconv.Itoa(testS3FSFUSERetryCount),
-			parameterStatCacheExpireSeconds: strconv.Itoa(testStatCacheExpireSeconds),
-			parameterTLSCipherSuite:         testTLSCipherSuite,
-			parameterDebugLevel:             testDebugLevel,
-			parameterStorageClass:           testStorageClass,
-			parameterOSEndpoint:             testOSEndpoint,
-			parameterIAMEndpoint:            testIAMEndpoint,
+		StorageClass: &storagev1.StorageClass{
+			ReclaimPolicy: &reclaimPolicy,
+			Parameters: map[string]string{
+				parameterChunkSizeMB:            strconv.Itoa(testChunkSizeMB),
+				parameterParallelCount:          strconv.Itoa(testParallelCount),
+				parameterMultiReqMax:            strconv.Itoa(testMultiReqMax),
+				parameterStatCacheSize:          strconv.Itoa(testStatCacheSize),
+				parameterS3FSFUSERetryCount:     strconv.Itoa(testS3FSFUSERetryCount),
+				parameterStatCacheExpireSeconds: strconv.Itoa(testStatCacheExpireSeconds),
+				parameterTLSCipherSuite:         testTLSCipherSuite,
+				parameterDebugLevel:             testDebugLevel,
+				parameterStorageClass:           testStorageClass,
+				parameterOSEndpoint:             testOSEndpoint,
+				parameterIAMEndpoint:            testIAMEndpoint,
+			},
 		},
 	}
-
 	return v
 }
 
@@ -350,7 +354,7 @@ func Test_Provision_Empty_SecretName(t *testing.T) {
 func Test_Provision_BadSCParameters(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.Parameters[parameterParallelCount] = "non-int-value"
+	v.StorageClass.Parameters[parameterParallelCount] = "non-int-value"
 
 	_, err := p.Provision(v)
 	if assert.Error(t, err) {
@@ -1121,7 +1125,7 @@ func Test_Provision_Positive(t *testing.T) {
 func Test_Provision_CurlDebug_Positive(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.Parameters[parameterCurlDebug] = "true"
+	v.StorageClass.Parameters[parameterCurlDebug] = "true"
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)
@@ -1131,7 +1135,7 @@ func Test_Provision_CurlDebug_Positive(t *testing.T) {
 func Test_Provision_KernelCache_Positive(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
-	v.Parameters[parameterKernelCache] = "true"
+	v.StorageClass.Parameters[parameterKernelCache] = "true"
 
 	pv, err := p.Provision(v)
 	assert.NoError(t, err)

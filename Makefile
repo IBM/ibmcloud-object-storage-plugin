@@ -42,8 +42,7 @@ driver: deps builddriver
 .PHONY: deps
 deps:
 	echo "Installing dependencies ..."
-	#glide install --strip-vendor
-	go mod vendor
+	go mod download
 	go get github.com/pierrre/gotestcover
 
 .PHONY: fmt

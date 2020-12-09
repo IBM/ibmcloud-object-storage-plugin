@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - "1.11.5"
+  - "1.15.5"
   - tip
 
 group: bluezone
@@ -17,13 +17,11 @@ cache:
 sudo: true
 
 before_install:
-  - sudo sudo curl https://glide.sh/get | sh
   - sudo apt-get install bc
 
 before_script:
   - make deps
   - go get github.com/pierrre/gotestcover
-  - go get github.com/gin-gonic/gin
 
 script:
   - make vet
