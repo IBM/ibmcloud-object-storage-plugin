@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/BurntSushi/toml v0.3.1
-	github.com/IBM/go-sdk-core/v3 v3.0.0
+	github.com/IBM/go-sdk-core/v3 v3.3.1
 	github.com/IBM/ibm-cos-sdk-go v1.3.2
 	github.com/IBM/ibm-cos-sdk-go-config v1.0.0
 	github.com/godbus/dbus v4.1.0+incompatible // indirect

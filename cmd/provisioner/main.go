@@ -22,7 +22,6 @@ import (
 	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	log "github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	//"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
