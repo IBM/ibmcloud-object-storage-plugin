@@ -22,7 +22,6 @@ import (
 	grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
 	fakeGrpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client/fake-grpc"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
-	//"github.com/kubernetes-sigs/sig-storage-lib-external-provisioner/controller"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 	storagev1 "k8s.io/api/storage/v1"
