@@ -39,12 +39,15 @@ diag_pod_installed=False
 ##
 #
 yamlfile = '''\
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: ibm-cos-plugin-diag
   namespace: default
 spec:
+  selector:
+    matchLabels:
+      name: ibm-cos-plugin-diag
   template:
     metadata:
       labels:
@@ -89,7 +92,7 @@ spec:
 
 with open('diagnostic_daemon.yaml', 'w') as the_file:
     the_file.write(yamlfile)
-
+    print "creating the diagnostic_daemon.yaml"
     class cmdHandler:
 
         # Internal method to execute a command
@@ -765,6 +768,7 @@ def main():
     if nodeCount != 0:
         # Create diag pod
         diag_pod_installed = True
+        print "creating the deamonset to fetch driver logs"
         cmd = "kubectl apply -f diagnostic_daemon.yaml"
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_err.strip():
