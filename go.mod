@@ -7,6 +7,7 @@ require (
 	github.com/IBM/go-sdk-core/v3 v3.3.1
 	github.com/IBM/ibm-cos-sdk-go v1.3.2
 	github.com/IBM/ibm-cos-sdk-go-config v1.0.0
+	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/godbus/dbus v4.1.0+incompatible // indirect
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
 	github.com/golang/protobuf v1.4.2
