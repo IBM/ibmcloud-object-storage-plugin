@@ -81,7 +81,7 @@ type COSSession struct {
 func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession {
 	var sdkCreds *credentials.Credentials
 	if creds.APIKey != "" {
-		sdkCreds = ibmiam.NewStaticCredentials(aws.NewConfig(), creds.IAMEndpoint+"/oidc/token", creds.APIKey, creds.ServiceInstanceID)
+		sdkCreds = ibmiam.NewStaticCredentials(aws.NewConfig(), creds.IAMEndpoint+"/identity/token", creds.APIKey, creds.ServiceInstanceID)
 	} else {
 		sdkCreds = credentials.NewStaticCredentials(creds.AccessKey, creds.SecretKey, "")
 	}

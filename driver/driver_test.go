@@ -877,7 +877,7 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "ibm_iam_auth",
-		"-o", "ibm_iam_endpoint=https://iam.bluemix.net",
+		"-o", "ibm_iam_endpoint=https://iam.cloud.ibm.com",
 	}
 
 	resp := p.Mount(r)
