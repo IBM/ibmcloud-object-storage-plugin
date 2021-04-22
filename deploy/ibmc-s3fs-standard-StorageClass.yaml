@@ -14,5 +14,5 @@ parameters:
   ibm.io/curl-debug: "false"
   ibm.io/kernel-cache: "true"
   ibm.io/s3fs-fuse-retry-count: "5"
-  ibm.io/iam-endpoint: "https://iam.bluemix.net"
+  ibm.io/iam-endpoint: "https://iam.cloud.ibm.com"
 
