@@ -18,6 +18,9 @@ import (
 	"strings"
 )
 
+// PrivateServiceURL to make service requests to.
+const PrivateServiceURL = "https://config.private.cloud-object-storage.cloud.ibm.com/v1"
+
 type AccessPolicyFactory interface {
 	NewAccessPolicy() AccessPolicy
 }
@@ -62,6 +65,7 @@ func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, 
 
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
+		URL:           PrivateServiceURL,
 	})
 
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{
