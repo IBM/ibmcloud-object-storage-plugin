@@ -189,7 +189,7 @@ def executeBasicChecks():
     else:
         print cmd_err.strip()
 
-    if provider == "IKS":
+    if provider == "IKS" or provider == "ROKS":
         inspectSC(sc="ibmc-s3fs-standard-cross-region")
     else:
         inspectSC(sc="ibmc-s3fs-icp")
@@ -610,7 +610,7 @@ def getFinalListofNodes(podnode="", nodeList=""):
     global nodes
     if nodeList:
         if "all" in nodeList:
-            if provider == "IKS":
+            if provider == "IKS" or provider == "ROKS":
                 cmd = "kubectl get nodes | grep -w \"Ready\" | awk '{print $1}'"
             else: # For IBM Cloud Private
                 cmd = "kubectl get nodes | grep worker | grep -w \"Ready\" | awk '{print $1}'"
@@ -726,25 +726,33 @@ def main():
     global provider
     global provisioner_namespace
     print "****Checking access to cluster****"
-    cmd = "kubectl get nodes | grep -w \"Ready\" | awk '{print $5}'"
+    cmd = "kubectl get nodes --show-labels | grep -w \"IKS\""
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
         print cmd_err.strip()
         print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n" \
         "For IBM Cloud Private(ICP), run \"cloudctl login\" before running this tool.\nExiting!!!"
         sys.exit(1)
+    if rc == 0:
+        provider = "IKS"
     else:
-        if "IKS" in cmd_out.strip().upper():
-            provider = "IKS"
-        elif "ICP" in cmd_out.strip().upper():
-            provider = "ICP"
+        cmd = "kubectl get nodes --show-labels | grep -w \"openshift\""
+        (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+        if cmd_err.strip():
+           print cmd_err.strip()
+           print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n" \
+           "For IBM Cloud Private(ICP), run \"cloudctl login\" before running this tool.\nExiting!!!"
+           sys.exit(1)
+
+        if rc == 0:
+              provider = "ROKS"
         else:
-            print "ERROR: Cluster provider is not supported.\nExiting!!!"
-            sys.exit(1)
-        print "> nodes are accessible... ok"
+              provider = "ICP"
+    print "> nodes are accessible... ok"
+    print "> provider... " + provider
 
     # Get namespace where ibm-object-storage-plugin chart is installed
-    if provider == "IKS":
+    if provider == "IKS" or provider == "ROKS":
         provisioner_namespace = "kube-system"
     else:
         cmd = "kubectl get deployment --all-namespaces -l app=ibmcloud-object-storage-plugin -o jsonpath=\"{range .items[*]}{ .metadata.namespace }{end}\""
