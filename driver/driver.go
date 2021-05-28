@@ -32,7 +32,6 @@ const (
 	dataRootPath          = "/var/lib/ibmc-s3fs"
 	passwordFileName      = "passwd"
 	cacheDirectoryName    = "cache"
-	defaultTLSCipherSuite = "AES"
 	caPath                = "/tmp"
 	// SecretAccessKey is the key name for the AWS Access Key
 	SecretAccessKey = "access-key"
@@ -612,7 +611,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		args = append(args, "-o", "ro")
 	}
 
-	if len(options.TLSCipherSuite) != 0 && options.TLSCipherSuite != "default" {
+	if len(strings.TrimSpace(options.TLSCipherSuite)) != 0 && options.TLSCipherSuite != "default" {
 		// Add cipher_suite option only if the value is !=default or nonempty
 		args = append(args, "-o", "cipher_suites="+options.TLSCipherSuite)
 	}
