@@ -612,12 +612,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		args = append(args, "-o", "ro")
 	}
 
-	var tlsCipherSuite string
-	tlsCipherSuite = strings.TrimSpace(options.TLSCipherSuite)
-
-	if len(tlsCipherSuite) != 0 && tlsCipherSuite != "default" {
+	if len(options.TLSCipherSuite) != 0 && options.TLSCipherSuite != "default" {
 		// Add cipher_suite option only if the value is !=default or nonempty
-		args = append(args, "-o", "cipher_suites="+tlsCipherSuite)
+		args = append(args, "-o", "cipher_suites="+options.TLSCipherSuite)
 	}
 
 	//Number of retries for failed S3 transaction

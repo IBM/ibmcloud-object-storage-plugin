@@ -622,8 +622,9 @@ func (p *IBMS3fsProvisioner) Provision(options controller.ProvisionOptions) (*v1
 		sc.CurlDebug = pvc.CurlDebug
 	}
 
-	if pvc.TLSCipherSuite != "" {
-		sc.TLSCipherSuite = pvc.TLSCipherSuite
+	if strings.TrimSpace(pvc.TLSCipherSuite) != "" {
+		sc.TLSCipherSuite =
+			strings.TrimSpace(pvc.TLSCipherSuite)
 	}
 
 	// Check AccessMode
