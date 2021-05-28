@@ -467,36 +467,6 @@ func Test_Mount_CreatePasswordFileError(t *testing.T) {
 	}
 }
 
-func Test_Mount_DefaultTLSCipher_Positive(t *testing.T) {
-	p := getPlugin()
-	r := getMountRequest()
-	delete(r.Opts, optiontlsCipherSuite)
-
-	expectedArgs := []string{
-		testBucket,
-		testDir,
-		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
-		"-o", "url=" + testOSEndpoint,
-		"-o", "endpoint=" + testStorageClass,
-		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
-		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
-		"-o", "dbglevel=" + testDebugLevel,
-		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
-		"-o", "allow_other",
-		"-o", "max_background=1000",
-		"-o", "mp_umask=002",
-		"-o", "instance_name=" + testDir,
-		"-o", "default_acl=private",
-	}
-
-	resp := p.Mount(r)
-	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
-		assert.Equal(t, expectedArgs, commandArgs)
-	}
-}
-
 func Test_Mount_TLSCipher_Default(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()

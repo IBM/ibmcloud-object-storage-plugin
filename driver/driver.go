@@ -29,10 +29,10 @@ import (
 )
 
 const (
-	dataRootPath          = "/var/lib/ibmc-s3fs"
-	passwordFileName      = "passwd"
-	cacheDirectoryName    = "cache"
-	caPath                = "/tmp"
+	dataRootPath       = "/var/lib/ibmc-s3fs"
+	passwordFileName   = "passwd"
+	cacheDirectoryName = "cache"
+	caPath             = "/tmp"
 	// SecretAccessKey is the key name for the AWS Access Key
 	SecretAccessKey = "access-key"
 	// SecretSecretKey is the key name for the AWS Secret Key
