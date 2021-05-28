@@ -572,12 +572,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			zap.Error(err))
 		return fmt.Errorf("cannot create password file: %v", err)
 	}
-	var tlsCipherSuite string
-	if options.TLSCipherSuite != "" {
-		tlsCipherSuite = options.TLSCipherSuite
-	} else {
-		tlsCipherSuite = defaultTLSCipherSuite
-	}
 
 	if options.ObjectPath != "" {
 		if strings.HasPrefix(options.ObjectPath, "/") {
@@ -590,7 +584,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 	args := []string{fullBucketPath, mountRequest.MountDir,
 		"-o", "multireq_max=" + strconv.Itoa(options.MultiReqMax),
-		"-o", "cipher_suites=" + tlsCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + passwordFile,
 		"-o", "url=" + endptValue,
@@ -617,6 +610,19 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	// Check if AccessMode is ReadOnlyMany
 	if options.AccessMode == "ReadOnlyMany" {
 		args = append(args, "-o", "ro")
+	}
+
+	var tlsCipherSuite string
+	if len(strings.TrimSpace(options.TLSCipherSuite)) != 0 && options.TLSCipherSuite != "default" {
+		tlsCipherSuite = options.TLSCipherSuite
+	} else {
+		tlsCipherSuite = ""
+	}
+
+	// Add cipher_suite option only if the value is !=default or nonempty
+
+	if tlsCipherSuite != "" {
+		args = append(args, "-o", "cipher_suites="+tlsCipherSuite)
 	}
 
 	//Number of retries for failed S3 transaction
