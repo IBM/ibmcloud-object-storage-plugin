@@ -613,15 +613,10 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 
 	var tlsCipherSuite string
-	if len(strings.TrimSpace(options.TLSCipherSuite)) != 0 && options.TLSCipherSuite != "default" {
-		tlsCipherSuite = options.TLSCipherSuite
-	} else {
-		tlsCipherSuite = ""
-	}
+	tlsCipherSuite = strings.TrimSpace(options.TLSCipherSuite)
 
-	// Add cipher_suite option only if the value is !=default or nonempty
-
-	if tlsCipherSuite != "" {
+	if len(tlsCipherSuite) != 0 && tlsCipherSuite != "default" {
+		// Add cipher_suite option only if the value is !=default or nonempty
 		args = append(args, "-o", "cipher_suites="+tlsCipherSuite)
 	}
 
