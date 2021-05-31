@@ -467,16 +467,14 @@ func Test_Mount_CreatePasswordFileError(t *testing.T) {
 	}
 }
 
-func Test_Mount_DefaultTLSCipher_Positive(t *testing.T) {
+func Test_Mount_TLSCipher_Default(t *testing.T) {
 	p := getPlugin()
 	r := getMountRequest()
-	delete(r.Opts, optiontlsCipherSuite)
-
+	r.Opts[optiontlsCipherSuite] = "default"
 	expectedArgs := []string{
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + defaultTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -507,7 +505,6 @@ func Test_KernelCache_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -520,6 +517,7 @@ func Test_KernelCache_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "kernel_cache",
 		"-o", "default_acl=private",
 	}
@@ -539,7 +537,6 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -552,6 +549,7 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "curldbg",
 		"-o", "default_acl=private",
 	}
@@ -571,7 +569,6 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -584,6 +581,7 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "retries=1",
 		"-o", "default_acl=private",
 	}
@@ -603,7 +601,6 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -616,6 +613,7 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "stat_cache_expire=1",
 		"-o", "default_acl=private",
 	}
@@ -635,7 +633,6 @@ func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
 		testBucket + ":" + testObjectPath,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -648,6 +645,7 @@ func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 
@@ -666,7 +664,6 @@ func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
 		testBucket + ":/tmp/object-path",
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -679,6 +676,7 @@ func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 
@@ -696,7 +694,6 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -711,6 +708,7 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "gid=65534",
 		"-o", "uid=65534",
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 	resp := p.Mount(r)
@@ -727,7 +725,6 @@ func Test_Mount_ReadOnly_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -741,6 +738,7 @@ func Test_Mount_ReadOnly_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "ro",
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 	resp := p.Mount(r)
@@ -758,7 +756,6 @@ func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -771,6 +768,7 @@ func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 
@@ -799,7 +797,6 @@ func Test_Mount_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -812,6 +809,7 @@ func Test_Mount_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 
@@ -830,7 +828,6 @@ func Test_Mount_IAM_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -843,6 +840,7 @@ func Test_Mount_IAM_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "ibm_iam_auth",
 		"-o", "ibm_iam_endpoint=" + testIAMEndpoint,
 	}
@@ -863,7 +861,6 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -876,6 +873,7 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "ibm_iam_auth",
 		"-o", "ibm_iam_endpoint=https://iam.cloud.ibm.com",
 	}
@@ -942,7 +940,6 @@ func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -955,6 +952,7 @@ func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "connect_timeout=1",
 	}
@@ -985,7 +983,6 @@ func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -998,6 +995,7 @@ func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "readwrite_timeout=1",
 	}
@@ -1016,7 +1014,6 @@ func Test_UseXattr_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -1029,6 +1026,7 @@ func Test_UseXattr_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "use_xattr",
 	}
@@ -1072,7 +1070,6 @@ func Test_Mount_ServiceNamePositive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -1085,6 +1082,7 @@ func Test_Mount_ServiceNamePositive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 
@@ -1102,7 +1100,6 @@ func Test_Mount_fsGroupNew_Nogroup_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -1117,6 +1114,7 @@ func Test_Mount_fsGroupNew_Nogroup_Positive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "gid=65534",
 		"-o", "uid=65534",
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 	}
 	resp := p.Mount(r)
@@ -1134,7 +1132,6 @@ func Test_AutoCache_Positive(t *testing.T) {
 		testBucket,
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
-		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "use_path_request_style",
 		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
@@ -1147,6 +1144,7 @@ func Test_AutoCache_Positive(t *testing.T) {
 		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "auto_cache",
 		"-o", "default_acl=private",
 	}
