@@ -100,6 +100,7 @@ const (
 	defaultName          = "IBMGrpcProvider"
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
+	/* #nosec */
 	ResConfApiKey        = "res-conf-apikey"
 )
 
