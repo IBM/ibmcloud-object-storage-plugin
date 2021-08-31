@@ -101,7 +101,7 @@ const (
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
 	/* #nosec */
-	ResConfApiKey        = "res-conf-apikey"
+	ResConfApiKey = "res-conf-apikey"
 )
 
 var SockEndpoint *string
