@@ -89,7 +89,7 @@ func (s *fakeObjectStorageSession) CheckObjectPathExistence(bucket, objectpath s
 	return true, nil
 }
 
-func (s *fakeObjectStorageSession) CreateBucket(bucket string) (string, error) {
+func (s *fakeObjectStorageSession) CreateBucket(bucket, locationConstraint string) (string, error) {
 	s.factory.LastCreatedBucket = bucket
 	if s.factory.FailCreateBucket {
 		return "", errors.New(s.factory.FailCreateBucketErrMsg)

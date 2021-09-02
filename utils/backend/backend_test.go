@@ -30,16 +30,17 @@ type fakeS3API struct {
 }
 
 const (
-	errFooMsg             = "foo"
-	testBucket            = "test-bucket"
-	testObjectPath        = "/test/object-path"
-	testEndpoint          = "test-endpoint"
-	testRegion            = "test-region"
-	testAccessKey         = "akey"
-	testSecretKey         = "skey"
-	testAPIKey            = "apikey"
-	testServiceInstanceID = "sid"
-	testIAMEndpoint       = "https://test-iam-endpoint"
+	errFooMsg              = "foo"
+	testBucket             = "test-bucket"
+	testLocationConstraint = "location"
+	testObjectPath         = "/test/object-path"
+	testEndpoint           = "test-endpoint"
+	testRegion             = "test-region"
+	testAccessKey          = "akey"
+	testSecretKey          = "skey"
+	testAPIKey             = "apikey"
+	testServiceInstanceID  = "sid"
+	testIAMEndpoint        = "https://test-iam-endpoint"
 )
 
 var (
@@ -138,7 +139,7 @@ func Test_CheckObjectPathExistence_Error(t *testing.T) {
 
 func Test_CreateBucketAccess_Error(t *testing.T) {
 	sess := getSession(&fakeS3API{ErrCreateBucket: errFoo})
-	_, err := sess.CreateBucket(testBucket)
+	_, err := sess.CreateBucket(testBucket, testLocationConstraint)
 	if assert.Error(t, err) {
 		assert.EqualError(t, err, errFooMsg)
 	}
@@ -146,13 +147,13 @@ func Test_CreateBucketAccess_Error(t *testing.T) {
 
 func Test_CreateBucketAccess_BucketAlreadyExists_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{ErrCreateBucket: awserr.New("BucketAlreadyOwnedByYou", "", errFoo)})
-	_, err := sess.CreateBucket(testBucket)
+	_, err := sess.CreateBucket(testBucket, testLocationConstraint)
 	assert.NoError(t, err)
 }
 
 func Test_CreateBucket_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
-	_, err := sess.CreateBucket(testBucket)
+	_, err := sess.CreateBucket(testBucket, testLocationConstraint)
 	assert.NoError(t, err)
 }
 
