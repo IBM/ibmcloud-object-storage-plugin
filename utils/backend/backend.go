@@ -53,7 +53,7 @@ type ObjectStorageSession interface {
 	CheckObjectPathExistence(bucket, objectpath string) (bool, error)
 
 	// CreateBucket methods creates a new bucket
-	CreateBucket(bucket string) (string, error)
+	CreateBucket(bucket, locationConstraint string) (string, error)
 
 	// DeleteBucket methods deletes a bucket (with all of its objects)
 	DeleteBucket(bucket string) error
@@ -135,9 +135,12 @@ func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, 
 }
 
 // CreateBucket methods creates a new bucket
-func (s *COSSession) CreateBucket(bucket string) (string, error) {
+func (s *COSSession) CreateBucket(bucket, locationConstraint string) (string, error) {
 	_, err := s.svc.CreateBucket(&s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
+		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+			LocationConstraint: aws.String(locationConstraint),
+		},
 	})
 
 	if err != nil {

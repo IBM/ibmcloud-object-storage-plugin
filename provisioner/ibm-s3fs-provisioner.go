@@ -551,7 +551,7 @@ func (p *IBMS3fsProvisioner) Provision(options controller.ProvisionOptions) (*v1
 		}
 
 		contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
-		msg, err = sess.CreateBucket(pvc.Bucket)
+		msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass)
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + " : " + msg)
 		}
