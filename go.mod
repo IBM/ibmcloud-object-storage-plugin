@@ -1,6 +1,6 @@
 module github.com/IBM/ibmcloud-object-storage-plugin
 
-go 1.17
+go 1.16
 
 require (
 	github.com/BurntSushi/toml v0.3.1
@@ -34,7 +34,7 @@ require (
 	github.com/satori/go.uuid v1.2.0
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stretchr/testify v1.7.0
-	go.mongodb.org/mongo-driver v1.5.0 // indirect
+	go.mongodb.org/mongo-driver v1.5.1 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20210314154223-e6e6c4f2bb5b // indirect
