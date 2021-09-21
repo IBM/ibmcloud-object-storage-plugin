@@ -11,10 +11,8 @@
 package main
 
 import (
+	"context"
 	"flag"
-	"strings"
-	"time"
-
 	ibmprovider "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	s3fsprovisioner "github.com/IBM/ibmcloud-object-storage-plugin/provisioner"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
@@ -29,6 +27,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	"strings"
+	"time"
 )
 
 const (
@@ -158,8 +158,7 @@ func main() {
 		//controller.TermLimit(*leaseTermLimit),
 	)
 
-	stopCh := make(chan struct{})
-	pc.Run(stopCh)
+	pc.Run(context.Background())
 }
 
 // validateProvisioner tests if provisioner is a valid qualified name.
