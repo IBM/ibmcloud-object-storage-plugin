@@ -12,6 +12,7 @@ package provisioner
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
@@ -322,7 +323,7 @@ func Test_Provision_BadPVCAnnotations_AutoCreateBucket(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "non-true-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "invalid value for auto-create-bucket, expects true/false")
 	}
@@ -333,7 +334,7 @@ func Test_Provision_BadPVCAnnotations_AutoDeleteBucket(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "non-true-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "invalid value for auto-delete-bucket, expects true/false")
 	}
@@ -344,7 +345,7 @@ func Test_Provision_Empty_SecretName(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationSecretName] = ""
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "secret-name not specified")
 	}
@@ -355,7 +356,7 @@ func Test_Provision_BadSCParameters(t *testing.T) {
 	v := getVolumeOptions()
 	v.StorageClass.Parameters[parameterParallelCount] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot unmarshal storage class parameters")
 	}
@@ -366,7 +367,7 @@ func Test_Provision_BadPVCOSEndpoint(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationEndpoint] = "test-object-store-endpoint"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("Bad value for ibm.io/object-store-endpoint \"%s\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>", v.PVC.Annotations[annotationEndpoint]))
@@ -378,7 +379,7 @@ func Test_Provision_PVCAnnotations_OSEndpoint_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationEndpoint] = "https://test-object-store-endpoint-defined-in-pvc"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "https://test-object-store-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionOSEndpoint])
 }
@@ -388,7 +389,7 @@ func Test_Provision_PVCAnnotations_StorageClass_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationRegion] = "test-storage-class-defined-in-pvc"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "test-storage-class-defined-in-pvc", pv.Spec.FlexVolume.Options[optionStorageClass])
 }
@@ -398,7 +399,7 @@ func Test_Provision_BadPVCIAMEndpoint(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationIAMEndpoint] = "test-iam-endpoint"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("Bad value for ibm.io/iam-endpoint \"%s\":"+
 			" Must be of the form https://<hostname> or http://<hostname>", v.PVC.Annotations[annotationIAMEndpoint]))
@@ -410,7 +411,7 @@ func Test_Provision_PVCAnnotations_IAMEndpoint_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationIAMEndpoint] = "https://test-iam-endpoint-defined-in-pvc"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "https://test-iam-endpoint-defined-in-pvc", pv.Spec.FlexVolume.Options[optionIAMEndpoint])
 }
@@ -420,7 +421,7 @@ func Test_Provision_PVCAnnotations_BadChunkSizeMB(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/chunk-size-mb"] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of chunk-size-mb into integer")
 	}
@@ -431,7 +432,7 @@ func Test_Provision_PVCAnnotations_ChunkSizeMB_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/chunk-size-mb"] = "20"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "20", pv.Spec.FlexVolume.Options[optionChunkSizeMB])
 }
@@ -441,7 +442,7 @@ func Test_Provision_PVCAnnotations_BadParallelCount(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/parallel-count"] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of parallel-count into integer")
 	}
@@ -452,7 +453,7 @@ func Test_Provision_PVCAnnotations_ParallelCount_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/parallel-count"] = "30"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "30", pv.Spec.FlexVolume.Options[optionParallelCount])
 }
@@ -462,7 +463,7 @@ func Test_Provision_PVCAnnotations_BadMultiReqMax(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/multireq-max"] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of multireq-max into integer")
 	}
@@ -473,7 +474,7 @@ func Test_Provision_PVCAnnotations_MultiReqMax_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/multireq-max"] = "40"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "40", pv.Spec.FlexVolume.Options[optionMultiReqMax])
 }
@@ -483,7 +484,7 @@ func Test_Provision_PVCAnnotations_BadStatCacheSize(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/stat-cache-size"] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of stat-cache-size into integer")
 	}
@@ -494,7 +495,7 @@ func Test_Provision_PVCAnnotations_StatCacheSize_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/stat-cache-size"] = "50"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "50", pv.Spec.FlexVolume.Options[optionStatCacheSize])
 }
@@ -504,7 +505,7 @@ func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NonInt(t *testing.T
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of stat-cache-expire-seconds into integer")
 	}
@@ -515,7 +516,7 @@ func Test_Provision_PVCAnnotations_BadStatCacheExpireSeconds_NegativeInt(t *test
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "-6"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "value of stat-cache-expire-seconds should be >= 0")
 	}
@@ -526,7 +527,7 @@ func Test_Provision_PVCAnnotations_StatCacheExpireSeconds_Positive(t *testing.T)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationStatCacheExpireSeconds] = "6"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionStatCacheExpireSeconds])
 }
@@ -536,7 +537,7 @@ func Test_Provision_PVCAnnotations_BadS3FSFUSERetryCount(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/s3fs-fuse-retry-count"] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of s3fs-fuse-retry-count into integer")
 	}
@@ -547,7 +548,7 @@ func Test_Provision_PVCAnnotations_S3FSFUSERetryCount_Negative(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/s3fs-fuse-retry-count"] = "-1"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "value of s3fs-fuse-retry-count should be >= 1")
 	}
@@ -558,7 +559,7 @@ func Test_Provision_PVCAnnotations_S3FSFUSERetryCount_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/s3fs-fuse-retry-count"] = "10"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "10", pv.Spec.FlexVolume.Options[optionS3FSFUSERetryCount])
 }
@@ -569,7 +570,7 @@ func Test_Provision_AutoDeleteBucketWithoutAutoCreateBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "bucket auto-create must be enabled when bucket auto-delete is enabled")
 	}
@@ -579,7 +580,7 @@ func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket_BucketName(t *t
 	p := getProvisioner()
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -588,7 +589,7 @@ func Test_Provision_SetDefault_AutoCreateBucket_AutoDeleteBucket(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -599,7 +600,7 @@ func Test_Provision_AutoDeleteBucketWithNonEmptyBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "bucket cannot be set when auto-delete is enabled")
 	}
@@ -611,7 +612,7 @@ func Test_Provision_AutoDeleteBucketWithEmptyBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -621,7 +622,7 @@ func Test_Provision_MissingBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "false"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "bucket name not specified")
 	}
@@ -634,7 +635,7 @@ func Test_Provision_SetBucketWithoutAutoCreateBucketAndWithoutAutoDeleteBucket(t
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -644,7 +645,7 @@ func Test_Provision_ObjectPathWithAutoCreateBucket(t *testing.T) {
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "object-path cannot be set when auto-create is enabled")
 	}
@@ -657,7 +658,7 @@ func Test_Provision_UUIDGeneratorFailure(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	delete(v.PVC.Annotations, annotationBucket)
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot create UUID for bucket name")
 	}
@@ -667,7 +668,7 @@ func Test_Provision_MissingSecret(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{missingSecret: true})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
@@ -677,7 +678,7 @@ func Test_Provision_MissingAccessKey(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{missingAccessKey: true})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("%s secret missing", driver.SecretAccessKey))
 	}
@@ -687,7 +688,7 @@ func Test_Provision_MissingSecretKey(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{missingSecretKey: true})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("%s secret missing", driver.SecretSecretKey))
 	}
@@ -705,7 +706,7 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot create bucket using API key without service-instance-id")
 	}
@@ -715,7 +716,7 @@ func Test_Provision_PVCNamespaceNotAllowedInSecrets(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "PVC creation in "+v.PVC.Namespace+" namespace is not allowed")
 	}
@@ -726,7 +727,7 @@ func Test_Provision_PVCNamespaceAllowedInSecrets(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{withAllowedNamespace: true})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 
 	assert.NoError(t, err)
 }
@@ -736,7 +737,7 @@ func Test_Provision_BadPVCAnnotations_SetAccessPolicy(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationSetAccessPolicy] = "non-true-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "invalid value for set-access-policy, expects true/false")
 	}
@@ -756,7 +757,7 @@ func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_False(t *
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -775,7 +776,7 @@ func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_True(t *t
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -793,7 +794,7 @@ func Test_Provision_ConfigBucketAccessPolicy_VPCCluster(t *testing.T) {
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -811,7 +812,7 @@ func Test_Provision_ConfigBucketAccessPolicy_IKSCluster(t *testing.T) {
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "set-access-policy not supported for classic cluster")
 	}
@@ -831,7 +832,7 @@ func Test_Provision_ConfigBucketAccessPolicy_OtherClusterType(t *testing.T) {
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cluster-type not suppoerted")
 	}
@@ -851,7 +852,7 @@ func Test_Provision_ConfigBucketAccessPolicy_FailFetchProviderType(t *testing.T)
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "failed to get provider type for cluster")
 	}
@@ -872,7 +873,7 @@ func Test_Provision_ConfigBucketAccessPolicy_FailFetchVPCEndpoints(t *testing.T)
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "failed to get VPC service endpoints for cluste")
 	}
@@ -893,7 +894,7 @@ func Test_Provision_ConfigBucketAccessPolicy_EmptyVPCEndpoints(t *testing.T) {
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "VPC service endpoints for the cluster not found")
 	}
@@ -913,7 +914,7 @@ func Test_Provision_ConfigBucketAccessPolicy_VPC_FailGRPC(t *testing.T) {
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "failed to establish grpc-client connection")
 	}
@@ -932,7 +933,7 @@ func Test_Provision_ConfigBucketAccessPolicy_FailUpdateAccessPolicy_VPC(t *testi
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "failed to set access policy for bucket")
 	}
@@ -955,7 +956,7 @@ func Test_Provision_ConfigBucketAccessPolicy_ExistingBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -976,7 +977,7 @@ func Test_Provision_ConfigBucketAccessPolicy_AutoCreateBucket(t *testing.T) {
 	v.PVC.Annotations[annotationAutoDeleteBucket] = "true"
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -997,7 +998,7 @@ func Test_Provision_ConfigBucketAccessPolicy_ExistingBucket_AutoCreateBucket(t *
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -1008,7 +1009,7 @@ func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) 
 	ConfigBucketAccessPolicy = &accessPlcy
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -1017,7 +1018,7 @@ func Test_Provision_FailCreateBucket_BucketOwnedByOther(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot access bucket")
 	}
@@ -1028,7 +1029,7 @@ func Test_Provision_FailCreateBucket(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot create bucket")
 	}
@@ -1038,7 +1039,7 @@ func Test_Provision_FailCheckBucketAccess(t *testing.T) {
 	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot access bucket")
 	}
@@ -1055,7 +1056,7 @@ func Test_Provision_PVCAnnotations_ObjectPath_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, testObjectPath, pv.Spec.FlexVolume.Options[optionObjectPath])
 }
@@ -1067,7 +1068,7 @@ func Test_Provision_CheckObjectPathExistence_Error(t *testing.T) {
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("cannot access object-path \"%s\" inside bucket %s",
 			v.PVC.Annotations[annotationObjectPath], v.PVC.Annotations[annotationBucket]))
@@ -1081,7 +1082,7 @@ func Test_Provision_CheckObjectPathExistence_PathNotFound(t *testing.T) {
 	v.PVC.Annotations[annotationObjectPath] = testObjectPath
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), fmt.Sprintf("object-path \"%s\" not found inside bucket %s",
 			v.PVC.Annotations[annotationObjectPath], v.PVC.Annotations[annotationBucket]))
@@ -1098,7 +1099,7 @@ func Test_Provision_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "false"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t,
 		map[string]string{
@@ -1126,7 +1127,7 @@ func Test_Provision_CurlDebug_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.StorageClass.Parameters[parameterCurlDebug] = "true"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionCurlDebug])
 }
@@ -1136,7 +1137,7 @@ func Test_Provision_KernelCache_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.StorageClass.Parameters[parameterKernelCache] = "true"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionKernelCache])
 }
@@ -1146,7 +1147,7 @@ func Test_Provision_AccessMode_Negative(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadOnlyMany, v1.ReadWriteOnce}
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "More that one access mode is not supported")
 	}
@@ -1156,7 +1157,7 @@ func Test_Provision_AccessMode_ReadWrite_Positive(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "ReadWriteMany", pv.Spec.FlexVolume.Options[optionAccessMode])
 }
@@ -1166,7 +1167,7 @@ func Test_Provision_AccessMode_ReadOnly_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadOnlyMany}
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "ReadOnlyMany", pv.Spec.FlexVolume.Options[optionAccessMode])
 }
@@ -1181,7 +1182,7 @@ func Test_Provision_AutoBucketCreate_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	v.PVC.Annotations[annotationBucket] = testBucket
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 
 	assert.Equal(t, testOSEndpoint, factory.LastEndpoint)
@@ -1210,7 +1211,7 @@ func Test_Provision_IAM_Positive(t *testing.T) {
 	)
 	v := getVolumeOptions()
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 
 	assert.Equal(t, testAPIKey, factory.LastCredentials.APIKey)
@@ -1229,7 +1230,7 @@ func Test_Provision_BucketAutoDelete_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	delete(v.PVC.Annotations, annotationBucket)
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Contains(t, pv.Spec.FlexVolume.Options[optionBucket], autoBucketNamePrefix)
 	assert.Equal(t, pv.Spec.FlexVolume.Options[optionBucket], factory.LastCreatedBucket)
@@ -1239,7 +1240,7 @@ func Test_Delete_BadPVAnnotations(t *testing.T) {
 	p := getProvisioner()
 	pv := getAutoDeletePersistentVolume()
 	pv.Annotations[annotationAutoDeleteBucket] = "non-false-value"
-	err := p.Delete(pv)
+	err := p.Delete(context.Background(), pv)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "invalid value for auto-delete-bucket, expects true/false")
 	}
@@ -1248,7 +1249,7 @@ func Test_Delete_BadPVAnnotations(t *testing.T) {
 func Test_Delete_MissingSecret(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{missingSecret: true})
 	pv := getAutoDeletePersistentVolume()
-	err := p.Delete(pv)
+	err := p.Delete(context.Background(), pv)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
@@ -1257,7 +1258,7 @@ func Test_Delete_MissingSecret(t *testing.T) {
 func Test_Delete_FailDeleteBucket(t *testing.T) {
 	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailDeleteBucket: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	pv := getAutoDeletePersistentVolume()
-	err := p.Delete(pv)
+	err := p.Delete(context.Background(), pv)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot delete bucket")
 	}
@@ -1274,14 +1275,14 @@ func Test_Provision_Delete_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	delete(v.PVC.Annotations, annotationBucket)
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 
 	bucketName := factory.LastCreatedBucket
 
 	factory.ResetStats()
 
-	err = p.Delete(pv)
+	err = p.Delete(context.Background(), pv)
 	assert.NoError(t, err)
 
 	assert.Equal(t, testOSEndpoint, factory.LastEndpoint)
@@ -1311,14 +1312,14 @@ func Test_Provision_Delete_IAM_Positive(t *testing.T) {
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 	delete(v.PVC.Annotations, annotationBucket)
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 
 	bucketName := factory.LastCreatedBucket
 
 	factory.ResetStats()
 
-	err = p.Delete(pv)
+	err = p.Delete(context.Background(), pv)
 	assert.NoError(t, err)
 
 	assert.Equal(t, testServiceInstanceID, factory.LastCredentials.ServiceInstanceID)
@@ -1332,7 +1333,7 @@ func Test_Provision_DifferentSecretNS(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Namespace = "pvc-namespace"
 	v.PVC.Annotations[annotationSecretNamespace] = testNamespace
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, testNamespace, pv.Annotations[annotationSecretNamespace])
 }
@@ -1341,7 +1342,7 @@ func Test_Validate_Bucket_True(t *testing.T) {
 	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCheckBucketAccess: true}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationValidateBucket] = testValidateBucket
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot access bucket")
 	}
@@ -1350,7 +1351,7 @@ func Test_Validate_Bucket_True(t *testing.T) {
 func Test_Wrong_Secret_Type_True(t *testing.T) {
 	p := getFakeClientGoProvisioner(&clientGoConfig{wrongSecretType: true})
 	v := getVolumeOptions()
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Wrong Secret Type")
 	}
@@ -1360,7 +1361,7 @@ func Test_Provision_PVCAnnotations_ReadwriteTimeoutSeconds_NonInt(t *testing.T) 
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationReadwriteTimeoutSeconds] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of readwrite-timeout-seconds into integer")
 	}
@@ -1371,7 +1372,7 @@ func Test_Provision_PVCAnnotations_ConnectTimeoutSeconds_NonInt(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConnectTimeoutSeconds] = "non-int-value"
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "Cannot convert value of connect-timeout-seconds into integer")
 	}
@@ -1382,7 +1383,7 @@ func Test_Provision_PVCAnnotations_ReadwriteTimeoutSeconds_Positive(t *testing.T
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationReadwriteTimeoutSeconds] = "6"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionReadwriteTimeoutSeconds])
 }
@@ -1392,7 +1393,7 @@ func Test_Provision_PVCAnnotations_ConnectTimeoutSeconds_Positive(t *testing.T) 
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationConnectTimeoutSeconds] = "6"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "6", pv.Spec.FlexVolume.Options[optionConnectTimeoutSeconds])
 }
@@ -1400,7 +1401,7 @@ func Test_Provision_PVCAnnotations_UseXattr(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/use-xattr"] = "true"
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionUseXattr])
 }
@@ -1409,7 +1410,7 @@ func Test_Provision_PVCAnnotations_DebugLevel(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/debug-level"] = "info"
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "info", pv.Spec.FlexVolume.Options[optionDebugLevel])
 }
@@ -1418,7 +1419,7 @@ func Test_Provision_PVCAnnotations_CurlDebug(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/curl-debug"] = "true"
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionCurlDebug])
 }
@@ -1427,7 +1428,7 @@ func Test_Provision_PVCAnnotations_TLS(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
 	v.PVC.Annotations["ibm.io/tls-cipher-suite"] = "AESGCM"
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "AESGCM", pv.Spec.FlexVolume.Options[optionTLSCipherSuite])
 }
@@ -1438,7 +1439,7 @@ func Test_Provision_CASNegative(t *testing.T) {
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot retrieve service details")
 	}
@@ -1450,7 +1451,7 @@ func Test_Provision_CACrtSrvcWithDefaultCACert(t *testing.T) {
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -1460,7 +1461,7 @@ func Test_Provision_CACrtSecretPositive(t *testing.T) {
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -1469,7 +1470,7 @@ func Test_Provision_CACrtSrvcNamespaceOptional(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 }
 
@@ -1479,7 +1480,7 @@ func Test_Provision_CACrtSecretWriteError(t *testing.T) {
 	v.PVC.Annotations[annotationServiceName] = testServiceName
 	v.PVC.Annotations[annotationServiceNamespace] = testServiceNamespace
 	writeFile = writeFileError
-	_, err := p.Provision(v)
+	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot retrieve secret")
 	}
@@ -1490,7 +1491,7 @@ func Test_Delete_TLS_Negative(t *testing.T) {
 	pv := getAutoDeletePersistentVolume()
 	pv.Annotations[annotationServiceName] = testServiceName
 	pv.Annotations[annotationServiceNamespace] = testServiceNamespace
-	err := p.Delete(pv)
+	err := p.Delete(context.Background(), pv)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "cannot delete bucket: cannot retrieve secret")
 	}
@@ -1502,7 +1503,7 @@ func Test_Delete_TLS_Positive(t *testing.T) {
 	pv.Annotations[annotationServiceName] = testServiceName
 	pv.Annotations[annotationServiceNamespace] = testServiceNamespace
 	writeFile = writeFileSuccess
-	err := p.Delete(pv)
+	err := p.Delete(context.Background(), pv)
 	assert.NoError(t, err)
 }
 
@@ -1511,7 +1512,7 @@ func Test_Provision_AutoCache_Positive(t *testing.T) {
 	v := getVolumeOptions()
 	v.PVC.Annotations[parameterAutoCache] = "true"
 
-	pv, err := p.Provision(v)
+	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionAutoCache])
 }
