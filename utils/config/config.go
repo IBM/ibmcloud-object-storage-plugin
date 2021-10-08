@@ -11,6 +11,7 @@
 package config
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/BurntSushi/toml"
@@ -21,6 +22,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 // ClusterInfo ...
@@ -122,9 +124,10 @@ func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) err
 		logger.Info("Exit LoadClusterInfoMap, cluster_id already set", zap.String("cluster_id", clusterid))
 		return nil
 	}
-
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
 	// export cluster-info config map
-	cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(consts.ClusterInfo, metav1.GetOptions{})
+	cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(ctx, consts.ClusterInfo, metav1.GetOptions{})
 	if err != nil {
 		err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
 
