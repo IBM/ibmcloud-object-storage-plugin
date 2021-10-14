@@ -30,7 +30,7 @@ import (
 	"net"
 	"os"
 	"path"
-	"sigs.k8s.io/sig-storage-lib-external-provisioner/controller"
+	"sigs.k8s.io/sig-storage-lib-external-provisioner/v6/controller"
 	"strconv"
 	"strings"
 	"time"
