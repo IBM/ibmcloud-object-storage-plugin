@@ -753,7 +753,7 @@ def main():
 
     # Get namespace where ibm-object-storage-plugin chart is installed
     if provider == "IKS" or provider == "ROKS":
-        provisioner_namespace = "kube-system"
+        provisioner_namespace = "ibm-object-s3fs"
     else:
         cmd = "kubectl get deployment --all-namespaces -l app=ibmcloud-object-storage-plugin -o jsonpath=\"{range .items[*]}{ .metadata.namespace }{end}\""
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
