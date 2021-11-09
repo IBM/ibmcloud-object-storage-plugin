@@ -192,7 +192,7 @@ def executeBasicChecks():
     if provider == "IKS" or provider == "ROKS":
         inspectSC(sc="ibmc-s3fs-standard-cross-region")
     else:
-        inspectSC(sc="ibmc-s3fs-icp")
+        inspectSC(sc="ibmc-s3fs-cos")
 
     print "\n****ServiceAccounts****"
     cmd = "kubectl get sa -n {0} | grep 'ibmcloud-object-storage-driver ' | awk '{{print $1}}'".format(provisioner_namespace)
@@ -730,8 +730,7 @@ def main():
     (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
     if cmd_err.strip():
         print cmd_err.strip()
-        print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n" \
-        "For IBM Cloud Private(ICP), run \"cloudctl login\" before running this tool.\nExiting!!!"
+        print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n"
         sys.exit(1)
     if rc == 0:
         provider = "IKS"
@@ -740,14 +739,21 @@ def main():
         (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
         if cmd_err.strip():
            print cmd_err.strip()
-           print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n" \
-           "For IBM Cloud Private(ICP), run \"cloudctl login\" before running this tool.\nExiting!!!"
+           print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n"
            sys.exit(1)
 
         if rc == 0:
-              provider = "ROKS"
-        else:
-              provider = "ICP"
+            cmd = "kubectl get nodes -o yaml | grep 'node\.openshift\.io/os_id\:'"
+            (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
+            if not cmd_err.strip():
+                if "rhcos" in cmd_out.strip():
+                    provider = "ROKS"
+                else:
+                    provider = "SATELLITE"
+            else:
+                print cmd_err.strip()
+                print "ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n"
+                sys.exit(1)
     print "> nodes are accessible... ok"
     print "> provider... " + provider
 
