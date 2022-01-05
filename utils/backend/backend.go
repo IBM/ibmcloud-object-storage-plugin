@@ -147,6 +147,9 @@ func (s *COSSession) CreateBucket(bucket, locationConstraint string) (string, er
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "BucketAlreadyOwnedByYou" {
 			s.logger.Warn(fmt.Sprintf("bucket '%s' already exists", bucket))
 			return fmt.Sprintf("bucket '%s' already exists", bucket), nil
+		} else if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "RequestError" && strings.Contains(err.Error(), "Credential=") {
+			s.logger.Warn(fmt.Sprintf("Check your secret access key for bucket %s", bucket))
+			return fmt.Sprintf("Check your secret access key for bucket %s", bucket), fmt.Errorf("AccessKey/SecretKey is wrong")
 		}
 		return "", err
 	}
