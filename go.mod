@@ -7,11 +7,12 @@ require (
 	github.com/IBM/go-sdk-core/v3 v3.3.1
 	github.com/IBM/ibm-cos-sdk-go v1.7.0
 	github.com/IBM/ibm-cos-sdk-go-config v1.2.0
+	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
+	github.com/gofrs/uuid v4.2.0+incompatible
 	github.com/golang/protobuf v1.5.2
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/miekg/dns v1.1.43 // indirect
 	github.com/prometheus/client_golang v1.11.0 // indirect
-	github.com/satori/go.uuid v1.2.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.19.1
 	google.golang.org/grpc v1.40.0
@@ -20,7 +21,6 @@ require (
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
 	k8s.io/client-go v0.22.2
-	sigs.k8s.io/sig-storage-lib-external-provisioner v4.1.0+incompatible
 	sigs.k8s.io/sig-storage-lib-external-provisioner/v6 v6.3.0
 )
 

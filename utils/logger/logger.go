@@ -14,7 +14,7 @@ import (
 	"context"
 	"errors"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
-	uid "github.com/satori/go.uuid"
+	uid "github.com/gofrs/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
