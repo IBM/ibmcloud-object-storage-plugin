@@ -139,5 +139,5 @@ func CreateZapPodNameKeyField() zapcore.Field {
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
 	requestID, _ := uid.NewV4()
-	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID.Bytes())
 }

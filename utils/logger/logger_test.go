@@ -258,7 +258,6 @@ func TestCreatePodNameKeyFieldNotSet(t *testing.T) {
 
 func TestGenerateContextWithRequestID(t *testing.T) {
 	ctx := generateContextWithRequestID()
-	requestID, ok := ctx.Value(consts.RequestIDLabel).(string)
-	assert.True(t, ok)
+	requestID := ctx.Value(consts.RequestIDLabel)
 	assert.NotEqual(t, "", requestID)
 }
