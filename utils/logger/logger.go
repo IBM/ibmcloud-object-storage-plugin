@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************r
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Container Service, 5737-D43
@@ -138,6 +138,6 @@ func CreateZapPodNameKeyField() zapcore.Field {
 
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
-	requestID := uid.NewV4().String()
+	requestID, _ := uid.NewV4().String()
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
 }
