@@ -144,7 +144,7 @@ func generateContextWithRequestID() context.Context {
 	} else {
 		//https://github.com/gofrs/uuid/blob/028e8409cdd0ed11a2b5bb3feb1ae2285ebb94fa/generator.go#L206
 		// nil value returned incase of error. so assign a dummy value
-		requestID := "mydummyreID"
+		requestID := "thisDummyReqID"
 	}
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
 }
