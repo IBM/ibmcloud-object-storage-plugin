@@ -1,4 +1,4 @@
-/*******************************************************************************
+/******************************************************************************r
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Container Service, 5737-D43
@@ -14,7 +14,7 @@ import (
 	"context"
 	"errors"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
-	uid "github.com/satori/go.uuid"
+	uid "github.com/gofrs/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
@@ -138,6 +138,7 @@ func CreateZapPodNameKeyField() zapcore.Field {
 
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
-	requestID := uid.NewV4().String()
+	reqID, _ := uid.NewV4()
+	requestID := reqID.String()
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
 }
