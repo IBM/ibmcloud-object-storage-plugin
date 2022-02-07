@@ -139,6 +139,12 @@ func CreateZapPodNameKeyField() zapcore.Field {
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
 	reqID, _ := uid.NewV4()
-	requestID := reqID.String()
+	if reqID != nil {
+		requestID := reqID.String()
+	} else {
+		//https://github.com/gofrs/uuid/blob/028e8409cdd0ed11a2b5bb3feb1ae2285ebb94fa/generator.go#L206
+		// nil value returned incase of error. so assign a dummy value
+		requestID := "mydummyreID"
+	}
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
 }
