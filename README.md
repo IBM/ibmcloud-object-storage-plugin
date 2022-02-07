@@ -40,7 +40,7 @@ Push the provisioner container image from the build system to your image reposit
 
 ## Installation
 1. Copy driver binary `ibmc-s3fs` from your build system to each worker node, under `/tmp/`
-2. On every worker node execute following commands to copy the driver binary `ibmc-s3fs` to [Kubernetes plugin directory](https://github.com/kubernetes/community/blob/master/contributors/devel/flexvolume.md):
+2. On every worker node execute following commands to copy the driver binary `ibmc-s3fs` to [Kubernetes plugin directory](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-storage/flexvolume.md):
    ```
    $ sudo mkdir -p /usr/libexec/kubernetes/kubelet-plugins/volume/exec/ibm~ibmc-s3fs
    $ sudo cp /tmp/ibmc-s3fs /usr/libexec/kubernetes/kubelet-plugins/volume/exec/ibm~ibmc-s3fs
