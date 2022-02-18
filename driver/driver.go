@@ -626,7 +626,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 
 	if options.CurlDebug {
-		args = append(args, "-o", "curldbg")
+		args = append(args, "-o", "curldbg=body")
 	}
 
 	if options.AutoCache {

@@ -550,7 +550,7 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
-		"-o", "curldbg",
+		"-o", "curldbg=body",
 		"-o", "default_acl=private",
 	}
 
