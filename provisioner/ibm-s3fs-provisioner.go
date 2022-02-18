@@ -64,6 +64,7 @@ type pvcAnnotations struct {
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
+	AddMountParam           string `json:"ibm.io/add-mount-param"`
 }
 
 // Storage Class options
@@ -90,6 +91,7 @@ type scOptions struct {
 	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string"`
+	AddMountParam           string `json:"ibm.io/add-mount-param"`
 }
 
 const (
@@ -397,6 +399,11 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
 	}
 
+	// Additional parameter should be of form "-o opt1 -o opt2=xxx -o opt3"
+	if pvc.AddMountParam != "" {
+		sc.AddMountParam = pvc.AddMountParam
+	}
+
 	return pvc, sc, svcIp, nil
 }
 
@@ -660,6 +667,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		AccessMode:              string(accessMode[0]),
 		CosServiceIP:            svcIp,
 		AutoCache:               pvc.AutoCache,
+		AddMountParam:           sc.AddMountParam,
 	})
 	if err != nil {
 		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
@@ -689,6 +697,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		DebugLevel:              pvc.DebugLevel,
 		CosServiceName:          pvc.CosServiceName,
 		SetAccessPolicy:         pvc.SetAccessPolicy,
+		AddMountParam:           pvc.AddMountParam,
 	})
 
 	if err != nil {
