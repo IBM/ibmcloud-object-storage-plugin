@@ -66,6 +66,7 @@ const (
 	testStorageClass           = "test-storage-class"
 	testObjectPath             = "/test/object-path"
 	testValidateBucket         = "yes"
+	testAddMountParam          = "-o op1 -o op2"
 
 	annotationBucket                  = "ibm.io/bucket"
 	annotationObjectPath              = "ibm.io/object-path"
@@ -83,6 +84,7 @@ const (
 	annotationServiceName             = "ibm.io/cos-service"
 	annotationServiceNamespace        = "ibm.io/cos-service-ns"
 	annotationSetAccessPolicy         = "ibm.io/set-access-policy"
+	annotationAddMountParam           = "ibm.io/add-mount-param"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
 	parameterParallelCount          = "ibm.io/parallel-count"
@@ -121,6 +123,7 @@ const (
 	optionAccessMode              = "access-mode"
 	optionServiceIP               = "service-ip"
 	optionAutoCache               = "auto_cache"
+	optionAddMountParam           = "add-mount-param"
 )
 
 type clientGoConfig struct {
@@ -1515,4 +1518,14 @@ func Test_Provision_AutoCache_Positive(t *testing.T) {
 	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionAutoCache])
+}
+
+func Test_Provision_PVCAnnotations_AddMountParam(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAddMountParam] = testAddMountParam
+
+	pv, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
+	assert.Equal(t, testAddMountParam, pv.Spec.FlexVolume.Options[optionAddMountParam])
 }

@@ -49,6 +49,7 @@ const (
 	optionCAbundleB64             = "kubernetes.io/secret/ca-bundle-crt"
 	optionServiceIP               = "service-ip"
 	optionAutoCache               = "auto_cache"
+	optionAddMountParam           = "add-mount-param"
 
 	testDir            = "/tmp/"
 	testChunkSizeMB    = 500
@@ -67,6 +68,7 @@ const (
 	testDebugLevel     = "debug"
 	testCABundle       = "test-ca-bundle"
 	testServiceIP      = "1.0.0.0.1"
+	testAddMountParam  = "-o opt1 -o opt2"
 )
 
 // these are actually constants
@@ -550,7 +552,7 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
-		"-o", "curldbg",
+		"-o", "curldbg=body",
 		"-o", "default_acl=private",
 	}
 
@@ -1147,6 +1149,38 @@ func Test_AutoCache_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "auto_cache",
 		"-o", "default_acl=private",
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
+func Test_AddMountParam(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionAddMountParam] = testAddMountParam
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "use_path_request_style",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "max_background=1000",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "default_acl=private",
+		"-o opt1 -o opt2",
 	}
 
 	resp := p.Mount(r)
