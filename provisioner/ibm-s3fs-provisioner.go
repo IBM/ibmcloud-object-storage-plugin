@@ -64,7 +64,7 @@ type pvcAnnotations struct {
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
-	AddMountParam           string `json:"ibm.io/add-mount-param"`
+	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
 }
 
 // Storage Class options
@@ -91,7 +91,7 @@ type scOptions struct {
 	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string"`
-	AddMountParam           string `json:"ibm.io/add-mount-param"`
+	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
 }
 
 const (
