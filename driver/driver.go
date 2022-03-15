@@ -658,7 +658,10 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 
 	if options.AddMountParam != "" {
-		args = append(args, options.AddMountParam)
+		paramSlice := strings.Split(options.AddMountParam, ",")
+		for _, value := range paramSlice {
+			args = append(args, "-o", value)
+		}
 	}
 
 	fInfo, err = os.Lstat(mountRequest.MountDir)

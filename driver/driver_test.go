@@ -68,7 +68,7 @@ const (
 	testDebugLevel     = "debug"
 	testCABundle       = "test-ca-bundle"
 	testServiceIP      = "1.0.0.0.1"
-	testAddMountParam  = "-o opt1 -o opt2"
+	testAddMountParam  = "opt1,opt2"
 )
 
 // these are actually constants
@@ -1180,7 +1180,8 @@ func Test_AddMountParam(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
-		"-o opt1 -o opt2",
+		"-o", "opt1",
+		"-o", "opt2",
 	}
 
 	resp := p.Mount(r)
