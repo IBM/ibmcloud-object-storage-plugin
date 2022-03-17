@@ -66,7 +66,7 @@ const (
 	testStorageClass           = "test-storage-class"
 	testObjectPath             = "/test/object-path"
 	testValidateBucket         = "yes"
-	testAddMountParam          = "-o op1 -o op2"
+	testAddMountParam          = "op1,op2"
 
 	annotationBucket                  = "ibm.io/bucket"
 	annotationObjectPath              = "ibm.io/object-path"
