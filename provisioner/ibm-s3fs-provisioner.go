@@ -65,6 +65,7 @@ type pvcAnnotations struct {
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
 	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
+	QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
 }
 
 // Storage Class options
@@ -108,6 +109,7 @@ const (
 
 var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
+var ConfigQuotaLimit *bool
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -280,6 +282,12 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		}
 	}
 
+	if pvc.QuotaLimit != "" {
+		if _, err := strconv.ParseBool(pvc.QuotaLimit); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for quota-limit, expects true/false: %v", err)
+		}
+	}
+
 	if pvc.CosServiceName != "" {
 		// TLS enabled COS Service
 		if pvc.CosServiceNamespace != "" {
@@ -424,6 +432,8 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var rcc backend.ResourceConfigurationV1
 	var providerClient provider.IBMProviderClient
 	var setBucketAccessPolicy = false
+	var setQuotaLimit = false
+	var quotaLimit int64
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -486,6 +496,24 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + pvc.SetAccessPolicy)
 
+	if ConfigQuotaLimit != nil && *ConfigQuotaLimit && pvc.QuotaLimit != "false" {
+
+		updateAP = p.AccessPolicy.NewAccessPolicy()
+		rcc = &backend.UpdateAPObj{}
+
+		//retrieve the quota value from PVC spec => spec.resources.requests.storage
+		quotaSet := options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
+
+		quotaLimit = quotaSet.Value()
+		contextLogger.Info(pvcName + ":" + clusterID + ":quota-limit value to be set for bucket: " + quotaLimit)
+		setQuotaLimit = true
+
+	} else {
+		if pvc.QuotaLimit == "false" {
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " quota-limit is set to false. bucket quota limit will not be set")
+		}
+	}
+
 	//add check for region = BNNP
 	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
 		grpcSess = p.GRPCBackend.NewGrpcSession()
@@ -530,7 +558,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			//add logic to fetch cluster subnet ips
 			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" : set-access-policy not supported for classic cluster: %v", providerType)
 		} else {
-			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :cluster-type not suppoerted: %v", providerType)
+			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :set-access-policy not suppoerted on cluster-type: %v", providerType)
 		}
 	} else {
 		if pvc.SetAccessPolicy == "false" {
@@ -586,6 +614,21 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			}
 			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' access policy configured successfully")
 		}
+
+		if setQuotaLimit {
+			err := updateAP.UpdateQuotaLimit(quotaLimit, resConfApiKey, pvc.Bucket, sc.OSEndpoint, sc.IAMEndpoint, rcc)
+			if err != nil {
+				//revert bucket creation if updating bucket access policy fails
+				if deleteBucket {
+					err1 := sess.DeleteBucket(pvc.Bucket)
+					if err1 != nil {
+						return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set quota limit %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
+					}
+				}
+				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set quota limit for bucket %s : %v", pvc.Bucket, err)
+			}
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")
+		}
 	} else {
 		if pvc.Bucket == "" {
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
@@ -599,6 +642,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			}
 			valBucket = true
 			contextLogger.Info(pvcName + ":" + clusterID + " :bucket '" + pvc.Bucket + "' access policy configured successfully")
+		}
+		if setQuotaLimit {
+			err := updateAP.UpdateQuotaLimit(quotaLimit, resConfApiKey, pvc.Bucket, sc.OSEndpoint, sc.IAMEndpoint, rcc)
+			if err != nil {
+				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set quota limit for bucket %s : %v", pvc.Bucket, err)
+			}
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")
 		}
 	}
 

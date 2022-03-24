@@ -18,9 +18,10 @@ import (
 	"strings"
 )
 
-// PrivateServiceURL to make service requests to.
-const ResourceConfigEP = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
+const ResourceConfigEPDirect = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
+const ResourceConfigEPPrivate = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
 const IAMEPForVPC = "https://private.iam.cloud.ibm.com/identity/token"
+const Private = "private"
 
 type AccessPolicyFactory interface {
 	NewAccessPolicy() AccessPolicy
@@ -28,6 +29,7 @@ type AccessPolicyFactory interface {
 
 type AccessPolicy interface {
 	UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc ResourceConfigurationV1) error
+	UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc ResourceConfigurationV1) error
 }
 
 type UpdateAPFactory struct{}
@@ -67,7 +69,7 @@ func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, 
 
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
-		URL:           ResourceConfigEP,
+		URL:           ResourceConfigEPDirect,
 	})
 
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{
@@ -80,6 +82,43 @@ func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, 
 	response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
 	if response != nil {
 		fmt.Println("UpdateAccessPolicy Response ", strconv.Itoa(response.StatusCode))
+	}
+	return err
+}
+
+// UpdateQuotaLimit updates the bucket quota limits
+func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc ResourceConfigurationV1) error {
+
+	ConfigEP := ""
+	IAMEP := iamEndpoint + "/identity/token"
+
+	if strings.Contains(osEndpoint, Private) {
+		ConfigEP = ResourceConfigEPPrivate
+	} else {
+		ConfigEP = ResourceConfigEPDirect
+	}
+
+	fmt.Println("ConfigEP used: ", ConfigEP)
+	fmt.Println("IAMEndpoint used: ", IAMEP)
+
+	authenticator := &core.IamAuthenticator{
+		ApiKey: apiKey,
+		URL:    IAMEP,
+	}
+
+	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
+		Authenticator: authenticator,
+		URL:           ConfigEP,
+	})
+
+	updateConfigOptions := &rc.UpdateBucketConfigOptions{
+		Bucket:    core.StringPtr(bucketName),
+		HardQuota: core.Int64Ptr(quota),
+	}
+
+	response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
+	if response != nil {
+		fmt.Println("UpdateQuotaLimit Response ", strconv.Itoa(response.StatusCode))
 	}
 	return err
 }
