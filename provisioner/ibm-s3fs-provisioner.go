@@ -566,7 +566,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		}
 	}
 
-	if setBucketAccessPolicy && resConfApiKey == "" {
+	if (setBucketAccessPolicy && resConfApiKey == "") || (setQuotaLimit && resConfApiKey == "") {
 		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+": res-conf-apikey missing, cannot set access policy for bucket '%s'", pvc.Bucket)
 	}
 
