@@ -505,7 +505,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		quotaSet := options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
 
 		quotaLimit = quotaSet.Value()
-		contextLogger.Info(pvcName + ":" + clusterID + ":quota-limit value to be set for bucket: " + quotaLimit)
+		contextLogger.Info(pvcName + ":" + clusterID + ":quota-limit value to be set for bucket: " + quotaSet)
 		setQuotaLimit = true
 
 	} else {
