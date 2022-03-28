@@ -19,7 +19,7 @@ import (
 )
 
 const ResourceConfigEPDirect = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
-const ResourceConfigEPPrivate = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
+const ResourceConfigEPPrivate = "https://config.private.cloud-object-storage.cloud.ibm.com/v1"
 const IAMEPForVPC = "https://private.iam.cloud.ibm.com/identity/token"
 const Private = "private"
 
@@ -108,7 +108,7 @@ func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoi
 
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
-		URL:           ConfigEP,
+		URL:           ResourceConfigEPDirect,
 	})
 
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{

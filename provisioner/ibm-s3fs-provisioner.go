@@ -494,7 +494,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		}
 	}
 
-	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + pvc.SetAccessPolicy)
+	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + strconv.FormatBool(*ConfigQuotaLimit))
 
 	if ConfigQuotaLimit != nil && *ConfigQuotaLimit && pvc.QuotaLimit != "false" {
 
