@@ -149,7 +149,9 @@ func init() {
 	endpt := "/ibmprovider/provider.sock"
 	SockEndpoint = &endpt
 	accessPlcy := false
+	quotaLmt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotaLmt
 }
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
