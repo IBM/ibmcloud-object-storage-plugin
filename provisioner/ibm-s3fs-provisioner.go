@@ -494,7 +494,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		}
 	}
 
-	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetAccessPolicy: " + strconv.FormatBool(*ConfigQuotaLimit))
+	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetQuotaLimit: " + strconv.FormatBool(*ConfigQuotaLimit))
 
 	if ConfigQuotaLimit != nil && *ConfigQuotaLimit && pvc.QuotaLimit != "false" {
 
@@ -510,7 +510,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 	} else {
 		if pvc.QuotaLimit == "false" {
-			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " quota-limit is set to false. bucket quota limit will not be set")
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "quota-limit annotation is set to false for this PVC. bucket quota limit will not be set for this PVC")
 		}
 	}
 
@@ -562,7 +562,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		}
 	} else {
 		if pvc.SetAccessPolicy == "false" {
-			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy is set to false. bucket access policy will not be set")
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy annotation is set to false for this PVC. bucket access policy will not be set for this PVC")
 		}
 	}
 

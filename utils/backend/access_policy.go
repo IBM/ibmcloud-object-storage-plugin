@@ -108,7 +108,7 @@ func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoi
 
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
-		URL:           ResourceConfigEPDirect,
+		URL:           ConfigEP,
 	})
 
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{
