@@ -510,7 +510,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 	} else {
 		if pvc.QuotaLimit == "false" {
-			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "quota-limit annotation is set to false for this PVC. bucket quota limit will not be set for this PVC")
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " quota-limit annotation is set to false for this PVC. bucket quota limit will not be set for this PVC")
 		}
 	}
 
