@@ -149,7 +149,9 @@ func init() {
 	endpt := "/ibmprovider/provider.sock"
 	SockEndpoint = &endpt
 	accessPlcy := false
+	quotaLmt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotaLmt
 }
 
 func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
@@ -837,7 +839,7 @@ func Test_Provision_ConfigBucketAccessPolicy_OtherClusterType(t *testing.T) {
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cluster-type not suppoerted")
+		assert.Contains(t, err.Error(), "set-access-policy not suppoerted on cluster-type: other")
 	}
 }
 

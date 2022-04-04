@@ -23,6 +23,12 @@ type FakeAccessPolicyFactory struct {
 	FailUpdateAccessPolicyErrMsg string
 	//PassUpdateAccessPolicy ...
 	PassUpdateAccessPolicy bool
+	//FailUpdateAccessPolicy ...
+	FailUpdateQuotaLimit bool
+	//FailUpdateAccessPolicyErrMsg with specific error msg...
+	FailUpdateQuotaLimitErrMsg string
+	//PassUpdateAccessPolicy ...
+	PassUpdateQuotaLimit bool
 }
 
 var _ backend.AccessPolicyFactory = (*FakeAccessPolicyFactory)(nil)
@@ -41,6 +47,14 @@ func (c *FakeAccessPolicyFactory) NewAccessPolicy() backend.AccessPolicy {
 
 // UpdateAccessPolicy method creates a fake updateBucketConfig call
 func (c *fakeAccessPolicy) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc backend.ResourceConfigurationV1) error {
+	if c.rcv1.FailUpdateAccessPolicy {
+		return errors.New(c.rcv1.FailUpdateAccessPolicyErrMsg)
+	}
+	return nil
+}
+
+// UpdateQuotaLimit method creates a fake updateQuotaLimit call
+func (c *fakeAccessPolicy) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc backend.ResourceConfigurationV1) error {
 	if c.rcv1.FailUpdateAccessPolicy {
 		return errors.New(c.rcv1.FailUpdateAccessPolicyErrMsg)
 	}

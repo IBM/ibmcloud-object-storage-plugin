@@ -96,6 +96,13 @@ func main() {
 		false,
 		"set 'true' to configure bucket access policy",
 	)
+
+	s3fsprovisioner.ConfigQuotaLimit = flag.Bool(
+		"quotaLimit",
+		false,
+		"set 'true' to configure bucket quota limit",
+	)
+
 	flag.Parse()
 
 	// Enable debug trace

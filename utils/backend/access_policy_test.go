@@ -24,6 +24,8 @@ const (
 	testBucket2   = "test-bucket"
 	allowedIps    = "test_ip"
 	resConfApiKey = "test_api_key"
+	osEndpoint    = "test-osendpoint"
+	iamEndpoint   = "test-iamendpoint"
 )
 
 var (
@@ -33,6 +35,8 @@ var (
 	result     interface{}
 	statusCode = 200
 )
+
+var quota int64 = 50000
 
 var dresponse core.DetailedResponse
 
@@ -86,6 +90,20 @@ var rc2 fakeRCV2 = &fakeResourceConfigurationV1Fail{}
 func Test_UpdateAccessPolicy_Error(t *testing.T) {
 	rcSess := getFakeAccessPolicySession(&fakeResourceConfigurationV1Fail{frc2: rc2})
 	err := rcSess.UpdateAccessPolicy(allowedIps, resConfApiKey, testBucket2, rc2)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), errTestMsg)
+	}
+}
+
+func Test_UpdateQuotaLimit_Positive(t *testing.T) {
+	rcSess := getFakeAccessPolicySession(&fakeResourceConfigurationV1{frc1: rc1})
+	err := rcSess.UpdateQuotaLimit(quota, resConfApiKey, testBucket, osEndpoint, iamEndpoint, rc1)
+	assert.NoError(t, err)
+}
+
+func Test_UpdateQuotaLimit_Error(t *testing.T) {
+	rcSess := getFakeAccessPolicySession(&fakeResourceConfigurationV1Fail{frc2: rc2})
+	err := rcSess.UpdateQuotaLimit(quota, resConfApiKey, testBucket, osEndpoint, iamEndpoint, rc2)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), errTestMsg)
 	}
