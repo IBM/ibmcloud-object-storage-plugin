@@ -103,6 +103,13 @@ func (s *COSSession) CheckBucketAccess(bucket string) error {
 	_, err := s.svc.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(bucket),
 	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "RequestError" && strings.Contains(err.Error(), "Credential=") {
+			s.logger.Warn(fmt.Sprintf("Check your secret access key for bucket %s", bucket))
+			return fmt.Errorf("AccessKey/SecretKey is wrong")
+		}
+	}
+
 	return err
 }
 
