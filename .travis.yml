@@ -1,7 +1,7 @@
 language: go
 
 go:
-  - "1.16.15"
+  - "1.17.9"
   - tip
 
 group: bluezone
