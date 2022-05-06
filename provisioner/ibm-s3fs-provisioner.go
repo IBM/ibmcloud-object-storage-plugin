@@ -64,10 +64,9 @@ type pvcAnnotations struct {
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
-
-	string        `json:"ibm.io/access-policy-ips,omitempty"`
-	AddMountParam string `json:"ibm.io/add-mount-param,omitempty"`
-	QuotaLimit    string `json:"ibm.io/quota-limit,omitempty"`
+	AccessPolicyIps         string `json:"ibm.io/access-policy-ips,omitempty"`
+	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
+	QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
 }
 
 // Storage Class options
