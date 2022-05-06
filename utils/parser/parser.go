@@ -71,9 +71,11 @@ func ParseIPs(ips string) (bool, []string) {
 	var invalidIpArr []string
 	ipArray := strings.Split(ips, ",")
 	for _, ip := range ipArray {
-		ipAdress := strings.Trim(ip, " ")
-		if net.ParseIP(ipAdress) == nil {
-			invalidIpArr = append(invalidIpArr, ipAdress)
+		if ip != "" {
+			ip = strings.Trim(ip, " ")
+		}
+		if net.ParseIP(ip) == nil {
+			invalidIpArr = append(invalidIpArr, ip)
 		}
 	}
 
