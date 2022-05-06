@@ -73,9 +73,9 @@ func ParseIPs(ips string) (bool, []string) {
 	for _, ip := range ipArray {
 		if ip != "" {
 			ip = strings.Trim(ip, " ")
-		}
-		if net.ParseIP(ip) == nil {
-			invalidIpArr = append(invalidIpArr, ip)
+			if net.ParseIP(ip) == nil {
+				invalidIpArr = append(invalidIpArr, ip)
+			}
 		}
 	}
 

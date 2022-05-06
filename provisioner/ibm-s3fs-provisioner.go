@@ -278,9 +278,9 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 	}
 
 	if pvc.AccessPolicyIps != "" {
-		validIps, ipArr := parser.ParseIPs(pvc.AccessPolicyIps)
+		validIps, wrongIpArr := parser.ParseIPs(pvc.AccessPolicyIps)
 		if !validIps {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for access-policy-ips,  invalid ips are : %v", ipArr)
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for access-policy-ips,  invalid ips are : %v", wrongIpArr)
 		}
 	}
 
