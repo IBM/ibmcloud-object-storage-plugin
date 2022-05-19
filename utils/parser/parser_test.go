@@ -81,3 +81,20 @@ func Test_MarshalToMap_Positive(t *testing.T) {
 		assert.Equal(t, map[string]string{"t": "5"}, m)
 	}
 }
+
+func Test_ParseIPs_Error(t *testing.T) {
+	ips := "invalid, ips"
+	validIps, wrongIpArr := ParseIPs(ips)
+	assert.Equal(t, validIps, false)
+	assert.Equal(t, len(wrongIpArr) > 0, true)
+}
+
+func Test_ParseIPs_Positive(t *testing.T) {
+	ips := "10.223.68.198, 10.16.24.191, 10.16.37.57"
+	validIps, wrongIpArr := ParseIPs(ips)
+
+	if assert.NoError(t, err) {
+		assert.Equal(t, validIps, true)
+		assert.Equal(t, len(wrongIpArr) > 0, false)
+	}
+}
