@@ -860,7 +860,9 @@ func Test_Provision_ConfigBucketAccessPolicy_IKSCluster(t *testing.T) {
 	)
 	v := getVolumeOptions()
 	accessPlcy := true
+	quotalimt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotalimt
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
@@ -880,7 +882,9 @@ func Test_Provision_ConfigBucketAccessPolicy_OtherClusterType(t *testing.T) {
 	)
 	v := getVolumeOptions()
 	accessPlcy := true
+	quotalimt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotalimt
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
@@ -1076,6 +1080,7 @@ func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) 
 	v := getVolumeOptions()
 	accessPlcy := false
 	ConfigBucketAccessPolicy = &accessPlcy
+
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, _, err := p.Provision(context.Background(), v)
