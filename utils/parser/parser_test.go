@@ -92,9 +92,6 @@ func Test_ParseIPs_Error(t *testing.T) {
 func Test_ParseIPs_Positive(t *testing.T) {
 	ips := "10.223.68.198, 10.16.24.191, 10.16.37.57"
 	validIps, wrongIpArr := ParseIPs(ips)
-
-	if assert.NoError(t, err) {
-		assert.Equal(t, validIps, true)
-		assert.Equal(t, len(wrongIpArr) > 0, false)
-	}
+	assert.Equal(t, validIps, true)
+	assert.Equal(t, len(wrongIpArr) > 0, false)
 }
