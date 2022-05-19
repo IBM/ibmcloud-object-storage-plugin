@@ -14,6 +14,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net"
+	"strings"
 )
 
 // DecodeBase64 decodes a base64 string
@@ -62,4 +64,24 @@ func MarshalToMap(v interface{}) (map[string]string, error) {
 		res[k] = stringVal
 	}
 	return res, nil
+}
+
+// parse ips passed in string format
+func ParseIPs(ips string) (bool, []string) {
+	var invalidIpArr []string
+	ipArray := strings.Split(ips, ",")
+	for _, ip := range ipArray {
+		ip = strings.TrimSpace(ip)
+		if ip != "" {
+			if net.ParseIP(ip) == nil {
+				invalidIpArr = append(invalidIpArr, ip)
+			}
+		}
+	}
+
+	if len(invalidIpArr) == 0 {
+		return true, nil
+	} else {
+		return false, invalidIpArr
+	}
 }

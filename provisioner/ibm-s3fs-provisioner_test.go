@@ -85,6 +85,8 @@ const (
 	annotationServiceNamespace        = "ibm.io/cos-service-ns"
 	annotationSetAccessPolicy         = "ibm.io/set-access-policy"
 	annotationAddMountParam           = "ibm.io/add-mount-param"
+	annotationAccessPolicyAllowedIps  = "ibm.io/access-policy-allowed-ips"
+	annotationQuotaLimit              = "ibm.io/quota-limit"
 
 	parameterChunkSizeMB            = "ibm.io/chunk-size-mb"
 	parameterParallelCount          = "ibm.io/parallel-count"
@@ -747,6 +749,48 @@ func Test_Provision_BadPVCAnnotations_SetAccessPolicy(t *testing.T) {
 		assert.Contains(t, err.Error(), "invalid value for set-access-policy, expects true/false")
 	}
 }
+
+func Test_Provision_BadPVCAnnotations_QuotaLimit(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationQuotaLimit] = "non-bool-value"
+
+	_, _, err := p.Provision(context.Background(), v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid value for quota-limit, expects true/false")
+	}
+}
+
+func Test_Provision_ConfigQuotaLimit_AnnotationQuotaLimit_True(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationQuotaLimit] = "true"
+	accessPlcy := true
+	ConfigQuotaLimit = &accessPlcy
+
+	_, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
+}
+
+func Test_Provision_BadPVCAnnotations_AccessPolicyAllowedIps(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAccessPolicyAllowedIps] = "fake-ips"
+
+	_, _, err := p.Provision(context.Background(), v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "invalid value for access-policy-allowed-ips")
+	}
+}
+
 func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_False(t *testing.T) {
 
 	p := getCustomProvisioner(
@@ -761,6 +805,7 @@ func Test_Provision_ConfigBucketAccessPolicy_AnnotationSetAccessPolicy_False(t *
 	v.PVC.Annotations[annotationSetAccessPolicy] = "false"
 	accessPlcy := true
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &accessPlcy
 
 	_, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
@@ -815,7 +860,9 @@ func Test_Provision_ConfigBucketAccessPolicy_IKSCluster(t *testing.T) {
 	)
 	v := getVolumeOptions()
 	accessPlcy := true
+	quotalimt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotalimt
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
@@ -835,7 +882,9 @@ func Test_Provision_ConfigBucketAccessPolicy_OtherClusterType(t *testing.T) {
 	)
 	v := getVolumeOptions()
 	accessPlcy := true
+	quotalimt := false
 	ConfigBucketAccessPolicy = &accessPlcy
+	ConfigQuotaLimit = &quotalimt
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
@@ -880,7 +929,7 @@ func Test_Provision_ConfigBucketAccessPolicy_FailFetchVPCEndpoints(t *testing.T)
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "failed to get VPC service endpoints for cluste")
+		assert.Contains(t, err.Error(), "failed to get VPC service endpoints for cluster")
 	}
 }
 
@@ -903,6 +952,25 @@ func Test_Provision_ConfigBucketAccessPolicy_EmptyVPCEndpoints(t *testing.T) {
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "VPC service endpoints for the cluster not found")
 	}
+}
+
+func Test_Provision_ConfigBucketAccessPolicy_AccessPolicyAllowedIps_Set(t *testing.T) {
+
+	p := getCustomProvisioner(
+		&clientGoConfig{withResConfAPIKey: true},
+		&fake.ObjectStorageSessionFactory{},
+		&fakeGrpcClient.FakeGrpcSessionFactory{},
+		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
+		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
+		uuid.NewCryptoGenerator(),
+	)
+	v := getVolumeOptions()
+	v.PVC.Annotations[annotationAccessPolicyAllowedIps] = "10.223.68.198, 10.16.24.191, 10.16.37.57"
+	accessPlcy := true
+	ConfigBucketAccessPolicy = &accessPlcy
+
+	_, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
 }
 
 func Test_Provision_ConfigBucketAccessPolicy_VPC_FailGRPC(t *testing.T) {
@@ -1012,6 +1080,7 @@ func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) 
 	v := getVolumeOptions()
 	accessPlcy := false
 	ConfigBucketAccessPolicy = &accessPlcy
+
 	v.PVC.Annotations[annotationAutoCreateBucket] = "true"
 
 	_, _, err := p.Provision(context.Background(), v)

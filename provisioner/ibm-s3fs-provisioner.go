@@ -64,6 +64,7 @@ type pvcAnnotations struct {
 	CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
 	AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
 	SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
+	AccessPolicyAllowedIps  string `json:"ibm.io/access-policy-allowed-ips,omitempty"`
 	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
 	QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
 }
@@ -274,6 +275,13 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 
 	if pvc.ObjectPath == "" && sc.ObjectPath != "" {
 		pvc.ObjectPath = sc.ObjectPath
+	}
+
+	if pvc.AccessPolicyAllowedIps != "" {
+		validIps, wrongIpArr := parser.ParseIPs(pvc.AccessPolicyAllowedIps)
+		if !validIps {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for access-policy-allowed-ips,  invalid ips are : %v", wrongIpArr)
+		}
 	}
 
 	if pvc.SetAccessPolicy != "" {
@@ -541,15 +549,21 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		contextLogger.Info(pvcName + ":" + clusterID + " : ClusterType  : " + providerType)
 
 		if strings.Contains(providerType, clusterTypeVpcG2) {
-			svcEndpointResp, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
-			if err != nil {
-				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to get VPC service endpoints for cluster: %v", err)
+			if pvc.AccessPolicyAllowedIps != "" {
+				vpcServiceEndpoints = pvc.AccessPolicyAllowedIps
+				contextLogger.Info(pvcName + ":" + clusterID + " :VPC service endpoints passed: " + vpcServiceEndpoints)
+			} else {
+				svcEndpointResp, err := providerClient.GetVPCSvcEndpoint(ctx, &provider.VPCSvcEndpointRequest{Id: name})
+				if err != nil {
+					return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to get VPC service endpoints for cluster: %v", err)
+				}
+				vpcServiceEndpoints = svcEndpointResp.GetCse()
+				contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
+				if vpcServiceEndpoints == "" {
+					return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :cannot set access policy for bucket. VPC service endpoints for the cluster not found")
+				}
 			}
-			vpcServiceEndpoints = svcEndpointResp.GetCse()
-			contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
-			if vpcServiceEndpoints == "" {
-				return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :cannot set access policy for bucket. VPC service endpoints for the cluster not found")
-			}
+
 			setBucketAccessPolicy = true
 			updateAP = p.AccessPolicy.NewAccessPolicy()
 			rcc = &backend.UpdateAPObj{}
@@ -563,6 +577,9 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	} else {
 		if pvc.SetAccessPolicy == "false" {
 			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy annotation is set to false for this PVC. bucket access policy will not be set for this PVC")
+		}
+		if pvc.AccessPolicyAllowedIps != "" && !*ConfigBucketAccessPolicy {
+			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " configBucketAccessPolicy is not enabled for this release. bucket access policy will not be set for this PVC")
 		}
 	}
 
