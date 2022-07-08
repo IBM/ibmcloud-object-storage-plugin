@@ -44,7 +44,7 @@ deps:
 	echo "Installing dependencies ..."
 	go mod download
 	go get github.com/coreos/go-systemd
-	go get github.com/pierrre/gotestcover
+	go install github.com/pierrre/gotestcover@latest
 
 .PHONY: fmt
 fmt:
@@ -57,8 +57,8 @@ vet:
 
 .PHONY: test
 test:
-	# $(GOPATH)/bin/gotestcover -v -race -coverprofile=cover.out ${GOPACKAGES}
-	go test -v -race -coverprofile=cover.out ${GOPACKAGES}
+	$(GOPATH)/bin/gotestcover -v -race -coverprofile=cover.out ${GOPACKAGES}
+	#go test -v -race -coverprofile=cover.out ${GOPACKAGES}
 
 .PHONY: coverage
 coverage:
