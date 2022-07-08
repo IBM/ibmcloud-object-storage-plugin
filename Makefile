@@ -43,7 +43,7 @@ driver: deps builddriver
 deps:
 	echo "Installing dependencies ..."
 	go mod download
-	go get github.com/coreos/go-systemd
+	# go get github.com/coreos/go-systemd
 	go install github.com/pierrre/gotestcover@latest
 
 .PHONY: fmt
