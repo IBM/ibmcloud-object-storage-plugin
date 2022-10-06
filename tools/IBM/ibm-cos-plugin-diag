@@ -123,7 +123,7 @@ with open('diagnostic_daemon.yaml', 'w') as the_file:
                     rc = 1
                 #if cmd_err:
                 #   print ("{0}\nERROR: {1}".format(cmd, cmd_err.strip()))
-            return (rc, cmd_output, cmd_err)
+            return (rc, cmd_output.decode('utf-8'), cmd_err)
 
 cmdHandle = cmdHandler()
 
@@ -173,7 +173,9 @@ def executeBasicChecks():
                     for line in out_list:
                         print ("> " + line)
                 else:
-                    print ("> All ibmcloud-object-storage-driver pods are in \"Running\" state... ok")
+                    print (cmd_err.strip())
+            else:
+                print ("> All ibmcloud-object-storage-driver pods are in \"Running\" state... ok")
     else:
         print (cmd_err.strip())
 
@@ -183,6 +185,7 @@ def executeBasicChecks():
     if not cmd_err.strip():
         out_list = cmd_out.strip().splitlines()
         for line in out_list:
+            print ("> " + line)
             if not out_list:
                 ret += 1
     else:
@@ -377,17 +380,14 @@ def check_daemonset_state(ds_name, nodes_available, ds_namespace="default"):
            return 0
 
         if attempts > 30 :
-            print ("Bhagya debug")
-            print (ds_name)
-            print (ds_status_ready)
-            print ("> " + ds_name + " Instances Desired: " + str(nodes_available) + ", Instances Available: " + ds_status_ready.decode('utf-8'))
+            print ("> " + ds_name + " Instances Desired: " + str(nodes_available) + ", Instances Available: " + ds_status_ready)
             cmd = "kubectl get ds -n {0} {1}".format(ds_namespace, ds_name)
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
                 print (cmd_out.strip())
             print ("Deployment of daemonset failed. Cleaning up daemonset now\n")
             return 1
-        print ("> DS: {0}, Desired: {1}, Available: {2} Sleeping 10 seconds".format(ds_name, str(nodes_available), ds_status_ready.decode('utf-8')))
+        print ("> DS: {0}, Desired: {1}, Available: {2} Sleeping 10 seconds".format(ds_name, str(nodes_available), ds_status_ready))
         time.sleep(10)
 
 def cleanup_daemonset(ds_name, ds_namespace="default"):
@@ -648,7 +648,7 @@ def labelNodesForDSDeployment(nodeList=""):
         else:
             g_labelFlag = 1
             for ip in nodeList:
-                g_nlist = g_nlist + ip.decode('utf-8') + " "
+                g_nlist = g_nlist + ip + " "
             cmd = "kubectl label nodes {0} tool=ibm-cos-diag --overwrite".format(g_nlist)
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if cmd_err.strip():
@@ -745,13 +745,14 @@ def main():
            sys.exit(1)
 
         if rc == 0:
-            cmd = "kubectl get nodes -o yaml | grep 'node\.openshift\.io/os_id\:'"
+            #cmd = "kubectl get nodes -o yaml | grep 'node\.openshift\.io/os_id\:'"
+            cmd = "kubectl get nodes -o yaml | grep 'ibm-cloud\.kubernetes\.io/iaas-provider\:'"
             (rc, cmd_out, cmd_err) = cmdHandle.cmd_run(cmd)
             if not cmd_err.strip():
-                if b'rhcos' in cmd_out.strip():
-                    provider = "ROKS"
-                else:
+                if "upi" in cmd_out.strip():
                     provider = "SATELLITE"
+                else:
+                    provider = "ROKS"
             else:
                 print (cmd_err.strip())
                 print ("ERROR: Unable to access cluster.\nIn case of IBM Cloud Kubernetes Service(IKS), export correct KUBECONFIG.\n")
