@@ -16,7 +16,7 @@ import (
 	"go.uber.org/zap"
 )
 
-//ObjectStorageSessionFactory is a factory for mocked object storage sessions
+// ObjectStorageSessionFactory is a factory for mocked object storage sessions
 type ObjectStorageSessionFactory struct {
 	//FailCheckBucketAccess ...
 	FailCheckBucketAccess bool
@@ -89,7 +89,7 @@ func (s *fakeObjectStorageSession) CheckObjectPathExistence(bucket, objectpath s
 	return true, nil
 }
 
-func (s *fakeObjectStorageSession) CreateBucket(bucket, locationConstraint string) (string, error) {
+func (s *fakeObjectStorageSession) CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error) {
 	s.factory.LastCreatedBucket = bucket
 	if s.factory.FailCreateBucket {
 		return "", errors.New(s.factory.FailCreateBucketErrMsg)
