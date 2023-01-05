@@ -53,7 +53,7 @@ type ObjectStorageSession interface {
 	CheckObjectPathExistence(bucket, objectpath string) (bool, error)
 
 	// CreateBucket methods creates a new bucket
-	CreateBucket(bucket, locationConstraint string) (string, error)
+	CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error)
 
 	// DeleteBucket methods deletes a bucket (with all of its objects)
 	DeleteBucket(bucket string) error
@@ -76,6 +76,10 @@ type COSSession struct {
 	svc    s3API
 	logger *zap.Logger
 }
+
+const (
+	KPEncryptionAlgorithm = "AES256" // https://github.com/IBM/ibm-cos-sdk-go/blob/master/service/s3/api.go#L8509-L8511
+)
 
 // NewObjectStorageSession method creates a new object store session
 func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession {
@@ -142,13 +146,25 @@ func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, 
 }
 
 // CreateBucket methods creates a new bucket
-func (s *COSSession) CreateBucket(bucket, locationConstraint string) (string, error) {
-	_, err := s.svc.CreateBucket(&s3.CreateBucketInput{
-		Bucket: aws.String(bucket),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
-			LocationConstraint: aws.String(locationConstraint),
-		},
-	})
+func (s *COSSession) CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error) {
+	var err error
+	if kpRootKeyCrn != "" {
+		_, err = s.svc.CreateBucket(&s3.CreateBucketInput{
+			Bucket: aws.String(bucket),
+			CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+				LocationConstraint: aws.String(locationConstraint),
+			},
+			IBMSSEKPCustomerRootKeyCrn:  aws.String(kpRootKeyCrn),
+			IBMSSEKPEncryptionAlgorithm: aws.String(KPEncryptionAlgorithm),
+		})
+	} else {
+		_, err = s.svc.CreateBucket(&s3.CreateBucketInput{
+			Bucket: aws.String(bucket),
+			CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+				LocationConstraint: aws.String(locationConstraint),
+			},
+		})
+	}
 
 	if err != nil {
 		if aerr, ok := err.(awserr.Error); ok && aerr.Code() == "BucketAlreadyOwnedByYou" {

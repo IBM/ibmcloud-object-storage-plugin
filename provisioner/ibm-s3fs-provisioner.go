@@ -106,6 +106,7 @@ const (
 	clusterTypeClassic   = "cruiser"
 	/* #nosec */
 	ResConfApiKey = "res-conf-apikey"
+	KPRootKeyCRN  = "kp-customer-root-key-crn"
 )
 
 var SockEndpoint *string
@@ -171,14 +172,14 @@ func (p *IBMS3fsProvisioner) writeCrtFile(ctx context.Context, secretName, secre
 	return nil
 }
 
-func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, err error) {
+func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, kpRootKeyCrn string, err error) {
 	secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+		return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -191,12 +192,12 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 	if err != nil {
 		accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
 		if err != nil {
-			return nil, nil, "", err
+			return nil, nil, "", "", err
 		}
 
 		secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
 		if err != nil {
-			return nil, nil, "", err
+			return nil, nil, "", "", err
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
@@ -206,12 +207,16 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 		resConfApiKey = string(bytesVal)
 	}
 
+	if bytesVal, ok := secrets.Data[KPRootKeyCRN]; ok {
+		kpRootKeyCrn = string(bytesVal)
+	}
+
 	return &backend.ObjectStorageCredentials{
 		AccessKey:         accessKey,
 		SecretKey:         secretKey,
 		APIKey:            apiKey,
 		ServiceInstanceID: serviceInstanceID,
-	}, allowedNamespace, resConfApiKey, nil
+	}, allowedNamespace, resConfApiKey, kpRootKeyCrn, nil
 }
 
 func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options controller.ProvisionOptions) (pvcAnnotations, scOptions, string, error) {
@@ -430,7 +435,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var pvcName = options.PVC.Name
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
-	var msg, resConfApiKey, providerType, vpcServiceEndpoints string
+	var msg, resConfApiKey, kpRootKeyCrn, providerType, vpcServiceEndpoints string
 	var valBucket = true
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
@@ -479,7 +484,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 	//var err_msg error
 	if valBucket {
-		creds, allowedNamespace, resConfApiKey, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
+		creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
 		if err != nil {
 			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 		}
@@ -602,7 +607,10 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		}
 
 		contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
-		msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass)
+		if kpRootKeyCrn != "" {
+			contextLogger.Info("key protect root key crn provided for bucket" + pvc.Bucket)
+		}
+		msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass, kpRootKeyCrn)
 		if msg != "" {
 			contextLogger.Info(pvcName + ":" + clusterID + " : " + msg)
 		}
@@ -830,7 +838,7 @@ func (p *IBMS3fsProvisioner) deleteBucket(ctx context.Context, pvcAnnots *pvcAnn
 		return fmt.Errorf("cannot retrieve secret: %v", err)
 	}
 
-	creds, _, _, err := p.getCredentials(ctx, pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+	creds, _, _, _, err := p.getCredentials(ctx, pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
 	if err != nil {
 		return fmt.Errorf("cannot get credentials: %v", err)
 	}
