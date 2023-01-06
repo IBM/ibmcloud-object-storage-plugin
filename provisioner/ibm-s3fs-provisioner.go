@@ -106,7 +106,7 @@ const (
 	clusterTypeClassic   = "cruiser"
 	/* #nosec */
 	ResConfApiKey = "res-conf-apikey"
-	KPRootKeyCRN  = "kp-customer-root-key-crn"
+	KPRootKeyCRN  = "kp-root-key-crn"
 )
 
 var SockEndpoint *string
