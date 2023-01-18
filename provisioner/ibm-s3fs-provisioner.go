@@ -104,8 +104,8 @@ const (
 	defaultName          = "IBMGrpcProvider"
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
-	ResConfApiKey = "res-conf-apikey"
-	KPRootKeyCRN  = "kp-root-key-crn"
+	ResConfApiKey        = "res-conf-apikey"
+	KPRootKeyCRN         = "kp-root-key-crn"
 )
 
 var SockEndpoint *string
