@@ -112,6 +112,7 @@ const (
 var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
 var ConfigQuotaLimit *bool
+var AllowSecretNs *bool
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -246,11 +247,18 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		}
 	}
 
-	if pvc.SecretNamespace == "" {
-		if sc.SecretNamespace != "" {
-			pvc.SecretNamespace = sc.SecretNamespace
-		} else {
-			pvc.SecretNamespace = options.PVC.Namespace
+	contextLogger.Info(pvcName + ":" + clusterID + " AllowSecretNs: " + strconv.FormatBool(*AllowSecretNs))
+
+	if AllowSecretNs != nil && *AllowSecretNs == false {
+		contextLogger.Info(pvcName + ":" + clusterID + " AllowSecretNs is set to false, the secret will be looked for in same namespace where pvc is created")
+		pvc.SecretNamespace = options.PVC.Namespace
+	} else {
+		if pvc.SecretNamespace == "" {
+			if sc.SecretNamespace != "" {
+				pvc.SecretNamespace = sc.SecretNamespace
+			} else {
+				pvc.SecretNamespace = options.PVC.Namespace
+			}
 		}
 	}
 

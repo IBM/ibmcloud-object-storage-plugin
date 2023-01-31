@@ -103,6 +103,12 @@ func main() {
 		"set 'true' to configure bucket quota limit",
 	)
 
+	s3fsprovisioner.AllowSecretNs = flag.Bool(
+		"allowSecretNs",
+		true,
+		"set 'false' to disable allowing to set secret-namespace different from pvc namespace",
+	)
+
 	flag.Parse()
 
 	// Enable debug trace
