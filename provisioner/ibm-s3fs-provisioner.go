@@ -252,7 +252,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 	if AllowCrossNsSecret != nil && *AllowCrossNsSecret == false {
 		contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
 		if pvc.SecretNamespace != "" {
-			contextLogger.Warn(pvcName + ":" + clusterID + "ibm.io/secret-namespace annotation if set will be ignored as AllowCrossNsSecret is set to false")
+			contextLogger.Warn(pvcName + ":" + clusterID + " ibm.io/secret-namespace annotation if set will be ignored as AllowCrossNsSecret is set to false")
 		}
 		pvc.SecretNamespace = options.PVC.Namespace
 	} else {
