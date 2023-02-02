@@ -103,6 +103,12 @@ func main() {
 		"set 'true' to configure bucket quota limit",
 	)
 
+	s3fsprovisioner.AllowCrossNsSecret = flag.Bool(
+		"allowCrossNsSecret",
+		true,
+		"set to 'false' to disable COS secret lookup in namespace other than PVC's namespace",
+	)
+
 	flag.Parse()
 
 	// Enable debug trace
