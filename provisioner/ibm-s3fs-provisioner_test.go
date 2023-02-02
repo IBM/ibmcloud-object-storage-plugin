@@ -1081,6 +1081,8 @@ func Test_Provision_AllowCrossNsSecret_True(t *testing.T) {
 
 	p := getProvisioner()
 	v := getVolumeOptions()
+	accessPlcy := false
+	ConfigBucketAccessPolicy = &accessPlcy
 	allowCrossNsSect := true
 	AllowCrossNsSecret = &allowCrossNsSect
 	v.PVC.Namespace = "pvc-namespace"
