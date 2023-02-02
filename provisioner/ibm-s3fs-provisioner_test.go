@@ -1092,7 +1092,7 @@ func Test_Provision_AllowCrossNsSecret_True(t *testing.T) {
 	assert.Equal(t, testNamespace, pv.Annotations[annotationSecretNamespace])
 }
 
-func Test_Provision_AllowCrossNsSecret_False_SetDiffSecretNS(t *testing.T) {
+func Test_Provision_AllowCrossNsSecret_False_SetDiffSecretNS_Negative(t *testing.T) {
 
 	p := getProvisioner()
 	v := getVolumeOptions()
