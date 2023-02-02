@@ -1079,15 +1079,10 @@ func Test_Provision_ConfigBucketAccessPolicy_ExistingBucket_AutoCreateBucket(t *
 
 func Test_Provision_AllowCrossNsSecret_True(t *testing.T) {
 
-	p := getCustomProvisioner(
-		&clientGoConfig{withResConfAPIKey: true},
-		&fake.ObjectStorageSessionFactory{},
-		&fakeGrpcClient.FakeGrpcSessionFactory{},
-		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
-		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getProvisioner()
 	v := getVolumeOptions()
+	allowCrossNsSect := true
+	AllowCrossNsSecret = &allowCrossNsSect
 	v.PVC.Namespace = "pvc-namespace"
 	v.PVC.Annotations[annotationSecretNamespace] = testNamespace
 	pv, _, err := p.Provision(context.Background(), v)
@@ -1097,15 +1092,10 @@ func Test_Provision_AllowCrossNsSecret_True(t *testing.T) {
 
 func Test_Provision_AllowCrossNsSecret_False_SetDiffSecretNS(t *testing.T) {
 
-	p := getCustomProvisioner(
-		&clientGoConfig{withResConfAPIKey: true},
-		&fake.ObjectStorageSessionFactory{},
-		&fakeGrpcClient.FakeGrpcSessionFactory{},
-		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
-		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getProvisioner()
 	v := getVolumeOptions()
+	allowCrossNsSect := false
+	AllowCrossNsSecret = &allowCrossNsSect
 	v.PVC.Namespace = "pvc-namespace"
 	v.PVC.Annotations[annotationSecretNamespace] = testNamespace
 	_, _, err := p.Provision(context.Background(), v)
@@ -1115,15 +1105,10 @@ func Test_Provision_AllowCrossNsSecret_False_SetDiffSecretNS(t *testing.T) {
 
 func Test_Provision_AllowCrossNsSecret_False_SetSameSecretNS(t *testing.T) {
 
-	p := getCustomProvisioner(
-		&clientGoConfig{withResConfAPIKey: true},
-		&fake.ObjectStorageSessionFactory{},
-		&fakeGrpcClient.FakeGrpcSessionFactory{},
-		&fake.FakeAccessPolicyFactory{PassUpdateAccessPolicy: true},
-		&fakeProvider.FakeIBMProviderClientFactory{ClusterTypeVpcG2: true, TestSvcEndpoint: true},
-		uuid.NewCryptoGenerator(),
-	)
+	p := getProvisioner()
 	v := getVolumeOptions()
+	allowCrossNsSect := false
+	AllowCrossNsSecret = &allowCrossNsSect
 	v.PVC.Namespace = testNamespace
 	v.PVC.Annotations[annotationSecretNamespace] = testNamespace
 	pv, _, err := p.Provision(context.Background(), v)
@@ -1134,6 +1119,8 @@ func Test_Provision_AllowCrossNsSecret_False_SetSameSecretNS(t *testing.T) {
 func Test_Provision_CreateBucket_BucketAlreadyOwnedByYou_Positive(t *testing.T) {
 	p := getFakeBackendProvisioner(&fake.ObjectStorageSessionFactory{FailCreateBucket: true, FailCreateBucketErrMsg: "BucketAlreadyExists"}, &fakeGrpcClient.FakeGrpcSessionFactory{}, &fake.FakeAccessPolicyFactory{}, &fakeProvider.FakeIBMProviderClientFactory{})
 	v := getVolumeOptions()
+	allowCrossNsSect := true
+	AllowCrossNsSecret = &allowCrossNsSect
 	accessPlcy := false
 	ConfigBucketAccessPolicy = &accessPlcy
 
