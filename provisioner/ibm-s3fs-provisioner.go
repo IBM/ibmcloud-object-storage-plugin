@@ -112,7 +112,7 @@ const (
 var SockEndpoint *string
 var ConfigBucketAccessPolicy *bool
 var ConfigQuotaLimit *bool
-var AllowSecretNs *bool
+var AllowCrossNsSecret *bool
 
 // IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
 type IBMS3fsProvisioner struct {
@@ -247,10 +247,13 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		}
 	}
 
-	contextLogger.Info(pvcName + ":" + clusterID + " AllowSecretNs: " + strconv.FormatBool(*AllowSecretNs))
+	contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
 
-	if AllowSecretNs != nil && *AllowSecretNs == false {
-		contextLogger.Info(pvcName + ":" + clusterID + " AllowSecretNs is set to false, the secret will be looked for in same namespace where pvc is created")
+	if AllowCrossNsSecret != nil && *AllowCrossNsSecret == false {
+		contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
+		if pvc.SecretNamespace != "" {
+			contextLogger.Warn(pvcName + ":" + clusterID + "ibm.io/secret-namespace annotation if set will be ignored as AllowCrossNsSecret is set to false")
+		}
 		pvc.SecretNamespace = options.PVC.Namespace
 	} else {
 		if pvc.SecretNamespace == "" {
