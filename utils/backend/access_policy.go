@@ -52,7 +52,7 @@ func (c *UpdateAPFactory) NewAccessPolicy() AccessPolicy {
 	return &UpdateAPObj{}
 }
 
-var rcc ResourceConfigurationV1 = &UpdateAPObj{}
+//var rcc ResourceConfigurationV1 = &UpdateAPObj{}
 
 // UpdateAccessPolicy updates the bucket access policy configuration with given ips
 func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc ResourceConfigurationV1) error {

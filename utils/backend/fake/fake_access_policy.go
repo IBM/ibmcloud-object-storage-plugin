@@ -15,7 +15,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 )
 
-//FakeAccessPolicyFactory implements backend.AccessPolicyFactory
+// FakeAccessPolicyFactory implements backend.AccessPolicyFactory
 type FakeAccessPolicyFactory struct {
 	//FailUpdateAccessPolicy ...
 	FailUpdateAccessPolicy bool
@@ -33,7 +33,7 @@ type FakeAccessPolicyFactory struct {
 
 var _ backend.AccessPolicyFactory = (*FakeAccessPolicyFactory)(nil)
 
-//fakeAccessPolicy implements backend.AccessPolicy
+// fakeAccessPolicy implements backend.AccessPolicy
 type fakeAccessPolicy struct {
 	rcv1 *FakeAccessPolicyFactory
 }

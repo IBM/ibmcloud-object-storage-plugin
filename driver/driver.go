@@ -29,10 +29,10 @@ import (
 )
 
 const (
-	dataRootPath       = "/var/lib/ibmc-s3fs"
-	passwordFileName   = "passwd"
-	cacheDirectoryName = "cache"
-	caPath             = "/tmp"
+	dataRootPath     = "/var/lib/ibmc-s3fs"
+	passwordFileName = "passwd"
+	//cacheDirectoryName = "cache"
+	caPath = "/tmp"
 	// SecretAccessKey is the key name for the AWS Access Key
 	SecretAccessKey = "access-key"
 	// SecretSecretKey is the key name for the AWS Secret Key
@@ -50,14 +50,14 @@ const (
 )
 
 var (
-	command            = exec.Command
-	stat               = os.Stat
-	unmount            = syscall.Unmount
-	mount              = syscall.Mount
-	writeFile          = ioutil.WriteFile
-	mkdirAll           = os.MkdirAll
-	removeAll          = os.RemoveAll
-	hostname, anyerror = os.Hostname()
+	command   = exec.Command
+	stat      = os.Stat
+	unmount   = syscall.Unmount
+	mount     = syscall.Mount
+	writeFile = ioutil.WriteFile
+	mkdirAll  = os.MkdirAll
+	removeAll = os.RemoveAll
+	//hostname, anyerror = os.Hostname()
 )
 
 // buildVersion holds the driver version string
@@ -468,7 +468,12 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 	if options.CAbundleB64 != "" {
 		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
-		caFileName := "_ca.crt"
+		if err != nil {
+			p.Logger.Error(podUID+":"+" Cannot decode CA bundle",
+				zap.Error(err))
+			return fmt.Errorf("cannot decode CA bundle: %v", err)
+		}
+		caFileName := "_ca.crt" //nolint:all
 		if options.CosServiceIP != "" {
 			caFileName = options.CosServiceIP + "_ca.crt"
 		} else {

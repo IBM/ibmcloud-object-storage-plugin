@@ -447,7 +447,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
 	var msg, resConfApiKey, kpRootKeyCrn, providerType, vpcServiceEndpoints string
-	var valBucket = true
+	var valBucket = true //nolint:all
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession

@@ -114,7 +114,7 @@ func SetUpEvn(kubeclient kubernetes.Interface, logger *zap.Logger) error {
 	return err
 }
 
-//LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
+// LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
 func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) error {
 	logger.Debug("Entry LoadClusterInfoMap")
 

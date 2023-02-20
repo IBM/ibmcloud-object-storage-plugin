@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-//FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
+// FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
 type FakeGrpcSessionFactory struct {
 	//FailGrpcConnection ...
 	FailGrpcConnection bool
@@ -28,7 +28,7 @@ type FakeGrpcSessionFactory struct {
 
 var _ grpcClient.GrpcSessionFactory = (*FakeGrpcSessionFactory)(nil)
 
-//fakeGrpcSession implements grpcClient.GrpcSession
+// fakeGrpcSession implements grpcClient.GrpcSession
 type fakeGrpcSession struct {
 	factory *FakeGrpcSessionFactory
 }

@@ -25,7 +25,7 @@ const (
 	emptySvcEndpoint   = ""
 )
 
-//FakeIBMProviderClientFactory implements provider.IBMProviderClientFactory
+// FakeIBMProviderClientFactory implements provider.IBMProviderClientFactory
 type FakeIBMProviderClientFactory struct {
 	ClusterTypeVpcG2      bool
 	ClusterTypeClassic    bool
@@ -40,7 +40,7 @@ type FakeIBMProviderClientFactory struct {
 
 var _ provider.IBMProviderClientFactory = (*FakeIBMProviderClientFactory)(nil)
 
-//FakeIBMProviderClient implements provider.IBMProviderClient
+// FakeIBMProviderClient implements provider.IBMProviderClient
 type fakeIBMProviderClient struct {
 	provider *FakeIBMProviderClientFactory
 }

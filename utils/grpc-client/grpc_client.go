@@ -51,7 +51,7 @@ func (c *ConnObjFactory) NewGrpcSession() GrpcSession {
 	return &GrpcSes{}
 }
 
-var cc ClientConn = &GrpcSes{}
+//var cc ClientConn = &GrpcSes{}
 
 // GrpcDial establishes a grpc-client client server connection
 func (c *GrpcSes) GrpcDial(cc ClientConn, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
