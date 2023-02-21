@@ -473,7 +473,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				zap.Error(err))
 			return fmt.Errorf("cannot decode CA bundle: %v", err)
 		}
-		caFileName := "_ca.crt" //nolint:all
+		caFileName := "_ca.crt" // nolint:ineffassign
 		if options.CosServiceIP != "" {
 			caFileName = options.CosServiceIP + "_ca.crt"
 		} else {
