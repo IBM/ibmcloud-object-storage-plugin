@@ -130,7 +130,7 @@ func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) err
 	cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(ctx, consts.ClusterInfo, metav1.GetOptions{})
 	if err != nil {
 		//err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
-		logger.Warn("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
+		logger.Warn("Unable to find the config map %s. Error: %v.Setting dummy values", zap.Reflect(consts.ClusterInfo, err))
 
 		setEnv("CLUSTER_ID", "dummyClusterID")
 		setEnv("CLUSTER_NAME", "dummyClusterName")
