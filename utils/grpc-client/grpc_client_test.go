@@ -98,7 +98,7 @@ func Test_GrpcDial_Error(t *testing.T) {
 }
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, err := net.ResolveUnixAddr("unix", addr)
+	unix_addr, err := net.ResolveUnixAddr("unix", addr) // nolint:ineffassign
 	conn, err := net.DialUnix("unix", nil, unix_addr)
 	return conn, err
 }

@@ -215,25 +215,29 @@ func main() {
 	os.Stdout = NullDevice
 	os.Stderr = NullDevice
 	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("version",
 		"Prints version",
 		"Prints version and build information",
-		&versionCommand) // nolint:errcheck
+		&versionCommand)
 	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("init",
 		"Init the plugin",
 		"The info command print the driver name and version.",
-		&initCommand) // nolint:errcheck
+		&initCommand)
 	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("mount",
 		"Mount Volume",
 		"Mount a volume Id to a path - returning the path.",
-		&mountCommand) // nolint:errcheck
+		&mountCommand)
 	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("unmount",
 		"Unmount Volume",
 		"UnMount given a mount dir",
-		&unmountCommand) // nolint:errcheck
+		&unmountCommand)
 
 	_, err = parser.Parse()
 	if err != nil {
