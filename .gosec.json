@@ -1,3 +1,10 @@
 {
-  "Issues": []
+  "Issues": [
+    {
+      "severity": "LOW",
+      "confidence": "HIGH",
+      "rule_id": "G104",
+      "details": "Errors unhandled."
+    }
+  ]
 }

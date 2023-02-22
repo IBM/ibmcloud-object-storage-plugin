@@ -104,7 +104,7 @@ const (
 	defaultName          = "IBMGrpcProvider"
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
-	ResConfApiKey        = "res-conf-apikey"
+	ResConfApiKey        = "res-conf-apikey"  // #nosec G101
 	KPRootKeyCRN         = "kp-root-key-crn"
 )
 
