@@ -136,7 +136,7 @@ var _ controller.Provisioner = &IBMS3fsProvisioner{}
 var writeFile = ioutil.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, err := net.ResolveUnixAddr("unix", addr) // nolint:ineffassign
+	unix_addr, _ := net.ResolveUnixAddr("unix", addr)
 	conn, err := net.DialUnix("unix", nil, unix_addr)
 	return conn, err
 }

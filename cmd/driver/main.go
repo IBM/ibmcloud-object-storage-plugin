@@ -113,11 +113,11 @@ func (m *mountCommand) Execute(args []string) error {
 	switch len(args) {
 	case 2:
 		// Kubernetes 1.6+
-		err = json.Unmarshal([]byte(args[1]), &mountOpts) // nolint:ineffassign
+		_ = json.Unmarshal([]byte(args[1]), &mountOpts)
 
 	case 3:
 		// Kubernetes 1.5-
-		err = json.Unmarshal([]byte(args[2]), &mountOpts) // nolint:ineffassign
+		_ = json.Unmarshal([]byte(args[2]), &mountOpts)
 	default:
 
 		return printResponse(interfaces.FlexVolumeResponse{
