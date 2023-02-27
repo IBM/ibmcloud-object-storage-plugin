@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-//FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
+// FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
 type FakeGrpcSessionFactory struct {
 	//FailGrpcConnection ...
 	FailGrpcConnection bool
@@ -28,7 +28,7 @@ type FakeGrpcSessionFactory struct {
 
 var _ grpcClient.GrpcSessionFactory = (*FakeGrpcSessionFactory)(nil)
 
-//fakeGrpcSession implements grpcClient.GrpcSession
+// fakeGrpcSession implements grpcClient.GrpcSession
 type fakeGrpcSession struct {
 	factory *FakeGrpcSessionFactory
 }

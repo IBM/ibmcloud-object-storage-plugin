@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -104,9 +104,8 @@ const (
 	defaultName          = "IBMGrpcProvider"
 	clusterTypeVpcG2     = "vpc-gen2"
 	clusterTypeClassic   = "cruiser"
-	/* #nosec */
-	ResConfApiKey = "res-conf-apikey"
-	KPRootKeyCRN  = "kp-root-key-crn"
+	ResConfApiKey        = "res-conf-apikey" // #nosec G101 -- False positive
+	KPRootKeyCRN         = "kp-root-key-crn"
 )
 
 var SockEndpoint *string
@@ -137,7 +136,7 @@ var _ controller.Provisioner = &IBMS3fsProvisioner{}
 var writeFile = ioutil.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, err := net.ResolveUnixAddr("unix", addr)
+	unix_addr, _ := net.ResolveUnixAddr("unix", addr)
 	conn, err := net.DialUnix("unix", nil, unix_addr)
 	return conn, err
 }
@@ -447,7 +446,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var pvcNamespace = options.PVC.Namespace
 	var clusterID = os.Getenv("CLUSTER_ID")
 	var msg, resConfApiKey, kpRootKeyCrn, providerType, vpcServiceEndpoints string
-	var valBucket = true
+	var valBucket = true // nolint:ineffassign
 	var allowedNamespace []string
 	var creds *backend.ObjectStorageCredentials
 	var sess backend.ObjectStorageSession

@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -70,11 +70,11 @@ var leaseRetryPeriod = flag.Duration(
 	"How often lease acquisition and renewal should be retried",
 )
 
-var leaseTermLimit = flag.Duration(
-	"leaseTermLimit",
-	10*time.Minute,
-	"Maximum time that a provisioner can maintain a lease",
-)
+//var leaseTermLimit = flag.Duration(
+//	"leaseTermLimit",
+//	10*time.Minute,
+//	"Maximum time that a provisioner can maintain a lease",
+//)
 
 func main() {
 	var err error

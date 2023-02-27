@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -29,10 +29,10 @@ import (
 )
 
 const (
-	dataRootPath       = "/var/lib/ibmc-s3fs"
-	passwordFileName   = "passwd"
-	cacheDirectoryName = "cache"
-	caPath             = "/tmp"
+	dataRootPath     = "/var/lib/ibmc-s3fs"
+	passwordFileName = "passwd"
+	//cacheDirectoryName = "cache"
+	caPath = "/tmp"
 	// SecretAccessKey is the key name for the AWS Access Key
 	SecretAccessKey = "access-key"
 	// SecretSecretKey is the key name for the AWS Secret Key
@@ -50,14 +50,14 @@ const (
 )
 
 var (
-	command            = exec.Command
-	stat               = os.Stat
-	unmount            = syscall.Unmount
-	mount              = syscall.Mount
-	writeFile          = ioutil.WriteFile
-	mkdirAll           = os.MkdirAll
-	removeAll          = os.RemoveAll
-	hostname, anyerror = os.Hostname()
+	command   = exec.Command
+	stat      = os.Stat
+	unmount   = syscall.Unmount
+	mount     = syscall.Mount
+	writeFile = ioutil.WriteFile
+	mkdirAll  = os.MkdirAll
+	removeAll = os.RemoveAll
+	//hostname, anyerror = os.Hostname()
 )
 
 // buildVersion holds the driver version string
@@ -468,7 +468,12 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 	if options.CAbundleB64 != "" {
 		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
-		caFileName := "_ca.crt"
+		if err != nil {
+			p.Logger.Error(podUID+":"+" Cannot decode CA bundle",
+				zap.Error(err))
+			return fmt.Errorf("cannot decode CA bundle: %v", err)
+		}
+		caFileName := "_ca.crt" // nolint:ineffassign
 		if options.CosServiceIP != "" {
 			caFileName = options.CosServiceIP + "_ca.crt"
 		} else {

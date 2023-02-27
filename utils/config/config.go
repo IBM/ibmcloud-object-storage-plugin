@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -37,7 +37,6 @@ func getEnv(key string) string {
 	return os.Getenv(strings.ToUpper(key))
 }
 
-/* #nosec */
 func setEnv(key string, value string) {
 	os.Setenv(strings.ToUpper(key), value)
 }
@@ -114,7 +113,7 @@ func SetUpEvn(kubeclient kubernetes.Interface, logger *zap.Logger) error {
 	return err
 }
 
-//LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
+// LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
 func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) error {
 	logger.Debug("Entry LoadClusterInfoMap")
 
@@ -129,7 +128,8 @@ func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) err
 	// export cluster-info config map
 	cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(ctx, consts.ClusterInfo, metav1.GetOptions{})
 	if err != nil {
-		err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
+		//err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
+		logger.Warn("Unable to find the config map %s. Error: %v.Setting dummy values", zap.Reflect(consts.ClusterInfo, err))
 
 		setEnv("CLUSTER_ID", "dummyClusterID")
 		setEnv("CLUSTER_NAME", "dummyClusterName")

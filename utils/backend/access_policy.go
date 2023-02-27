@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -52,7 +52,7 @@ func (c *UpdateAPFactory) NewAccessPolicy() AccessPolicy {
 	return &UpdateAPObj{}
 }
 
-var rcc ResourceConfigurationV1 = &UpdateAPObj{}
+//var rcc ResourceConfigurationV1 = &UpdateAPObj{}
 
 // UpdateAccessPolicy updates the bucket access policy configuration with given ips
 func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc ResourceConfigurationV1) error {

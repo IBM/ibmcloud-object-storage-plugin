@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -108,16 +108,16 @@ func (m *mountCommand) Execute(args []string) error {
 	filelogger.Info(":MountCommand start:" + hostname)
 
 	mountOpts := make(map[string]string)
-	mountOptsLogs := make(map[string]string)
+	mountOptsLogs := make(map[string]string) // nolint:ineffassign
 
 	switch len(args) {
 	case 2:
 		// Kubernetes 1.6+
-		err = json.Unmarshal([]byte(args[1]), &mountOpts)
+		_ = json.Unmarshal([]byte(args[1]), &mountOpts)
 
 	case 3:
 		// Kubernetes 1.5-
-		err = json.Unmarshal([]byte(args[2]), &mountOpts)
+		_ = json.Unmarshal([]byte(args[2]), &mountOpts)
 	default:
 
 		return printResponse(interfaces.FlexVolumeResponse{
@@ -214,22 +214,22 @@ func main() {
 	NullDevice, _ := os.Open(os.DevNull)
 	os.Stdout = NullDevice
 	os.Stderr = NullDevice
-	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("version",
 		"Prints version",
 		"Prints version and build information",
 		&versionCommand)
-	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("init",
 		"Init the plugin",
 		"The info command print the driver name and version.",
 		&initCommand)
-	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("mount",
 		"Mount Volume",
 		"Mount a volume Id to a path - returning the path.",
 		&mountCommand)
-	/* #nosec */
+	// nolint:errcheck
 	parser.AddCommand("unmount",
 		"Unmount Volume",
 		"UnMount given a mount dir",
@@ -243,8 +243,7 @@ func main() {
 		} else {
 			status = interfaces.StatusFailure
 		}
-		/* #nosec */
-		printResponse(interfaces.FlexVolumeResponse{
+		_ = printResponse(interfaces.FlexVolumeResponse{
 			Status:  status,
 			Message: fmt.Sprintf("Error parsing arguments: %v", err),
 		})

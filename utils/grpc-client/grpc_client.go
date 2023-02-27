@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -51,7 +51,7 @@ func (c *ConnObjFactory) NewGrpcSession() GrpcSession {
 	return &GrpcSes{}
 }
 
-var cc ClientConn = &GrpcSes{}
+//var cc ClientConn = &GrpcSes{}
 
 // GrpcDial establishes a grpc-client client server connection
 func (c *GrpcSes) GrpcDial(cc ClientConn, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
