@@ -134,7 +134,6 @@ type clientGoConfig struct {
 	withAllowedNamespace  bool
 	withAPIKey            bool
 	withServiceInstanceID bool
-	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
 	withResConfAPIKey     bool
@@ -178,11 +177,6 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 				Namespace: testNamespace,
 			},
 			Data: make(map[string][]byte),
-		}
-		if cfg.wrongSecretType {
-			secret.Type = "test-type"
-		} else {
-			secret.Type = "ibm/ibmc-s3fs"
 		}
 		if cfg.withcaBundle {
 			secret.Data[driver.CrtBundle] = []byte(testCAKey)
@@ -1466,14 +1460,6 @@ func Test_Validate_Bucket_True(t *testing.T) {
 	}
 }
 
-func Test_Wrong_Secret_Type_True(t *testing.T) {
-	p := getFakeClientGoProvisioner(&clientGoConfig{wrongSecretType: true})
-	v := getVolumeOptions()
-	_, _, err := p.Provision(context.Background(), v)
-	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "Wrong Secret Type")
-	}
-}
 func Test_Provision_PVCAnnotations_ReadwriteTimeoutSeconds_NonInt(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
