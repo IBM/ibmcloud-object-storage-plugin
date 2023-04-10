@@ -134,7 +134,6 @@ type clientGoConfig struct {
 	withAllowedNamespace  bool
 	withAPIKey            bool
 	withServiceInstanceID bool
-	wrongSecretType       bool
 	isTLS                 bool
 	withcaBundle          bool
 	withResConfAPIKey     bool
