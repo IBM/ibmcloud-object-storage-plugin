@@ -60,7 +60,7 @@ Push the provisioner container image from the build system to your image reposit
    ```
 
 ### Verify IBM Cloud Object Storage plug-in installation
-    $ kubectl get pods -n kube-system | grep object-storage
+    $ kubectl get pods -n ibm-object-s3fs | grep object-storage
       ibmcloud-object-storage-plugin-7c96f8b6f7-g7v98   1/1       Running   0          28s
 
     $ kubectl get storageclass |grep s3
@@ -197,7 +197,7 @@ EOF
   	  name: test-secret
   	  namespace: <NAMESPACE_NAME>
 	data:
-  	  access-key: <access key encoded in base64 (when not using IAM OAuth)>
+  	access-key: <access key encoded in base64 (when not using IAM OAuth)>
 	  secret-key: <secret key encoded in base64 (when not using IAM OAuth)>
 	  api-key: <api key encoded in base64 (for IAM OAuth)>
  	  service-instance-id: <service-instance-id encoded in base64 (for IAM OAuth + bucket creation)>
@@ -236,9 +236,9 @@ EOF
 ## Uninstall
    Execute the following commands to uninstall/remove IBM Cloud Object Storage plugin from your Kubernetes cluster:
    ```
-   $ kubectl delete deployment ibmcloud-object-storage-plugin -n kube-system
+   $ kubectl delete deployment ibmcloud-object-storage-plugin -n ibm-object-s3fs
    $ kubectl delete clusterRoleBinding ibmcloud-object-storage-plugin ibmcloud-object-storage-secret-reader
    $ kubectl delete clusterRole ibmcloud-object-storage-plugin ibmcloud-object-storage-secret-reader
-   $ kubectl delete sa ibmcloud-object-storage-plugin -n kube-system
+   $ kubectl delete sa ibmcloud-object-storage-plugin -n ibm-object-s3fs
    $ kubectl delete sc ibmc-s3fs-standard
    ```

@@ -178,9 +178,9 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 		return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 	}
 
-	// if strings.TrimSpace(string(secrets.Type)) != driverName {
-	// 	return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
-	// }
+	if strings.TrimSpace(string(secrets.Type)) != driverName {
+		return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
 
