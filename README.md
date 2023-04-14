@@ -197,11 +197,11 @@ EOF
   	  name: test-secret
   	  namespace: <NAMESPACE_NAME>
 	data:
-    access-key: <access key encoded in base64 (when not using IAM OAuth)>
+	  access-key: <access key encoded in base64 (when not using IAM OAuth)>
 	  secret-key: <secret key encoded in base64 (when not using IAM OAuth)>
 	  api-key: <api key encoded in base64 (for IAM OAuth)>
  	  service-instance-id: <service-instance-id encoded in base64 (for IAM OAuth + bucket creation)>
-    ca-bundle-crt: < TLS Public cert bundles encoded in base64>
+	  ca-bundle-crt: < TLS Public cert bundles encoded in base64>
   ```
 
    Create PVC by providing COS-Service name and COS-Service namespace
