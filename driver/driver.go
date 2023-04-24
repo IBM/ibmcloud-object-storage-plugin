@@ -274,7 +274,7 @@ func (p *S3fsPlugin) Init() interfaces.FlexVolumeResponse {
 	return interfaces.FlexVolumeResponse{
 		Status:       interfaces.StatusSuccess,
 		Message:      "Plugin init successfully",
-		Capabilities: interfaces.CapabilitiesResponse{Attach: false, FSGroup: false},
+		Capabilities: interfaces.CapabilitiesResponse{Attach: false, FSGroup: false, SupportsMetrics: true},
 	}
 }
 
