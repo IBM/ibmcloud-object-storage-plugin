@@ -37,8 +37,9 @@ type FlexPlugin interface {
 // CapabilitiesResponse represents a capabilities response of the init command
 type CapabilitiesResponse struct {
 	// Attach value is True/False (depending if the driver implements attach and detach)
-	Attach  bool `json:"attach"`
-	FSGroup bool `json:"fsGroup"`
+	Attach          bool `json:"attach"`
+	FSGroup         bool `json:"fsGroup"`
+	SupportsMetrics bool `json:"supportsMetrics"`
 }
 
 // FlexVolumeResponse represents a response of the volume plugin
