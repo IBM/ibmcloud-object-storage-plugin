@@ -1,4 +1,4 @@
-FROM golang:1.19.10
+FROM golang:1.20.5
 
 # Default values
 ARG git_commit_id=unknown
