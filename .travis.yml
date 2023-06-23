@@ -4,6 +4,7 @@ go:
   - tip
 
 group: bluezone
+dist: trusty
 
 matrix:
   fast_finish: true
@@ -15,8 +16,12 @@ cache:
 
 sudo: true
 
+addons:
+  apt:
+    packages:
+      - docker-ce
+
 before_install:
-  - sudo apt-get update
   - sudo apt-get install bc
 
 before_script:
