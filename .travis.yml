@@ -1,10 +1,9 @@
 language: go
-
 go:
   - 1.19.10
-  - tip
 
 group: bluezone
+dist: trusty
 
 matrix:
   fast_finish: true
@@ -15,6 +14,11 @@ cache:
   bundler: true
 
 sudo: true
+
+addons:
+  apt:
+    packages:
+      - docker-ce
 
 before_install:
   - sudo apt-get install bc

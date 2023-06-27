@@ -475,15 +475,17 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
 		}
 
-		if pvc.Bucket != "" {
-			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":bucket cannot be set when auto-delete is enabled, got: %s", pvc.Bucket)
-		}
+		//if pvc.Bucket != "" {
+		//	return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":bucket cannot be set when auto-delete is enabled, got: %s", pvc.Bucket)
+		//}
 
-		id, err := p.UUIDGenerator.New()
-		if err != nil {
-			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
+		if pvc.Bucket == "" {
+			id, err := p.UUIDGenerator.New()
+			if err != nil {
+				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
+			}
+			pvc.Bucket = autoBucketNamePrefix + id
 		}
-		pvc.Bucket = autoBucketNamePrefix + id
 	}
 
 	if pvc.ValidateBucket == "no" && pvc.AutoCreateBucket == "false" {
