@@ -18,7 +18,6 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"go.uber.org/zap"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -54,7 +53,7 @@ var (
 	stat      = os.Stat
 	unmount   = syscall.Unmount
 	mount     = syscall.Mount
-	writeFile = ioutil.WriteFile
+	writeFile = os.WriteFile
 	mkdirAll  = os.MkdirAll
 	removeAll = os.RemoveAll
 	//hostname, anyerror = os.Hostname()
