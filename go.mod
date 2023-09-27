@@ -12,8 +12,8 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/zap v1.24.0
-	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.30.0
+	google.golang.org/grpc v1.55.0
+	google.golang.org/protobuf v1.31.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
@@ -24,7 +24,7 @@ require (
 require (
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/cespare/xxhash/v2 v2.1.1 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
@@ -74,7 +74,7 @@ require (
 	golang.org/x/text v0.11.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20201019141844-1ed22bb0c154 // indirect
+	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	gopkg.in/go-playground/validator.v9 v9.31.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
