@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.19.10
+  - 1.20.7
 
 group: bluezone
 dist: trusty
