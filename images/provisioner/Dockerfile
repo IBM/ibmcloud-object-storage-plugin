@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8-860
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8-1072.1696517598
 
 # Default values
 ARG git_commit_id=unknown
