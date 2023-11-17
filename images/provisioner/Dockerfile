@@ -33,7 +33,7 @@ LABEL travis_build_number=${travis_build_number}
 #RUN mkdir /licenses
 #ADD licenses /licenses
 RUN microdnf update && microdnf install procps;
-RUN microdnf install iputils
+RUN microdnf install iputils gcc make
 # Add the Provisioner executable
 ADD ca-certs.tar.gz /
 ADD provisioner.tar.gz /usr/local/
