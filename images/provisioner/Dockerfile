@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8-1072.1697626218
+FROM registry.access.redhat.com/ubi8/ubi-minimal:8.9-1029
 
 # Default values
 ARG git_commit_id=unknown
@@ -33,7 +33,7 @@ LABEL travis_build_number=${travis_build_number}
 #RUN mkdir /licenses
 #ADD licenses /licenses
 RUN microdnf update && microdnf install procps;
-RUN microdnf install iputils
+RUN microdnf install iputils gcc make
 # Add the Provisioner executable
 ADD ca-certs.tar.gz /
 ADD provisioner.tar.gz /usr/local/
