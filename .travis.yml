@@ -3,7 +3,8 @@ go:
   - 1.22.2
 
 group: bluezone
-dist: trusty
+#dist: trusty
+dist: xenial
 
 matrix:
   fast_finish: true
