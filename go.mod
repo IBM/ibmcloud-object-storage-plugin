@@ -1,6 +1,6 @@
 module github.com/IBM/ibmcloud-object-storage-plugin
 
-go 1.19
+go 1.22.0
 
 require (
 	github.com/BurntSushi/toml v0.4.1
