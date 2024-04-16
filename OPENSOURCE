@@ -7,7 +7,7 @@ github.com/golang/protobuf,v1.5.4,direct
 github.com/jessevdk/go-flags,v1.5.0,direct
 github.com/stretchr/testify,v1.8.2,direct
 go.uber.org/zap,v1.24.0,direct
-google.golang.org/grpc,v1.58.0,direct
+google.golang.org/grpc,v1.58.3,direct
 google.golang.org/protobuf,v1.33.0,direct
 gopkg.in/natefinch/lumberjack.v2,v2.0.0,direct
 k8s.io/api,v0.28.2,direct
