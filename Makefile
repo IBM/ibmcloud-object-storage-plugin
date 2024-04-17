@@ -57,7 +57,7 @@ vet:
 
 .PHONY: test
 test:
-	$(GOPATH)/bin/gotestcover -v -race -coverprofile=cover.out ${GOPACKAGES}
+	CGO_ENABLED=0 $(GOPATH)/bin/gotestcover -v -race -coverprofile=cover.out ${GOPACKAGES}
 	#go test -v -race -coverprofile=cover.out ${GOPACKAGES}
 
 .PHONY: coverage
