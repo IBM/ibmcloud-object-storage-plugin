@@ -1,10 +1,9 @@
 language: go
 go:
-  - 1.22.2
+  - 1.19.2
 
 group: bluezone
-#dist: trusty
-dist: xenial
+dist: trusty
 
 matrix:
   fast_finish: true
