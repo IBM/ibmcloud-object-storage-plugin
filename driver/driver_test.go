@@ -355,8 +355,7 @@ func Test_isMountpoint_IsMountpoint_Positive(t *testing.T) {
 	p := getPlugin()
 	commandOutput = "... is a mountpoint"
 
-	//ret, err := p.isMountpoint("")
-	ret, err := p.isMountpoint("is a mountpoint")
+	ret, err := p.isMountpoint("")
 	if assert.NoError(t, err) {
 		assert.True(t, ret)
 	}
@@ -366,8 +365,7 @@ func Test_isMountpoint_IsNotMountpoint_Positive(t *testing.T) {
 	p := getPlugin()
 	commandOutput = "... is not a mountpoint"
 
-	//ret, err := p.isMountpoint("")
-	ret, err := p.isMountpoint("is not a mountpoint")
+	ret, err := p.isMountpoint("")
 	if assert.NoError(t, err) {
 		assert.False(t, ret)
 	}
