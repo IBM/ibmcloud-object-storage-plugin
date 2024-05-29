@@ -3,7 +3,7 @@ go:
   - 1.22.3
 
 group: bluezone
-dist: trusty
+dist: bionic
 
 matrix:
   fast_finish: true
