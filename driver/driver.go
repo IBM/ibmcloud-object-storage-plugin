@@ -158,6 +158,7 @@ func (p *S3fsPlugin) isMountpoint(pathname string) (bool, error) {
 
 	out, err := command("mountpoint", pathname).CombinedOutput()
 	outStr := strings.TrimSpace(string(out))
+	p.Logger.Info("outStr is", zap.String("outStr", outStr))
 	if err != nil {
 		if strings.HasSuffix(outStr, "Transport endpoint is not connected") {
 			return true, err
