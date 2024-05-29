@@ -353,7 +353,7 @@ func Test_isMountpoint_Error(t *testing.T) {
 
 func Test_isMountpoint_IsMountpoint_Positive(t *testing.T) {
 	p := getPlugin()
-	commandOutput = "... is a mountpoint"
+	commandOutput = " is a mountpoint"
 
 	ret, err := p.isMountpoint("")
 	if assert.NoError(t, err) {
@@ -363,7 +363,7 @@ func Test_isMountpoint_IsMountpoint_Positive(t *testing.T) {
 
 func Test_isMountpoint_IsNotMountpoint_Positive(t *testing.T) {
 	p := getPlugin()
-	commandOutput = "... is not a mountpoint"
+	commandOutput = " is not a mountpoint"
 
 	ret, err := p.isMountpoint("")
 	if assert.NoError(t, err) {
@@ -889,6 +889,7 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 func Test_Unmount_UnmountS3fsError(t *testing.T) {
 	p := getPlugin()
 	r := getUnmountRequest()
+
 	unmount = unmountError
 
 	resp := p.Unmount(r)
