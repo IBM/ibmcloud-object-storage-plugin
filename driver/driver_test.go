@@ -372,7 +372,7 @@ func Test_isMountpoint_IsNotMountpoint_Positive(t *testing.T) {
 		assert.False(t, ret)
 	}
 }
- */
+*/
 
 func Test_isMountpoint_UnknownOutput(t *testing.T) {
 	p := getPlugin()
@@ -902,7 +902,7 @@ func Test_Unmount_UnmountS3fsError(t *testing.T) {
 		assert.Contains(t, resp.Message, "cannot unmount s3fs mount point")
 	}
 }
- */
+*/
 
 //This test need root access for execution
 //func Test_Unmount_DeleteDataDirError(t *testing.T) {
