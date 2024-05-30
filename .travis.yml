@@ -1,9 +1,9 @@
 language: go
 go:
-  - 1.19.2
+  - 1.22.3
 
 group: bluezone
-dist: trusty
+dist: bionic
 
 matrix:
   fast_finish: true
@@ -21,6 +21,7 @@ addons:
       - docker-ce
 
 before_install:
+  - sudo apt-get update
   - sudo apt-get install bc
 
 before_script:
