@@ -23,7 +23,6 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"io/ioutil"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -133,7 +132,7 @@ type IBMS3fsProvisioner struct {
 }
 
 var _ controller.Provisioner = &IBMS3fsProvisioner{}
-var writeFile = ioutil.WriteFile
+var writeFile = os.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 	unix_addr, _ := net.ResolveUnixAddr("unix", addr)
