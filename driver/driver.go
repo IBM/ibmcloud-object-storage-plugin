@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+	"time"
 )
 
 const (
@@ -693,6 +694,19 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		p.Logger.Error(podUID+":"+"Running s3fs",
 			zap.String("Error", string(out)))
 		return fmt.Errorf("s3fs mount failed: %s", string(out))
+	}
+
+	// Wait for 1 second before checking whether s3fs process really terminated
+	time.Sleep(1 * time.Second)
+	// Check whether s3fs process terminated
+	cmd := "ps aux | grep " + podUID + " | grep s3fs | grep -v grep"
+	output, err = command("bash", "-c", cmd).CombinedOutput()
+	if err == nil {
+		s3fsProcStatus := strings.SplitAfterN(string(output), "\n", 2)
+		if s3fsProcStatus[1] == "" {
+			p.Logger.Error(podUID + ":" + "s3fs process terminated.")
+			return fmt.Errorf("s3fs mount failed: s3fs process terminated.")
+		}
 	}
 
 	fInfo, err = os.Lstat(mountRequest.MountDir)
