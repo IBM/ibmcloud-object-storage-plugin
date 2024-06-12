@@ -696,7 +696,12 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 
 	fInfo, err = os.Lstat(mountRequest.MountDir)
-	if err == nil {
+	if err != nil {
+		p.Logger.Error(podUID+"Check mountpoint failed",
+			zap.String("Path", mountRequest.MountDir),
+		)
+		return fmt.Errorf("s3fs mount failed, mount command:`s3fs %s`", strings.Join(args, " "))
+	} else {
 		p.Logger.Info(podUID+":"+"Target directory after-mount: ",
 			zap.String("mode:", fInfo.Mode().String()),
 			zap.Uint32("uid:", fInfo.Sys().(*syscall.Stat_t).Uid),
