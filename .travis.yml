@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.23.4
+  - 1.23.5
 
 group: bluezone
 dist: bionic
