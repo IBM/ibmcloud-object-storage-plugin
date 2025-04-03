@@ -57,6 +57,9 @@ type ObjectStorageSession interface {
 
 	// DeleteBucket methods deletes a bucket (with all of its objects)
 	DeleteBucket(bucket string) error
+
+	// SetBucketVersioning sets the versioning state of a bucket
+	SetBucketVersioning(bucket string, enabled bool) error
 }
 
 // COSSessionFactory represents a COS (S3) session factory
@@ -69,6 +72,7 @@ type s3API interface {
 	//ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 	DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 	DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
+	PutBucketVersioning(input *s3.PutBucketVersioningInput) (*s3.PutBucketVersioningOutput, error)
 }
 
 // COSSession represents a COS (S3) session
@@ -209,4 +213,27 @@ func (s *COSSession) DeleteBucket(bucket string) error {
 		Bucket: aws.String(bucket),
 	})
 	return err
+}
+
+func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
+	status := "Suspended"
+	if enabled {
+		status = "Enabled"
+	}
+	_, err := s.svc.PutBucketVersioning(&s3.PutBucketVersioningInput{
+		Bucket: aws.String(bucket),
+		VersioningConfiguration: &s3.VersioningConfiguration{
+			Status: aws.String(status),
+		},
+	})
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			s.logger.Error("Versioning operation failed",
+				zap.String("bucket", bucket),
+				zap.String("status", status),
+				zap.Error(aerr))
+		}
+		return fmt.Errorf("failed to set versioning status to %s: %w", status, err)
+	}
+	return nil
 }

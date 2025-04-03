@@ -70,19 +70,33 @@ buildgo:
 
 .PHONY: buildprovisioner
 buildprovisioner:
-	#Build provisioner executable on target env
-	docker build -t provisioner-builder --pull -f images/provisioner/Dockerfile.builder .
-	docker run provisioner-builder /bin/true
-	docker cp `docker ps -q -n=1`:/root/ca-certs.tar.gz ./
-	docker cp `docker ps -q -n=1`:/root/provisioner.tar.gz ./
-
-	#Make the final docker build having iscsilib and provisioner
+	# Build provisioner executable with explicit AMD64 platform
 	docker build \
-        --build-arg git_commit_id=${GIT_COMMIT_SHA} \
-        --build-arg git_remote_url=${GIT_REMOTE_URL} \
-        --build-arg build_date=${BUILD_DATE} \
-        -t $(IMAGE):$(VERSION) -f ./images/provisioner/Dockerfile .
-
+		--platform linux/amd64 \
+		-t provisioner-builder \
+		--pull \
+		-f ./images/provisioner/Dockerfile.builder .
+	
+	# Create stopped container for reliable file copying
+	docker create --name provisioner-builder-container provisioner-builder
+	docker cp provisioner-builder-container:/root/ca-certs.tar.gz ./
+	docker cp provisioner-builder-container:/root/provisioner.tar.gz ./
+	docker rm provisioner-builder-container
+	
+	# Build final provisioner image for AMD64
+	docker build \
+		--platform linux/amd64 \
+		--build-arg git_commit_id=${GIT_COMMIT_SHA} \
+		--build-arg git_remote_url=${GIT_REMOTE_URL} \
+		--build-arg build_date=${BUILD_DATE} \
+		-t $(IMAGE):$(VERSION) \
+		-f ./images/provisioner/Dockerfile .
+	
+	# Verify binary architecture
+	@Echo "Verifying provisioner binary is AMD64..."
+	@docker run --rm --entrypoint /bin/sh $(IMAGE):$(VERSION) -c \
+		"file /usr/local/bin/provisioner | grep -q 'x86-64' && echo '✓ Correct AMD64 binary' || echo '✗ Wrong architecture!'"
+	
 	#Cleanup
 	rm -f provisioner.tar.gz
 	rm -f ca-certs.tar.gz
