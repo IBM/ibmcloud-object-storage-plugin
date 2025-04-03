@@ -67,6 +67,7 @@ type pvcAnnotations struct {
 	AccessPolicyAllowedIps  string `json:"ibm.io/access-policy-allowed-ips,omitempty"`
 	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
 	QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
+	BucketVersioning        string `json:"ibm.io/bucket-versioning,omitempty"` // N
 }
 
 // Storage Class options
@@ -272,6 +273,13 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		}
 	} else if _, err := strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
+	}
+
+	// Validate the BucketVersioning annotation
+	if pvc.BucketVersioning != "" {
+		if pvc.BucketVersioning != "true" && pvc.BucketVersioning != "false" {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for bucket-versioning, expects true/false: %v", pvc.BucketVersioning)
+		}
 	}
 
 	if pvc.AutoDeleteBucket == "" {
@@ -666,6 +674,20 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			}
 			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")
 		}
+
+		if pvc.BucketVersioning == "true" || pvc.BucketVersioning == "false" {
+			enable := pvc.BucketVersioning == "true"
+			if err := sess.SetBucketVersioning(pvc.Bucket, enable); err != nil {
+				if deleteBucket {
+					if delErr := sess.DeleteBucket(pvc.Bucket); delErr != nil {
+						contextLogger.Error("Failed to clean up bucket after versioning error",
+							zap.Error(delErr))
+					}
+				}
+				return nil, controller.ProvisioningFinished, fmt.Errorf(
+					"failed to set versioning: %v", err)
+			}
+		}
 	} else {
 		if pvc.Bucket == "" {
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
@@ -686,6 +708,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set quota limit for bucket %s : %v", pvc.Bucket, err)
 			}
 			contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")
+		}
+		if pvc.BucketVersioning == "true" || pvc.BucketVersioning == "false" {
+			enable := pvc.BucketVersioning == "true"
+			if err := sess.SetBucketVersioning(pvc.Bucket, enable); err != nil {
+				return nil, controller.ProvisioningFinished, fmt.Errorf(
+					"failed to update versioning: %v", err)
+			}
 		}
 	}
 
