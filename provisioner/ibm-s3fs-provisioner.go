@@ -656,10 +656,6 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 						}
 					}
 					return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to set version for bucket %s: %v", pvc.Bucket, err)
-					// if delErr := sess.DeleteBucket(pvc.Bucket); delErr != nil {
-					// 	contextLogger.Error("Failed to clean up bucket after versioning error",
-					// 		zap.Error(delErr))
-					// }
 				}
 				contextLogger.Info(pvcName + ":" + clusterID + " :bucket versioning output '" + out)
 			}
@@ -704,10 +700,6 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			if out, err := sess.SetBucketVersioning(pvc.Bucket, enable); err != nil {
 				if err != nil {
 					return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to set version for bucket %s: %v", pvc.Bucket, err)
-					// if delErr := sess.DeleteBucket(pvc.Bucket); delErr != nil {
-					// 	contextLogger.Error("Failed to clean up bucket after versioning error",
-					// 		zap.Error(delErr))
-					// }
 				}
 				contextLogger.Info(pvcName + ":" + clusterID + " :bucket versioning output '" + out)
 			}
