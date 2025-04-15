@@ -226,6 +226,11 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 		status = s3.BucketVersioningStatusSuspended
 	}
 
+	// Log the versioning status that is being set
+	s.logger.Info("Setting bucket versioning",
+		zap.String("bucket", bucket),
+		zap.String("status", status))
+
 	// Make the API call to set the versioning status of the bucket.
 	out, err := s.svc.PutBucketVersioning(&s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
