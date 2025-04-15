@@ -247,13 +247,13 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 				zap.String("status", status),
 				zap.Error(aerr))
 		}
-		return fmt.Errorf("failed to set versioning status to %s: %w", status, err)
+		return fmt.Errorf("failed to set versioning status %s on bucket %s : %w", status, bucket, err)
 	}
 
 	// Log the output for debugging or confirmation
 	s.logger.Info("Bucket versioning response",
 		zap.String("bucket", bucket),
-		zap.String("status", status),
+		zap.String("versioningStatus", status),
 		zap.Any("response", out))
 
 	return nil
