@@ -94,8 +94,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-// workaround to replace dgrijalva/jwt-go with github.com/golang-jwt/jwt/v4 in indirect dependiencies
-// PSIRT PVR0322500 replace github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.5.1
+// workaround to replace dgrijalva/jwt-go with github.com/golang-jwt/jwt/v4 in indirect dependencies
 replace github.com/dgrijalva/jwt-go v3.2.0+incompatible => github.com/golang-jwt/jwt/v4 v4.5.1
 
 replace sigs.k8s.io/sig-storage-lib-external-provisioner v4.1.0+incompatible => sigs.k8s.io/sig-storage-lib-external-provisioner/v6 v6.0.0
