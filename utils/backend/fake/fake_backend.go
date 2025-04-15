@@ -12,6 +12,7 @@ package fake
 
 import (
 	"errors"
+
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
 	"go.uber.org/zap"
 )
@@ -30,6 +31,8 @@ type ObjectStorageSessionFactory struct {
 	CheckObjectPathExistenceError bool
 	//CheckObjectPathExistencePathNotFound ...
 	CheckObjectPathExistencePathNotFound bool
+	//FailSetBucketVersioning
+	FailSetBucketVersioning bool
 
 	// LastEndpoint holds the endpoint of the last created session
 	LastEndpoint string
@@ -101,6 +104,17 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 	s.factory.LastDeletedBucket = bucket
 	if s.factory.FailDeleteBucket {
 		return errors.New("")
+	}
+	return nil
+}
+
+func (s *fakeObjectStorageSession) SetBucketVersioning(bucket string, enabled bool) error {
+	s.factory.LastUpdatedBucket = bucket
+	if s.factory.FailSetBucketVersioning {
+		return errors.New("failed to set versioning")
+	}
+	if enabled {
+		return nil
 	}
 	return nil
 }

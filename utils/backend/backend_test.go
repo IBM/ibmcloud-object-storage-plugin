@@ -12,21 +12,23 @@ package backend
 
 import (
 	"errors"
+	"strings"
+	"testing"
+
 	"github.com/IBM/ibm-cos-sdk-go/aws/awserr"
 	"github.com/IBM/ibm-cos-sdk-go/service/s3"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"strings"
-	"testing"
 )
 
 type fakeS3API struct {
-	ErrHeadBucket   error
-	ErrCreateBucket error
-	ErrListObjects  error
-	ErrDeleteObject error
-	ErrDeleteBucket error
-	ObjectPath      string
+	ErrHeadBucket          error
+	ErrCreateBucket        error
+	ErrListObjects         error
+	ErrDeleteObject        error
+	ErrDeleteBucket        error
+	ErrPutBucketVersioning error
+	ObjectPath             string
 }
 
 const (
@@ -69,6 +71,10 @@ func (a *fakeS3API) DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectO
 
 func (a *fakeS3API) DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error) {
 	return nil, a.ErrDeleteBucket
+}
+
+func (a *fakeS3API) PutBucketVersioning(input *s3.PutBucketVersioningInput) (*s3.PutBucketVersioningOutput, error) {
+	return &s3.PutBucketVersioningOutput{}, a.ErrPutBucketVersioning
 }
 
 func getSession(svc s3API) ObjectStorageSession {
@@ -192,4 +198,26 @@ func Test_DeleteBucket_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
 	err := sess.DeleteBucket(testBucket)
 	assert.NoError(t, err)
+}
+
+func Test_SetBucketVersioning_Enabled_Positive(t *testing.T) {
+	sess := getSession(&fakeS3API{})
+	err := sess.SetBucketVersioning(testBucket, true)
+	assert.NoError(t, err)
+}
+
+func Test_SetBucketVersioning_Disabled_Positive(t *testing.T) {
+	sess := getSession(&fakeS3API{})
+	err := sess.SetBucketVersioning(testBucket, false)
+	assert.NoError(t, err)
+}
+
+func Test_SetBucketVersioning_Error(t *testing.T) {
+	sess := getSession(&fakeS3API{
+		ErrPutBucketVersioning: errFoo,
+	})
+	err := sess.SetBucketVersioning(testBucket, true)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to set versioning status")
+	}
 }

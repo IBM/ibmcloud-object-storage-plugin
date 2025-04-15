@@ -14,6 +14,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net"
+	"os"
+	"path"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
@@ -23,17 +31,10 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"net"
-	"os"
-	"path"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v6/controller"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // PVC annotations
@@ -67,6 +68,7 @@ type pvcAnnotations struct {
 	AccessPolicyAllowedIps  string `json:"ibm.io/access-policy-allowed-ips,omitempty"`
 	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
 	QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
+	BucketVersioning        string `json:"ibm.io/bucket-versioning,omitempty"`
 }
 
 // Storage Class options
@@ -272,6 +274,12 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		}
 	} else if _, err := strconv.ParseBool(pvc.AutoCreateBucket); err != nil {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
+	}
+
+	if pvc.BucketVersioning != "" {
+		if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvc.BucketVersioning)
+		}
 	}
 
 	if pvc.AutoDeleteBucket == "" {
@@ -637,6 +645,35 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			}
 		}
 
+		// if pvc.BucketVersioning != "" {
+		// 	enable := pvc.BucketVersioning == "true"
+		// 	if out, err := sess.SetBucketVersioning(pvc.Bucket, enable); err != nil {
+		// 		if deleteBucket {
+		// 			err1 := sess.DeleteBucket(pvc.Bucket)
+		// 			if err1 != nil {
+		// 				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set bucket versioning %v and cannot delete bucket %s: %v", err, pvc.Bucket, err1)
+		// 			}
+		// 		}
+		// 		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to set versioning for bucket %s: %v", pvc.Bucket, err)
+		// 	}
+		// 	contextLogger.Info(pvcName + ":" + clusterID + " : bucket versioning output '" + out + "' for bucket " + pvc.Bucket)
+		// }
+
+		if pvc.BucketVersioning != "" {
+			enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+			err := sess.SetBucketVersioning(pvc.Bucket, enable)
+			if err != nil {
+				if deleteBucket {
+					err1 := sess.DeleteBucket(pvc.Bucket)
+					if err1 != nil {
+						return nil, controller.ProvisioningFinished, fmt.Errorf("%s : %s : cannot set bucket versioning: %v and cannot delete bucket %s: %v", pvcName, clusterID, err, pvc.Bucket, err1)
+					}
+				}
+				return nil, controller.ProvisioningFinished, fmt.Errorf("%s:%s : failed to set versioning %t for bucket %s: %v", pvcName, clusterID, enable, pvc.Bucket, err)
+			}
+			contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning set to '%t' for bucket %s", pvcName, clusterID, enable, pvc.Bucket))
+		}
+
 		if setBucketAccessPolicy {
 			err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
 			if err != nil {
@@ -670,6 +707,18 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		if pvc.Bucket == "" {
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
 		}
+
+		// if pvc.BucketVersioning != "" {
+		// 	enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+		if pvc.BucketVersioning != "" {
+			enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+			err := sess.SetBucketVersioning(pvc.Bucket, enable)
+			if err != nil {
+				return nil, controller.ProvisioningFinished, fmt.Errorf("%s:%s : failed to set versioning for bucket %s: %v", pvcName, clusterID, pvc.Bucket, err)
+			}
+			contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning set to '%t' for bucket %s", pvcName, clusterID, enable, pvc.Bucket))
+		}
+
 		// this enables to set access policy for existing bucket
 		// when AutoCreateBucket is false, AutoDeleteBucket is false and SetAccessPolicy is true
 		if setBucketAccessPolicy {
