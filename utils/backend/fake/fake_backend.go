@@ -108,13 +108,13 @@ func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error {
 	return nil
 }
 
-func (s *fakeObjectStorageSession) SetBucketVersioning(bucket string, enabled bool) (string, error) {
+func (s *fakeObjectStorageSession) SetBucketVersioning(bucket string, enabled bool) error {
 	s.factory.LastUpdatedBucket = bucket
 	if s.factory.FailSetBucketVersioning {
-		return "", errors.New("failed to set versioning")
+		return errors.New("failed to set versioning")
 	}
 	if enabled {
-		return "Enabled", nil
+		return nil
 	}
-	return "Suspended", nil
+	return nil
 }

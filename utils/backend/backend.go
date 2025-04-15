@@ -60,7 +60,7 @@ type ObjectStorageSession interface {
 	DeleteBucket(bucket string) error
 
 	// SetBucketVersioning sets the versioning state of a bucket
-	SetBucketVersioning(bucket string, enabled bool) (string, error)
+	SetBucketVersioning(bucket string, enabled bool) error
 }
 
 // COSSessionFactory represents a COS (S3) session factory
@@ -216,7 +216,7 @@ func (s *COSSession) DeleteBucket(bucket string) error {
 	return err
 }
 
-func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) (string, error) {
+func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 	var status string
 
 	// Set the versioning status based on whether it's enabled or suspended.
@@ -242,7 +242,7 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) (string, e
 				zap.String("status", status),
 				zap.Error(aerr))
 		}
-		return "", fmt.Errorf("failed to set versioning status to %s: %w", status, err)
+		return fmt.Errorf("failed to set versioning status to %s: %w", status, err)
 	}
 
 	// Log the output for debugging or confirmation
@@ -251,6 +251,5 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) (string, e
 		zap.String("status", status),
 		zap.Any("response", out))
 
-	// Return the status and nil error if successful
-	return status, nil
+	return nil
 }

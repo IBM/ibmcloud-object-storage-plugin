@@ -202,23 +202,21 @@ func Test_DeleteBucket_Positive(t *testing.T) {
 
 func Test_SetBucketVersioning_Enabled_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
-	status, err := sess.SetBucketVersioning(testBucket, true)
+	err := sess.SetBucketVersioning(testBucket, true)
 	assert.NoError(t, err)
-	assert.Equal(t, s3.BucketVersioningStatusEnabled, status)
 }
 
 func Test_SetBucketVersioning_Disabled_Positive(t *testing.T) {
 	sess := getSession(&fakeS3API{})
-	status, err := sess.SetBucketVersioning(testBucket, false)
+	err := sess.SetBucketVersioning(testBucket, false)
 	assert.NoError(t, err)
-	assert.Equal(t, s3.BucketVersioningStatusSuspended, status)
 }
 
 func Test_SetBucketVersioning_Error(t *testing.T) {
 	sess := getSession(&fakeS3API{
 		ErrPutBucketVersioning: errFoo,
 	})
-	_, err := sess.SetBucketVersioning(testBucket, true)
+	err := sess.SetBucketVersioning(testBucket, true)
 	if assert.Error(t, err) {
 		assert.Contains(t, err.Error(), "failed to set versioning status")
 	}
