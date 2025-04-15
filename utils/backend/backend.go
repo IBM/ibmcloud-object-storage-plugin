@@ -12,6 +12,8 @@ package backend
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/IBM/ibm-cos-sdk-go/aws"
 	"github.com/IBM/ibm-cos-sdk-go/aws/awserr"
 	"github.com/IBM/ibm-cos-sdk-go/aws/credentials"
@@ -19,7 +21,6 @@ import (
 	"github.com/IBM/ibm-cos-sdk-go/aws/session"
 	"github.com/IBM/ibm-cos-sdk-go/service/s3"
 	"go.uber.org/zap"
-	"strings"
 )
 
 // ObjectStorageCredentials holds credentials for accessing an object storage service
@@ -57,6 +58,9 @@ type ObjectStorageSession interface {
 
 	// DeleteBucket methods deletes a bucket (with all of its objects)
 	DeleteBucket(bucket string) error
+
+	// SetBucketVersioning sets the versioning state of a bucket
+	SetBucketVersioning(bucket string, enabled bool) (string, error)
 }
 
 // COSSessionFactory represents a COS (S3) session factory
@@ -69,6 +73,7 @@ type s3API interface {
 	//ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
 	DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
 	DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
+	PutBucketVersioning(input *s3.PutBucketVersioningInput) (*s3.PutBucketVersioningOutput, error)
 }
 
 // COSSession represents a COS (S3) session
@@ -209,4 +214,43 @@ func (s *COSSession) DeleteBucket(bucket string) error {
 		Bucket: aws.String(bucket),
 	})
 	return err
+}
+
+func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) (string, error) {
+	var status string
+
+	// Set the versioning status based on whether it's enabled or suspended.
+	if enabled {
+		status = s3.BucketVersioningStatusEnabled
+	} else {
+		status = s3.BucketVersioningStatusSuspended
+	}
+
+	// Make the API call to set the versioning status of the bucket.
+	out, err := s.svc.PutBucketVersioning(&s3.PutBucketVersioningInput{
+		Bucket: aws.String(bucket),
+		VersioningConfiguration: &s3.VersioningConfiguration{
+			Status: aws.String(status),
+		},
+	})
+
+	// Check for errors from the AWS SDK call
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			s.logger.Error("Versioning operation failed",
+				zap.String("bucket", bucket),
+				zap.String("status", status),
+				zap.Error(aerr))
+		}
+		return "", fmt.Errorf("failed to set versioning status to %s: %w", status, err)
+	}
+
+	// Log the output for debugging or confirmation
+	s.logger.Info("Bucket versioning response",
+		zap.String("bucket", bucket),
+		zap.String("status", status),
+		zap.Any("response", out))
+
+	// Return the status and nil error if successful
+	return status, nil
 }
