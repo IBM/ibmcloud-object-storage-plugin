@@ -14,10 +14,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/IBM/ibmcloud-object-storage-plugin/driver/interfaces"
-	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
-	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
-	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -26,6 +22,11 @@ import (
 	"strconv"
 	"strings"
 	"syscall"
+
+	"github.com/IBM/ibmcloud-object-storage-plugin/driver/interfaces"
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
+	"go.uber.org/zap"
 )
 
 const (
