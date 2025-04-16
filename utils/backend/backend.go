@@ -251,10 +251,12 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 	}
 
 	// Log the output for debugging or confirmation
-	s.logger.Info("Bucket versioning response",
-		zap.String("bucket", bucket),
-		zap.String("versioningStatus", status),
-		zap.Any("response", out))
+	if out != nil {
+		s.logger.Info("Bucket versioning response",
+			zap.String("bucket", bucket),
+			zap.String("versioningStatus", status),
+			zap.Any("response", out))
+	}
 
 	return nil
 }
