@@ -1,9 +1,9 @@
 language: go
 go:
-  - 1.23.6
+  - 1.24.2
 
 group: bluezone
-dist: bionic
+dist: focal
 
 matrix:
   fast_finish: true
@@ -25,6 +25,8 @@ before_install:
   - sudo apt-get install bc
 
 before_script:
+  - export GO111MODULE="on";
+  - go mod tidy
   - make deps
   - go get github.com/pierrre/gotestcover
 
