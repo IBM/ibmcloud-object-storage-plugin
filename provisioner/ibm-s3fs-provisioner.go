@@ -96,6 +96,7 @@ type scOptions struct {
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string"`
 	AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
+	BucketVersioning        string `json:"ibm.io/bucket-versioning,omitempty"`
 }
 
 const (
@@ -276,9 +277,18 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
 	}
 
+	if sc.BucketVersioning != "" {
+		contextLogger.Info("sc.BucketVersioning: " + sc.BucketVersioning)
+	} else {
+		contextLogger.Info("sc.BucketVersioning: nil")
+	}
+
+	if pvc.BucketVersioning == "" {
+		pvc.BucketVersioning = sc.BucketVersioning
+	}
 	if pvc.BucketVersioning != "" {
 		if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvc.BucketVersioning)
+			return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
 		}
 	}
 
@@ -645,22 +655,10 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			}
 		}
 
-		// if pvc.BucketVersioning != "" {
-		// 	enable := pvc.BucketVersioning == "true"
-		// 	if out, err := sess.SetBucketVersioning(pvc.Bucket, enable); err != nil {
-		// 		if deleteBucket {
-		// 			err1 := sess.DeleteBucket(pvc.Bucket)
-		// 			if err1 != nil {
-		// 				return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set bucket versioning %v and cannot delete bucket %s: %v", err, pvc.Bucket, err1)
-		// 			}
-		// 		}
-		// 		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to set versioning for bucket %s: %v", pvc.Bucket, err)
-		// 	}
-		// 	contextLogger.Info(pvcName + ":" + clusterID + " : bucket versioning output '" + out + "' for bucket " + pvc.Bucket)
-		// }
-
 		if pvc.BucketVersioning != "" {
 			enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+			contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning 'enable' evaluated to: %t", pvcName, clusterID, enable))
+
 			err := sess.SetBucketVersioning(pvc.Bucket, enable)
 			if err != nil {
 				if deleteBucket {
