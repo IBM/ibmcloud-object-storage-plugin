@@ -286,12 +286,6 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
 		}
-
-		if strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true" {
-			fmt.Println("Bucket versioning is enabled.")
-		} else {
-			fmt.Println("Bucket versioning is disabled.")
-		}
 	}
 
 	if pvc.AutoDeleteBucket == "" {
