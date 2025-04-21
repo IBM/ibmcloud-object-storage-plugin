@@ -277,12 +277,6 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
 	}
 
-	if sc.BucketVersioning != "" {
-		contextLogger.Info("sc.BucketVersioning: " + sc.BucketVersioning)
-	} else {
-		contextLogger.Info("sc.BucketVersioning: nil")
-	}
-
 	if pvc.BucketVersioning == "" {
 		pvc.BucketVersioning = sc.BucketVersioning
 	}
