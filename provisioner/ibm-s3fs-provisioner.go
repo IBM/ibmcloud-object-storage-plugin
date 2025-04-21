@@ -280,9 +280,16 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 	if pvc.BucketVersioning == "" {
 		pvc.BucketVersioning = sc.BucketVersioning
 	}
+	// TODO: Update this logic if bucket-versioning is expected to be enabled by default
 	if pvc.BucketVersioning != "" {
 		if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
+		}
+
+		if strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true" {
+			fmt.Println("Bucket versioning is enabled.")
+		} else {
+			fmt.Println("Bucket versioning is disabled.")
 		}
 	}
 
@@ -651,7 +658,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 		if pvc.BucketVersioning != "" {
 			enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
-			contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning 'enable' evaluated to: %t", pvcName, clusterID, enable))
+			contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning value evaluated to: %t", pvcName, clusterID, enable))
 
 			err := sess.SetBucketVersioning(pvc.Bucket, enable)
 			if err != nil {
@@ -700,8 +707,6 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
 		}
 
-		// if pvc.BucketVersioning != "" {
-		// 	enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
 		if pvc.BucketVersioning != "" {
 			enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
 			err := sess.SetBucketVersioning(pvc.Bucket, enable)

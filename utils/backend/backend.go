@@ -229,9 +229,9 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 	// Log the versioning status that is being set
 	s.logger.Info("Setting bucket versioning",
 		zap.String("bucket", bucket),
-		zap.String("status", status))
+		zap.String("versioningStatus", status))
 
-	// Make the API call to set the versioning status of the bucket.
+	// Make the SDK call to set the versioning status of the bucket.
 	out, err := s.svc.PutBucketVersioning(&s3.PutBucketVersioningInput{
 		Bucket: aws.String(bucket),
 		VersioningConfiguration: &s3.VersioningConfiguration{
@@ -244,7 +244,7 @@ func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error {
 		if aerr, ok := err.(awserr.Error); ok {
 			s.logger.Error("Versioning operation failed",
 				zap.String("bucket", bucket),
-				zap.String("status", status),
+				zap.String("versioningStatus", status),
 				zap.Error(aerr))
 		}
 		return fmt.Errorf("failed to set versioning status %s on bucket %s : %w", status, bucket, err)

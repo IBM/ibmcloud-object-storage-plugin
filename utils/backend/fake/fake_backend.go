@@ -113,8 +113,6 @@ func (s *fakeObjectStorageSession) SetBucketVersioning(bucket string, enabled bo
 	if s.factory.FailSetBucketVersioning {
 		return errors.New("failed to set versioning")
 	}
-	if enabled {
-		return nil
-	}
+
 	return nil
 }
