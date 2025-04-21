@@ -282,6 +282,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 	}
 	// TODO: Update this logic if bucket-versioning is expected to be enabled by default
 	if pvc.BucketVersioning != "" {
+		pvc.BucketVersioning = strings.ToLower(strings.TrimSpace(pvc.BucketVersioning))
 		if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
 		}
