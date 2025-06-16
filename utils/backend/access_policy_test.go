@@ -12,11 +12,12 @@ package backend
 
 import (
 	"errors"
-	"github.com/IBM/go-sdk-core/v3/core"
-	rc "github.com/IBM/ibm-cos-sdk-go-config/resourceconfigurationv1"
-	"github.com/stretchr/testify/assert"
 	"net/http"
 	"testing"
+
+	"github.com/IBM/go-sdk-core/v5/core"
+	rc "github.com/IBM/ibm-cos-sdk-go-config/v2/resourceconfigurationv1"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
