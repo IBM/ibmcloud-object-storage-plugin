@@ -12,10 +12,11 @@ package backend
 
 import (
 	"fmt"
-	"github.com/IBM/go-sdk-core/v3/core"
-	rc "github.com/IBM/ibm-cos-sdk-go-config/resourceconfigurationv1"
 	"strconv"
 	"strings"
+
+	"github.com/IBM/go-sdk-core/v5/core"
+	rc "github.com/IBM/ibm-cos-sdk-go-config/v2/resourceconfigurationv1"
 )
 
 const ResourceConfigEPDirect = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
@@ -72,11 +73,17 @@ func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, 
 		URL:           ResourceConfigEPDirect,
 	})
 
+	// Create a map to hold the bucket patch
+	bucketPatchMap := make(map[string]interface{})
+
+	// Set firewall in the map
+	bucketPatchMap["firewall"] = &rc.Firewall{
+		AllowedIp: allowedIPs,
+	}
+
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{
-		Bucket: core.StringPtr(bucketName),
-		Firewall: &rc.Firewall{
-			AllowedIp: allowedIPs,
-		},
+		Bucket:      core.StringPtr(bucketName),
+		BucketPatch: bucketPatchMap,
 	}
 
 	response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
@@ -111,9 +118,15 @@ func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoi
 		URL:           ConfigEP,
 	})
 
+	// Create a map to hold the bucket patch
+	bucketPatchMap := make(map[string]interface{})
+
+	// Set firewall in the map
+	bucketPatchMap["hard_quota"] = core.Int64Ptr(quota)
+
 	updateConfigOptions := &rc.UpdateBucketConfigOptions{
-		Bucket:    core.StringPtr(bucketName),
-		HardQuota: core.Int64Ptr(quota),
+		Bucket:      core.StringPtr(bucketName),
+		BucketPatch: bucketPatchMap,
 	}
 
 	response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
