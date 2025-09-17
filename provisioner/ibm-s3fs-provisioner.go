@@ -14,7 +14,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -136,7 +135,7 @@ type IBMS3fsProvisioner struct {
 }
 
 var _ controller.Provisioner = &IBMS3fsProvisioner{}
-var writeFile = ioutil.WriteFile
+var writeFile = os.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 	unix_addr, _ := net.ResolveUnixAddr("unix", addr)

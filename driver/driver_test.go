@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -116,7 +116,7 @@ func getPlugin() *S3fsPlugin {
 		ret := exec.Command(os.Args[0], cs...)
 		ret.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 		if commandFailure {
-			ret.Stdout = ioutil.Discard
+			ret.Stdout = io.Discard
 		}
 		return ret
 	}

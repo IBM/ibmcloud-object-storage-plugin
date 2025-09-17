@@ -21,7 +21,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -208,7 +208,7 @@ func main() {
 	// disable the console logging (if anywhere else being done by softlayer or any other pkg)
 	// presently softlayer logs few warning message, which makes the flexdriver unmarshall failure
 	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	// Divert all loggers outputs and fmt.printf loggings (this will create issues with flex response)
 	NullDevice, _ := os.Open(os.DevNull)

@@ -8,8 +8,8 @@ Before installing IBM Cloud Object Storage plug-in in a Kubernetes cluster, ensu
 2. [S3FS-FUSE](https://github.com/s3fs-fuse/s3fs-fuse#installation) should be installed on every worker node in the cluster.
 
 ## Build the `provisioner` image and `driver` binary
-For building the **provisioner** image and the **driver** binary, `docker`, `GO` and `glide` should be installed on your local system.<br>
-1. On your local machine, install [`docker`](https://docs.docker.com/install/), [`Go`](https://golang.org/doc/install), and [`glide`](https://glide.sh/).
+For building the **provisioner** image and the **driver** binary, `docker`and `GO` should be installed on your local system.<br>
+1. On your local machine, install [`docker`](https://docs.docker.com/install/), [`Go`](https://golang.org/doc/install).
 2. Set the [`GOPATH` environment variable](https://github.com/golang/go/wiki/SettingGOPATH).
 3. Build the provisioner container image and the driver binary<br>
    clone the repo or your forked repo
@@ -22,7 +22,7 @@ For building the **provisioner** image and the **driver** binary, `docker`, `GO`
    ```
    build project and runs testcases
    ```
-   $ make
+   $ make all
    ```
    build container image for the provisioner
    ```
@@ -48,7 +48,7 @@ Push the provisioner container image from the build system to your image reposit
    $ sudo systemctl restart kubelet
    ```
 3. Create the provisioner.<br>
-   Before executing following command update `image` details as per your repository in `deploy/provisioner.yaml`. Currently, it is `image: ibmcloud-object-storage-plugin:latest`, which expects image to be in public docker hub
+   Before executing following command update `image` details as per your repository in `deploy/provisioner.yaml`. 
    ```
    $ kubectl create -f deploy/provisioner-sa.yaml
    $ kubectl create -f deploy/provisioner.yaml
@@ -88,7 +88,7 @@ data:
   access-key: <access key encoded in base64 (when not using IAM OAuth)>
   secret-key: <secret key encoded in base64 (when not using IAM OAuth)>
   api-key: <api key encoded in base64 (for IAM OAuth)>
-  service-instance-id: <service-instance-id encoded in base64 (for IAM OAuth + bucket creation)>
+  service-instance-id: <resource_instance_id encoded in base64 (for IAM OAuth + bucket creation)>
 EOF
 ```
 **Note**: Replace **<NAMESPACE_NAME>** with your namespace (for example: default).<br>
