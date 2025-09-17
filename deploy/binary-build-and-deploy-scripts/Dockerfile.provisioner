@@ -1,4 +1,4 @@
-FROM busybox:1.26-glibc
+FROM busybox:1.37-glibc
 
 ARG git_commit_id=unknown
 ARG git_remote_url=unknown
