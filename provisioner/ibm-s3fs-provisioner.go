@@ -203,6 +203,9 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
+		if err != nil {
+			return nil, nil, "", "", err
+		}
 	}
 
 	if bytesVal, ok := secrets.Data[ResConfApiKey]; ok {
@@ -381,7 +384,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		} else if retryCount < 1 {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
+			return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
 		}
 	}
 
@@ -393,7 +396,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
+			return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
 		}
 	}
 
@@ -563,7 +566,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 		providerClient = p.IBMProvider.NewIBMProviderClient(conn)
 		if conn != nil {
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 		}
 
 		name := defaultName
@@ -765,7 +768,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	accessMode := options.PVC.Spec.AccessModes
 	contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
 	if len(accessMode) > 1 {
-		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
+		return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
 	}
 
 	if pvc.AutoCache {

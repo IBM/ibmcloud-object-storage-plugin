@@ -60,7 +60,9 @@ func NewS3fsPlugin(logger *zap.Logger) *driver.S3fsPlugin {
 type versionCommand struct{}
 
 func (v *versionCommand) Execute(args []string) error {
-	fmt.Fprintf(stdout, "Version:%s, Build:%s\n", Version, Build)
+	if _, err := fmt.Fprintf(stdout, "Version:%s, Build:%s\n", Version, Build); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -108,7 +110,7 @@ func (m *mountCommand) Execute(args []string) error {
 	filelogger.Info(":MountCommand start:" + hostname)
 
 	mountOpts := make(map[string]string)
-	mountOptsLogs := make(map[string]string) // nolint:ineffassign
+	//mountOptsLogs := make(map[string]string) // nolint:ineffassign
 
 	switch len(args) {
 	case 2:
@@ -294,7 +296,9 @@ func printResponse(f interfaces.FlexVolumeResponse) error {
 	filelogger.Info(":FlexVolumeResponse", zap.String("output", output))
 
 	// write it to stdout, so that flexdriver will read it
-	fmt.Fprintf(stdout, "%s", output)
+	if _, err := fmt.Fprintf(stdout, "%s", output); err != nil {
+		return err
+	}
 	return nil
 }
 

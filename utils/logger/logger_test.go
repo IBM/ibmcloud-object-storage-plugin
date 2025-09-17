@@ -212,7 +212,7 @@ func TestCreatePodNameLoggerNotSet(t *testing.T) {
 }
 
 func TestCreatePodNameLogger(t *testing.T) {
-	os.Setenv(consts.PodNameEnvVar, "myPodName")
+	_ = os.Setenv(consts.PodNameEnvVar, "myPodName")
 	logger, err := GetZapLogger()
 	if err != nil {
 		t.Errorf("Got error when creating global logger: %s", err.Error())
@@ -235,7 +235,7 @@ func TestCreatePodNameLoggerNilLogger(t *testing.T) {
 
 func TestCreatePodNameKeyField(t *testing.T) {
 	podNameValue := "myPodName"
-	os.Setenv(consts.PodNameEnvVar, podNameValue)
+	_ = os.Setenv(consts.PodNameEnvVar, podNameValue)
 	field := CreateZapPodNameKeyField()
 	if field.Key != PodName {
 		t.Errorf("Expected key value to be: %s", PodName)
@@ -246,7 +246,7 @@ func TestCreatePodNameKeyField(t *testing.T) {
 }
 
 func TestCreatePodNameKeyFieldNotSet(t *testing.T) {
-	os.Unsetenv(consts.PodNameEnvVar)
+	_ = os.Unsetenv(consts.PodNameEnvVar)
 	field := CreateZapPodNameKeyField()
 	if field.Key != PodName {
 		t.Errorf("Expected key value to be: %s", PodName)

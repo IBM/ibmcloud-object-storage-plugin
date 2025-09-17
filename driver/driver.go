@@ -102,7 +102,7 @@ type Options struct {
 // PathExists returns true if the specified path exists.
 func pathExists(path string) (bool, error) {
 	if path == "" {
-		return false, errors.New("Undefined path")
+		return false, errors.New("undefined path")
 	}
 	_, err := os.Stat(path)
 	if err == nil {
@@ -367,7 +367,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			p.Logger.Error(podUID+":"+
 				"Cannot convert value of s3fs-fuse-retry-count into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+			return fmt.Errorf("cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		}
 		if retryCount < 1 {
 			p.Logger.Error(podUID+":"+
@@ -382,9 +382,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot convert value of stat-cache-expire-seconds into integer",
+				" cannot convert value of stat-cache-expire-seconds into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+			return fmt.Errorf("cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
 			p.Logger.Error(podUID+":"+
 				" value of stat-cache-expire-seconds should be >= 0",

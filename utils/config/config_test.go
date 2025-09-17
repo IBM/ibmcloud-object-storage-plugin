@@ -92,7 +92,7 @@ func TestGetConfigStringWithEnv(t *testing.T) {
 	os.Setenv("NAME", "env")
 
 	confVal := GetConfigString("name", testConf.Header.Name)
-	os.Unsetenv("NAME")
+	_ = os.Unsetenv("NAME")
 
 	expected := "env"
 	assert.Equal(t, expected, confVal)
@@ -113,7 +113,7 @@ func TestGetConfigIntWithEnv(t *testing.T) {
 	os.Setenv("ID", "10")
 
 	confVal := GetConfigInt("id", testConf.Header.ID, *testLogger)
-	os.Unsetenv("ID")
+	_ = os.Unsetenv("ID")
 
 	expected := 10
 	assert.Equal(t, expected, confVal)

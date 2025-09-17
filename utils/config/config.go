@@ -38,7 +38,7 @@ func getEnv(key string) string {
 }
 
 func setEnv(key string, value string) {
-	os.Setenv(strings.ToUpper(key), value)
+	_ = os.Setenv(strings.ToUpper(key), value)
 }
 
 // GetGoPath ...
