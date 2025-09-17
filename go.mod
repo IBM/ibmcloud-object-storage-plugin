@@ -3,7 +3,7 @@ module github.com/IBM/ibmcloud-object-storage-plugin
 go 1.23.7
 
 require (
-	github.com/BurntSushi/toml v1.4.0
+	github.com/BurntSushi/toml v1.5.0
 	github.com/IBM/go-sdk-core/v5 v5.21.0
 	github.com/IBM/ibm-cos-sdk-go v1.12.3
 	github.com/IBM/ibm-cos-sdk-go-config/v2 v2.3.0
