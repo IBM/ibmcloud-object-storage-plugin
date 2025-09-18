@@ -87,7 +87,7 @@ func TestAddContextFields(t *testing.T) {
 	requestID := "myRequestID"
 	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	triggerKey := "myTriggerKey"
-	ctx = context.WithValue(ctx, consts.TriggerKeyLabel, triggerKey)
+	ctx = context.WithValue(ctx, consts.TriggerKeyLabel, triggerKey) // nolint:staticcheck
 	parentLogger, _ := GetZapLogger()
 	ctxLogger := addContextFields(ctx, parentLogger)
 	ctxLogger.Info("TestAddContextFields")
@@ -98,7 +98,7 @@ func TestAddContextFieldsTestValue(t *testing.T) {
 	requestID := "myRequestID"
 	type key string
 	var testLabel key = "testLabel"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	ctx = context.WithValue(ctx, testLabel, "test")
 	parentLogger, _ := GetZapLogger()
 	ctxLogger := addContextFields(ctx, parentLogger)
@@ -107,7 +107,7 @@ func TestAddContextFieldsTestValue(t *testing.T) {
 
 func TestCreateRequestIdField(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	field := CreateZapRequestIDField(ctx)
 	if field.Key != consts.RequestIDLabel {
 		t.Errorf("Expected key value to be: %s", consts.RequestIDLabel)
