@@ -30,6 +30,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -253,7 +254,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 
 	contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
 
-	if AllowCrossNsSecret != nil && *AllowCrossNsSecret == false {
+	if AllowCrossNsSecret != nil && !*AllowCrossNsSecret {
 		contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
 		if pvc.SecretNamespace != "" {
 			contextLogger.Warn(pvcName + ":" + clusterID + " Ignoring 'ibm.io/secret-namespace' annotation as AllowCrossNsSecret is set to false")
@@ -358,7 +359,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		sc.OSStorageClass = pvc.Region
 	}
 
-	if !(strings.HasPrefix(sc.OSEndpoint, "https://") || strings.HasPrefix(sc.OSEndpoint, "http://")) {
+	if !strings.HasPrefix(sc.OSEndpoint, "https://") && !strings.HasPrefix(sc.OSEndpoint, "http://") {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/object-store-endpoint \"%v\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>",
@@ -474,7 +475,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var setQuotaLimit = false
 	var quotaLimit int64
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
@@ -530,7 +531,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 				break
 			}
 		}
-		if allowed == false {
+		if !allowed {
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":PVC creation in " + pvcNamespace + " namespace is not allowed")
 		}
 	}
@@ -559,7 +560,9 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
 		grpcSess = p.GRPCBackend.NewGrpcSession()
 		cc := &grpcClient.GrpcSes{}
-		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		//conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+
 		if err != nil {
 			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc-client connection: %v", err)
 		}
@@ -866,9 +869,9 @@ func (p *IBMS3fsProvisioner) Delete(ctx context.Context, pv *v1.PersistentVolume
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the pvc..")
 
-	endpointValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-endpoint"]
-	regionValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-storage-class"]
-	iamEndpoint := pv.Spec.PersistentVolumeSource.FlexVolume.Options["iam-endpoint"]
+	endpointValue := pv.Spec.FlexVolume.Options["object-store-endpoint"]
+	regionValue := pv.Spec.FlexVolume.Options["object-store-storage-class"]
+	iamEndpoint := pv.Spec.FlexVolume.Options["iam-endpoint"]
 
 	err := parser.UnmarshalMap(&pv.Annotations, &pvcAnnots)
 	if err != nil {

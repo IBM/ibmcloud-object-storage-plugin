@@ -36,6 +36,7 @@ type GrpcSes struct {
 
 func (gs *GrpcSes) Connect(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	var err error
+	// nolint:staticcheck // grpc.Dial is deprecated but still required until grpc.NewClient is available
 	gs.conn, err = grpc.Dial(target, opts...)
 	return gs.conn, err
 }

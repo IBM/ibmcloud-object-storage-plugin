@@ -124,9 +124,8 @@ func (s *COSSession) CheckBucketAccess(bucket string) error {
 
 // CheckObjectPathExistence method checks that object-path exists inside bucket
 func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) {
-	if strings.HasPrefix(objectpath, "/") {
-		objectpath = strings.TrimPrefix(objectpath, "/")
-	}
+
+	objectpath = strings.TrimPrefix(objectpath, "/")
 	if !strings.HasSuffix(objectpath, "/") {
 		objectpath = objectpath + "/"
 	}

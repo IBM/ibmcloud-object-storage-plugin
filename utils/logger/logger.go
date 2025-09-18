@@ -13,11 +13,12 @@ package logger
 import (
 	"context"
 	"errors"
+	"os"
+
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
 	uid "github.com/gofrs/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 const (
@@ -140,5 +141,5 @@ func CreateZapPodNameKeyField() zapcore.Field {
 func generateContextWithRequestID() context.Context {
 	reqID, _ := uid.NewV4()
 	requestID := reqID.String()
-	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 }

@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -20,7 +20,7 @@ import (
 
 func TestGetContextLoggerContext(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	ctxLogger, err := GetZapContextLogger(ctx)
 	if err != nil {
 		t.Errorf("Got error from GetLoggerWithContext: %s", err)
@@ -30,7 +30,7 @@ func TestGetContextLoggerContext(t *testing.T) {
 }
 
 func TestGetContextLoggerNullContext(t *testing.T) {
-	ctxLogger, err := GetZapContextLogger(nil)
+	ctxLogger, err := GetZapContextLogger(context.Background())
 	if err != nil {
 		t.Errorf("Got error from GetLoggerWithContext: %s", err)
 	}
@@ -49,7 +49,7 @@ func TestGetDefaultContextLogger(t *testing.T) {
 
 func TestGetContextLoggerFromLoggerContext(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	parentLogger, _ := GetZapLogger()
 	ctxLogger, err := GetZapContextLoggerFromLogger(ctx, parentLogger)
 	if err != nil {
@@ -61,7 +61,7 @@ func TestGetContextLoggerFromLoggerContext(t *testing.T) {
 
 func TestGetContextLoggerFromLoggerNullContext(t *testing.T) {
 	parentLogger, _ := GetZapLogger()
-	ctxLogger, err := GetZapContextLoggerFromLogger(nil, parentLogger)
+	ctxLogger, err := GetZapContextLoggerFromLogger(context.Background(), parentLogger)
 	if err != nil {
 		t.Errorf("Got error from GetLoggerWithContext: %s", err)
 	}
@@ -123,7 +123,7 @@ func TestCreateRequestIdField(t *testing.T) {
 }
 
 func TestCreateRequestIdFieldNullContext(t *testing.T) {
-	field := CreateZapRequestIDField(nil)
+	field := CreateZapRequestIDField(context.Background())
 	if field.Key != consts.RequestIDLabel {
 		t.Errorf("Expected key value to be: %s", consts.RequestIDLabel)
 	}

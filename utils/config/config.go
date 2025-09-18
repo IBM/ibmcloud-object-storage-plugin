@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -14,15 +14,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/BurntSushi/toml"
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"strconv"
-	"strings"
-	"time"
 )
 
 // ClusterInfo ...
@@ -95,7 +96,7 @@ func GetConfigStringList(envKey string, defaultConf string, logger zap.Logger) [
 		val = getEnv(envKey)
 	}
 
-	val = strings.Replace(val, " ", "", -1)
+	val = strings.ReplaceAll(val, " ", "")
 	return strings.Split(val, ",")
 }
 
