@@ -182,7 +182,7 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", "", fmt.Errorf("wrong secret type. provided secret of type %s. expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -370,7 +370,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		sc.IAMEndpoint = pvc.IAMEndpoint
 	}
 
-	if !(strings.HasPrefix(sc.IAMEndpoint, "https://") || strings.HasPrefix(sc.IAMEndpoint, "http://")) {
+	if !strings.HasPrefix(sc.IAMEndpoint, "https://") && !strings.HasPrefix(sc.IAMEndpoint, "http://") {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/iam-endpoint \"%v\":"+
 			" Must be of the form https://<hostname> or http://<hostname>",
@@ -560,7 +560,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
 		grpcSess = p.GRPCBackend.NewGrpcSession()
 		cc := &grpcClient.GrpcSes{}
-		//conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		// nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
 		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 
 		if err != nil {

@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -85,6 +85,7 @@ var gcon = &grpc.ClientConn{}
 
 func Test_GrpcDial_Positive(t *testing.T) {
 	grSess := getFakeGrpcSession(gcon, &fakeClientConn1{fcc1: cc1})
+	// nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
 	_, err := grSess.GrpcDial(cc1, *sockeEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 
 	assert.NoError(t, err)
@@ -92,6 +93,7 @@ func Test_GrpcDial_Positive(t *testing.T) {
 
 func Test_GrpcDial_Error(t *testing.T) {
 	grSess := getFakeGrpcSession(gcon, &fakeClientConn2{fcc2: cc2})
+	// nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
 	_, err := grSess.GrpcDial(cc2, *sockeEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
 
 	if assert.Error(t, err) {

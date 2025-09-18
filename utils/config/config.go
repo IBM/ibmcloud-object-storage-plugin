@@ -144,7 +144,7 @@ func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) err
 	clusteInfo := ClusterInfo{}
 	err = json.Unmarshal([]byte(clusterInfoData), &clusteInfo)
 	if err != nil {
-		err = fmt.Errorf("Error while parsing cluster-config %s. Error: %v", consts.ClusterInfo, err)
+		err = fmt.Errorf("error while parsing cluster-config %s. Error: %v", consts.ClusterInfo, err)
 		return err
 	}
 

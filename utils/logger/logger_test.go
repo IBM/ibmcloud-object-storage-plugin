@@ -71,21 +71,21 @@ func TestGetContextLoggerFromLoggerNullContext(t *testing.T) {
 
 func TestGetContextLoggerFromLoggerNullLogger(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	_, err := GetZapContextLoggerFromLogger(ctx, nil)
 	assert.Equal(t, "a valid logger needs to be passed in", err.Error())
 }
 
 func TestGetContextLoggerFromLoggerNullLoggerAndContext(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	_, err := GetZapContextLoggerFromLogger(ctx, nil)
 	assert.Equal(t, "a valid logger needs to be passed in", err.Error())
 }
 
 func TestAddContextFields(t *testing.T) {
 	requestID := "myRequestID"
-	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	ctx := context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 	triggerKey := "myTriggerKey"
 	ctx = context.WithValue(ctx, consts.TriggerKeyLabel, triggerKey)
 	parentLogger, _ := GetZapLogger()
@@ -170,7 +170,7 @@ func TestCreateTriggerKeyField(t *testing.T) {
 }
 
 func TestCreateTriggerKeyFieldNullContext(t *testing.T) {
-	field := CreateZapTiggerKeyField(nil)
+	field := CreateZapTiggerKeyField(context.Background())
 	if field.Key != consts.TriggerKeyLabel {
 		t.Errorf("Expected key value to be: %s", consts.TriggerKeyLabel)
 	}
