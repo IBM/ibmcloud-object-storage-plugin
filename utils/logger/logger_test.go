@@ -154,7 +154,7 @@ func TestCreateZapRequestIDFieldNoRequestID(t *testing.T) {
 
 func TestCreateTriggerKeyField(t *testing.T) {
 	triggerKey := "myTriggerKey"
-	ctx := context.WithValue(context.Background(), consts.TriggerKeyLabel, triggerKey)
+	ctx := context.WithValue(context.Background(), consts.TriggerKeyLabel, triggerKey) // nolint:staticcheck
 	field := CreateZapTiggerKeyField(ctx)
 	if field.Key != consts.TriggerKeyLabel {
 		t.Errorf("Expected key value to be: %s", consts.TriggerKeyLabel)
