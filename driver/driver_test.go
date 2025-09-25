@@ -227,7 +227,7 @@ func Test_Mount_BadIAMEndpoint(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for iam-endpoint \"%s\":"+
-			" Must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
+			" must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
 	}
 }
 
@@ -238,7 +238,7 @@ func Test_Mount_BadS3FSFUSERetryCount(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of s3fs-fuse-retry-count into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of s3fs-fuse-retry-count into integer")
 	}
 }
 
@@ -260,7 +260,7 @@ func Test_Mount_BadStatCacheExpireSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of stat-cache-expire-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of stat-cache-expire-seconds into integer")
 	}
 }
 
@@ -936,7 +936,7 @@ func Test_ConnectTimeoutSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of connect-timeout-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of connect-timeout-seconds into integer")
 	}
 }
 

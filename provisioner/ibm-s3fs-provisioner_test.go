@@ -717,7 +717,7 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create bucket using API key without service-instance-id")
+		assert.Contains(t, err.Error(), "cannot get credentials: service-instance-id secret missing")
 	}
 }
 
@@ -1472,7 +1472,7 @@ func Test_Wrong_Secret_Type_True(t *testing.T) {
 	v := getVolumeOptions()
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "Wrong Secret Type")
+		assert.Contains(t, err.Error(), "wrong secret type")
 	}
 }
 
