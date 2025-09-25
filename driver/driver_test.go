@@ -213,7 +213,7 @@ func Test_Mount_BadOSEndpoint(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for object-store-endpoint \"%s\": scheme is missing. "+
+		assert.Contains(t, resp.Message, fmt.Sprintf("bad value for object-store-endpoint \"%s\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
 	}
 }
@@ -979,7 +979,7 @@ func Test_ReadwriteTimeoutSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of readwrite-timeout-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of readwrite-timeout-seconds into integer")
 	}
 }
 
