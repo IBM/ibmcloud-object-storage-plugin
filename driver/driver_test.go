@@ -214,7 +214,7 @@ func Test_Mount_BadOSEndpoint(t *testing.T) {
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
 		assert.Contains(t, resp.Message, fmt.Sprintf("bad value for object-store-endpoint \"%s\": scheme is missing. "+
-			"Must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
+			"must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
 	}
 }
 
@@ -226,7 +226,7 @@ func Test_Mount_BadIAMEndpoint(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for iam-endpoint \"%s\":"+
+		assert.Contains(t, resp.Message, fmt.Sprintf("bad value for iam-endpoint \"%s\":"+
 			" must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
 	}
 }

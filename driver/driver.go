@@ -351,12 +351,12 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 
 	if !strings.HasPrefix(endptValue, "https://") && !strings.HasPrefix(endptValue, "http://") {
 		p.Logger.Error(podUID+":"+
-			"Bad value for object-store-endpoint: scheme is missing."+
-			" Must be of the form http://<hostname> or https://<hostname>",
+			"bad value for object-store-endpoint: scheme is missing."+
+			" must be of the form http://<hostname> or https://<hostname>",
 			zap.String("object-store-endpoint", endptValue))
 		return fmt.Errorf(podUID+":"+
-			"Bad value for object-store-endpoint \"%v\": scheme is missing."+
-			" Must be of the form http://<hostname> or https://<hostname>",
+			"bad value for object-store-endpoint \"%v\": scheme is missing."+
+			" must be of the form http://<hostname> or https://<hostname>",
 			endptValue)
 	}
 
