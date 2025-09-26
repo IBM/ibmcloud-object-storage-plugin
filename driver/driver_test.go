@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -20,7 +20,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -116,7 +116,7 @@ func getPlugin() *S3fsPlugin {
 		ret := exec.Command(os.Args[0], cs...)
 		ret.Env = []string{"GO_WANT_HELPER_PROCESS=1"}
 		if commandFailure {
-			ret.Stdout = ioutil.Discard
+			ret.Stdout = io.Discard
 		}
 		return ret
 	}
@@ -213,8 +213,8 @@ func Test_Mount_BadOSEndpoint(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for object-store-endpoint \"%s\": scheme is missing. "+
-			"Must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
+		assert.Contains(t, resp.Message, fmt.Sprintf("bad value for object-store-endpoint \"%s\": scheme is missing. "+
+			"must be of the form http://<hostname> or https://<hostname>", r.Opts[optionOSEndpoint]))
 	}
 }
 
@@ -226,8 +226,8 @@ func Test_Mount_BadIAMEndpoint(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, fmt.Sprintf("Bad value for iam-endpoint \"%s\":"+
-			" Must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
+		assert.Contains(t, resp.Message, fmt.Sprintf("bad value for iam-endpoint \"%s\":"+
+			" must be of the form https://<hostname> or http://<hostname>", r.Opts[optionIAMEndpoint]))
 	}
 }
 
@@ -238,7 +238,7 @@ func Test_Mount_BadS3FSFUSERetryCount(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of s3fs-fuse-retry-count into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of s3fs-fuse-retry-count into integer")
 	}
 }
 
@@ -260,7 +260,7 @@ func Test_Mount_BadStatCacheExpireSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of stat-cache-expire-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of stat-cache-expire-seconds into integer")
 	}
 }
 
@@ -936,7 +936,7 @@ func Test_ConnectTimeoutSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of connect-timeout-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of connect-timeout-seconds into integer")
 	}
 }
 
@@ -979,7 +979,7 @@ func Test_ReadwriteTimeoutSeconds_NonInt(t *testing.T) {
 
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusFailure, resp.Status) {
-		assert.Contains(t, resp.Message, "Cannot convert value of readwrite-timeout-seconds into integer")
+		assert.Contains(t, resp.Message, "cannot convert value of readwrite-timeout-seconds into integer")
 	}
 }
 

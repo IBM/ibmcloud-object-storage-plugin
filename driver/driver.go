@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -14,7 +14,6 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -55,7 +54,7 @@ var (
 	stat      = os.Stat
 	unmount   = syscall.Unmount
 	mount     = syscall.Mount
-	writeFile = ioutil.WriteFile
+	writeFile = os.WriteFile
 	mkdirAll  = os.MkdirAll
 	removeAll = os.RemoveAll
 	//hostname, anyerror = os.Hostname()
@@ -103,7 +102,7 @@ type Options struct {
 // PathExists returns true if the specified path exists.
 func pathExists(path string) (bool, error) {
 	if path == "" {
-		return false, errors.New("Undefined path")
+		return false, errors.New("undefined path")
 	}
 	_, err := os.Stat(path)
 	if err == nil {
@@ -177,7 +176,7 @@ func (p *S3fsPlugin) isMountpoint(pathname string) (bool, error) {
 			zap.String("Pathname", pathname))
 		return false, nil
 	} else {
-		p.Logger.Error(podUID+":"+"Cannot parse mountpoint result",
+		p.Logger.Error(podUID+":"+"cannot parse mountpoint result",
 			zap.String("Error", outStr))
 		return false, fmt.Errorf("cannot parse mountpoint result: %s", outStr)
 	}
@@ -195,7 +194,7 @@ func (p *S3fsPlugin) unmountPath(mountPath string, delete bool) error {
 				zap.String("Mount path", mountPath))
 			return nil
 		} else {
-			p.Logger.Error(podUID+":"+"Cannot stat directory",
+			p.Logger.Error(podUID+":"+"cannot stat directory",
 				zap.String("Mount path", mountPath), zap.Error(err))
 			return fmt.Errorf("cannot stat directory %s: %v", mountPath, err)
 		}
@@ -208,12 +207,12 @@ func (p *S3fsPlugin) unmountPath(mountPath string, delete bool) error {
 			zap.String("Mount path", mountPath))
 		err = unmount(mountPath, syscall.MNT_DETACH)
 		if err != nil && checkMountErr == nil {
-			p.Logger.Error(podUID+":"+"Cannot unmount. Trying force unmount",
+			p.Logger.Error(podUID+":"+"cannot unmount. Trying force unmount",
 				zap.String("Mount path", mountPath), zap.Error(err))
 			//Do force unmount
 			err = unmount(mountPath, syscall.MNT_FORCE)
 			if err != nil {
-				p.Logger.Error(podUID+":"+"Cannot force unmount",
+				p.Logger.Error(podUID+":"+"cannot force unmount",
 					zap.String("Mount path", mountPath), zap.Error(err))
 				return fmt.Errorf("cannot force unmount %s: %v", mountPath, err)
 			}
@@ -225,7 +224,7 @@ func (p *S3fsPlugin) unmountPath(mountPath string, delete bool) error {
 			zap.String("Mount path", mountPath))
 		err = removeAll(mountPath)
 		if err != nil {
-			p.Logger.Error(podUID+":"+"Cannot remove",
+			p.Logger.Error(podUID+":"+"cannot remove",
 				zap.String("Mount path", mountPath), zap.Error(err))
 			return fmt.Errorf("cannot remove %s: %v", mountPath, err)
 		}
@@ -249,7 +248,7 @@ func (p *S3fsPlugin) createEmptyMountpoint(mountPath string) error {
 		zap.String("mountPath", mountPath))
 	err = mkdirAll(mountPath, 0755)
 	if err != nil {
-		p.Logger.Error(podUID+":Cannot create directory",
+		p.Logger.Error(podUID+":cannot create directory",
 			zap.String("mountPath", mountPath), zap.Error(err))
 		return fmt.Errorf("cannot create directory %s: %v", mountPath, err)
 	}
@@ -259,7 +258,7 @@ func (p *S3fsPlugin) createEmptyMountpoint(mountPath string) error {
 		zap.String("mountPath", mountPath))
 	err = mount("tmpfs", mountPath, "tmpfs", 0, "size=4k")
 	if err != nil {
-		p.Logger.Error(podUID+":Cannot create tmpfs mountpoint",
+		p.Logger.Error(podUID+":cannot create tmpfs mountpoint",
 			zap.String("mountPath", mountPath), zap.Error(err))
 		return fmt.Errorf("cannot create tmpfs mountpoint %s: %v", mountPath, err)
 	}
@@ -307,12 +306,12 @@ func (p *S3fsPlugin) createDirectoryIfNotExists(path string) error {
 				zap.String("path", path))
 			err = mkdirAll(path, 0755)
 			if err != nil {
-				p.Logger.Error(podUID+":"+"Cannot create directory",
+				p.Logger.Error(podUID+":"+"cannot create directory",
 					zap.Error(err))
 				return fmt.Errorf("cannot create directory: %v", err)
 			}
 		} else {
-			p.Logger.Error(podUID+":"+"Cannot stat directory",
+			p.Logger.Error(podUID+":"+"cannot stat directory",
 				zap.Error(err))
 			return fmt.Errorf("cannot stat directory: %v", err)
 		}
@@ -330,7 +329,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 
 	err := parser.UnmarshalMap(&mountRequest.Opts, &options)
 	if err != nil {
-		p.Logger.Error(podUID+":"+"Cannot unmarshal driver options",
+		p.Logger.Error(podUID+":"+"cannot unmarshal driver options",
 			zap.Error(err))
 		return fmt.Errorf("cannot unmarshal driver options: %v", err)
 	}
@@ -350,14 +349,14 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		regionValue = "dummy-object-store-storageclass"
 	}
 
-	if !(strings.HasPrefix(endptValue, "https://") || strings.HasPrefix(endptValue, "http://")) {
+	if !strings.HasPrefix(endptValue, "https://") && !strings.HasPrefix(endptValue, "http://") {
 		p.Logger.Error(podUID+":"+
-			"Bad value for object-store-endpoint: scheme is missing."+
-			" Must be of the form http://<hostname> or https://<hostname>",
+			"bad value for object-store-endpoint: scheme is missing."+
+			" must be of the form http://<hostname> or https://<hostname>",
 			zap.String("object-store-endpoint", endptValue))
 		return fmt.Errorf(podUID+":"+
-			"Bad value for object-store-endpoint \"%v\": scheme is missing."+
-			" Must be of the form http://<hostname> or https://<hostname>",
+			"bad value for object-store-endpoint \"%v\": scheme is missing."+
+			" must be of the form http://<hostname> or https://<hostname>",
 			endptValue)
 	}
 
@@ -366,9 +365,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		retryCount, err := strconv.Atoi(options.S3FSFUSERetryCount)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				"Cannot convert value of s3fs-fuse-retry-count into integer",
+				"cannot convert value of s3fs-fuse-retry-count into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+			return fmt.Errorf("cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		}
 		if retryCount < 1 {
 			p.Logger.Error(podUID+":"+
@@ -383,9 +382,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot convert value of stat-cache-expire-seconds into integer",
+				" cannot convert value of stat-cache-expire-seconds into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+			return fmt.Errorf("cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
 			p.Logger.Error(podUID+":"+
 				" value of stat-cache-expire-seconds should be >= 0",
@@ -399,9 +398,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		_, err := strconv.Atoi(options.ConnectTimeoutSeconds)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				"Cannot convert value of connect-timeout-seconds into integer",
+				"cannot convert value of connect-timeout-seconds into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of connect-timeout-seconds into integer: %v", err)
+			return fmt.Errorf("cannot convert value of connect-timeout-seconds into integer: %v", err)
 		}
 	}
 
@@ -410,9 +409,9 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		_, err := strconv.Atoi(options.ReadwriteTimeoutSeconds)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				"Cannot convert value of readwrite-timeout-seconds into integer",
+				"cannot convert value of readwrite-timeout-seconds into integer",
 				zap.Error(err))
-			return fmt.Errorf("Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
+			return fmt.Errorf("cannot convert value of readwrite-timeout-seconds into integer: %v", err)
 		}
 	}
 
@@ -420,14 +419,14 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		apiKey, err = parser.DecodeBase64(options.APIKeyB64)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot decode API key",
+				" cannot decode API key",
 				zap.Error(err))
 			return fmt.Errorf("cannot decode API key: %v", err)
 		}
 		serviceInstanceId, err = parser.DecodeBase64(options.ServiceInstanceIDB64)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot decode Service Instance ID",
+				" cannot decode Service Instance ID",
 				zap.Error(err))
 			return fmt.Errorf("cannot decode Service Instance ID: %v", err)
 		}
@@ -435,7 +434,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		accessKey, err = parser.DecodeBase64(options.AccessKeyB64)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot decode access key",
+				" cannot decode access key",
 				zap.Error(err))
 			return fmt.Errorf("cannot decode access key: %v", err)
 		}
@@ -443,7 +442,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		secretKey, err = parser.DecodeBase64(options.SecretKeyB64)
 		if err != nil {
 			p.Logger.Error(podUID+":"+
-				" Cannot decode secret key",
+				" cannot decode secret key",
 				zap.Error(err))
 			return fmt.Errorf("cannot decode secret key: %v", err)
 		}
@@ -453,14 +452,14 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		if options.IAMEndpoint == "" {
 			iamEndpoint = defaultIAMEndPoint
 		} else {
-			if !(strings.HasPrefix(options.IAMEndpoint, "https://") || strings.HasPrefix(options.IAMEndpoint, "http://")) {
+			if !strings.HasPrefix(options.IAMEndpoint, "https://") && !strings.HasPrefix(options.IAMEndpoint, "http://") {
 				p.Logger.Error(podUID+":"+
-					" Bad value for iam-endpoint."+
-					" Must be of the form https://<hostname> or http://<hostname>",
+					" bad value for iam-endpoint."+
+					" must be of the form https://<hostname> or http://<hostname>",
 					zap.String("iam-endpoint", options.IAMEndpoint))
 				return fmt.Errorf(podUID+":"+
-					" Bad value for iam-endpoint \"%v\":"+
-					" Must be of the form https://<hostname> or http://<hostname>",
+					" bad value for iam-endpoint \"%v\":"+
+					" must be of the form https://<hostname> or http://<hostname>",
 					options.IAMEndpoint)
 			} else {
 				iamEndpoint = options.IAMEndpoint
@@ -470,7 +469,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if options.CAbundleB64 != "" {
 		CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
 		if err != nil {
-			p.Logger.Error(podUID+":"+" Cannot decode CA bundle",
+			p.Logger.Error(podUID+":"+" cannot decode CA bundle",
 				zap.Error(err))
 			return fmt.Errorf("cannot decode CA bundle: %v", err)
 		}
@@ -485,22 +484,22 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		p.Logger.Info(podUID+": CA CERT", zap.String("CA bundle file", caFile))
 		err = writeFile(caFile, []byte(CaBundleKey), 0600)
 		if err != nil {
-			p.Logger.Error(podUID+":"+" Cannot create ca crt file",
+			p.Logger.Error(podUID+":"+" cannot create ca crt file",
 				zap.Error(err))
 			return fmt.Errorf("cannot create ca crt file: %v", err)
 		}
 
 		err = os.Setenv("CURL_CA_BUNDLE", caFile)
 		if err != nil {
-			p.Logger.Error(podUID+":"+" Cannot set CURL_CA_BUNDLE env var",
+			p.Logger.Error(podUID+":"+" cannot set CURL_CA_BUNDLE env var",
 				zap.Error(err))
-			return fmt.Errorf("Cannot set CURL_CA_BUNDLE env var: %v", err)
+			return fmt.Errorf("cannot set CURL_CA_BUNDLE env var: %v", err)
 		}
 		err = os.Setenv("AWS_CA_BUNDLE", caFile)
 		if err != nil {
-			p.Logger.Error(podUID+":"+" Cannot set AWS_CA_BUNDLE env var",
+			p.Logger.Error(podUID+":"+" cannot set AWS_CA_BUNDLE env var",
 				zap.Error(err))
-			return fmt.Errorf("Cannot set AWS_CA_BUNDLE env var: %v", err)
+			return fmt.Errorf("cannot set AWS_CA_BUNDLE env var: %v", err)
 		}
 	}
 	// check that bucket exists before doing the mount
@@ -512,7 +511,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 			ServiceInstanceID: serviceInstanceId,
 			IAMEndpoint:       iamEndpoint})
 	if err != nil {
-		p.Logger.Error(podUID+":"+" Cannot access bucket",
+		p.Logger.Error(podUID+":"+" cannot access bucket",
 			zap.Error(err))
 		return fmt.Errorf("cannot access bucket: %v", err)
 	}
@@ -527,7 +526,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 				ServiceInstanceID: serviceInstanceId,
 				IAMEndpoint:       iamEndpoint})
 		if err != nil {
-			p.Logger.Error(podUID+":"+" Cannot access object-path inside bucket",
+			p.Logger.Error(podUID+":"+" cannot access object-path inside bucket",
 				zap.String("bucket", options.Bucket), zap.String("object-path", options.ObjectPath), zap.Error(err))
 			return fmt.Errorf("cannot access object-path \"%s\" inside bucket %s: %v", options.ObjectPath, options.Bucket, err)
 		} else if !exist {
@@ -540,7 +539,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	// create target directory
 	err = p.createDirectoryIfNotExists(mountRequest.MountDir)
 	if err != nil {
-		p.Logger.Error(podUID+":"+"Cannot create target directory",
+		p.Logger.Error(podUID+":"+"cannot create target directory",
 			zap.Error(err))
 		return fmt.Errorf("cannot create target directory: %v", err)
 	}
@@ -550,7 +549,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	done := false
 	err = p.createEmptyMountpoint(mountPath)
 	if err != nil {
-		p.Logger.Error(podUID+":"+" Cannot create mount point",
+		p.Logger.Error(podUID+":"+" cannot create mount point",
 			zap.Error(err))
 		return fmt.Errorf("cannot create mount point: %v", err)
 	}
@@ -574,7 +573,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		err = writeFile(passwordFile, []byte(accessKey+":"+secretKey), 0600)
 	}
 	if err != nil {
-		p.Logger.Error(podUID+":"+" Cannot create password file",
+		p.Logger.Error(podUID+":"+" cannot create password file",
 			zap.Error(err))
 		return fmt.Errorf("cannot create password file: %v", err)
 	}
@@ -763,7 +762,7 @@ func (p *S3fsPlugin) Unmount(unmountRequest interfaces.FlexVolumeUnmountRequest)
 func (p *S3fsPlugin) unmountInternal(unmountRequest interfaces.FlexVolumeUnmountRequest) error {
 	err := p.unmountPath(unmountRequest.MountDir, false)
 	if err != nil {
-		p.Logger.Error(podUID+":"+"Cannot unmount s3fs mount point",
+		p.Logger.Error(podUID+":"+"cannot unmount s3fs mount point",
 			zap.String("Request", unmountRequest.MountDir),
 			zap.Error(err))
 		return fmt.Errorf("cannot unmount s3fs mount point %s: %v", unmountRequest.MountDir, err)
@@ -772,7 +771,7 @@ func (p *S3fsPlugin) unmountInternal(unmountRequest interfaces.FlexVolumeUnmount
 	mountPath := path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(unmountRequest.MountDir))))
 	err = p.unmountPath(mountPath, true)
 	if err != nil {
-		p.Logger.Error(podUID+":"+"Cannot delete data  mount point",
+		p.Logger.Error(podUID+":"+"cannot delete data  mount point",
 			zap.String("mountpath", mountPath), zap.Error(err))
 		return fmt.Errorf("cannot delete data mount point %s: %v", mountPath, err)
 	}

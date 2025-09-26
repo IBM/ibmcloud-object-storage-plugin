@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -14,7 +14,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path"
@@ -31,6 +30,7 @@ import (
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -136,7 +136,7 @@ type IBMS3fsProvisioner struct {
 }
 
 var _ controller.Provisioner = &IBMS3fsProvisioner{}
-var writeFile = ioutil.WriteFile
+var writeFile = os.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 	unix_addr, _ := net.ResolveUnixAddr("unix", addr)
@@ -182,7 +182,7 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 	}
 
 	if strings.TrimSpace(string(secrets.Type)) != driverName {
-		return nil, nil, "", "", fmt.Errorf("Wrong Secret Type.Provided secret of type %s.Expected type %s", string(secrets.Type), driverName)
+		return nil, nil, "", "", fmt.Errorf("wrong secret type. provided secret of type %s. expected type %s", string(secrets.Type), driverName)
 	}
 
 	var accessKey, secretKey, apiKey, serviceInstanceID string
@@ -204,6 +204,9 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 		}
 	} else {
 		serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
+		if err != nil {
+			return nil, nil, "", "", err
+		}
 	}
 
 	if bytesVal, ok := secrets.Data[ResConfApiKey]; ok {
@@ -251,7 +254,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 
 	contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
 
-	if AllowCrossNsSecret != nil && *AllowCrossNsSecret == false {
+	if AllowCrossNsSecret != nil && !*AllowCrossNsSecret {
 		contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
 		if pvc.SecretNamespace != "" {
 			contextLogger.Warn(pvcName + ":" + clusterID + " Ignoring 'ibm.io/secret-namespace' annotation as AllowCrossNsSecret is set to false")
@@ -356,7 +359,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		sc.OSStorageClass = pvc.Region
 	}
 
-	if !(strings.HasPrefix(sc.OSEndpoint, "https://") || strings.HasPrefix(sc.OSEndpoint, "http://")) {
+	if !strings.HasPrefix(sc.OSEndpoint, "https://") && !strings.HasPrefix(sc.OSEndpoint, "http://") {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/object-store-endpoint \"%v\": scheme is missing. "+
 			"Must be of the form http://<hostname> or https://<hostname>",
@@ -367,7 +370,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		sc.IAMEndpoint = pvc.IAMEndpoint
 	}
 
-	if !(strings.HasPrefix(sc.IAMEndpoint, "https://") || strings.HasPrefix(sc.IAMEndpoint, "http://")) {
+	if !strings.HasPrefix(sc.IAMEndpoint, "https://") && !strings.HasPrefix(sc.IAMEndpoint, "http://") {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
 			":Bad value for ibm.io/iam-endpoint \"%v\":"+
 			" Must be of the form https://<hostname> or http://<hostname>",
@@ -382,7 +385,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
 		} else if retryCount < 1 {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
+			return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be >= 1")
 		}
 	}
 
@@ -394,7 +397,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil {
 			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
 		} else if cacheExpireSeconds < 0 {
-			return pvc, sc, svcIp, fmt.Errorf(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
+			return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be >= 0")
 		}
 	}
 
@@ -472,7 +475,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	var setQuotaLimit = false
 	var quotaLimit int64
 
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
@@ -528,7 +531,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 				break
 			}
 		}
-		if allowed == false {
+		if !allowed {
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":PVC creation in " + pvcNamespace + " namespace is not allowed")
 		}
 	}
@@ -557,14 +560,16 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	if ConfigBucketAccessPolicy != nil && *ConfigBucketAccessPolicy && pvc.SetAccessPolicy != "false" {
 		grpcSess = p.GRPCBackend.NewGrpcSession()
 		cc := &grpcClient.GrpcSes{}
-		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+		// nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
+		conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+
 		if err != nil {
 			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc-client connection: %v", err)
 		}
 
 		providerClient = p.IBMProvider.NewIBMProviderClient(conn)
 		if conn != nil {
-			defer conn.Close()
+			defer func() { _ = conn.Close() }()
 		}
 
 		name := defaultName
@@ -766,7 +771,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 	accessMode := options.PVC.Spec.AccessModes
 	contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
 	if len(accessMode) > 1 {
-		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
+		return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
 	}
 
 	if pvc.AutoCache {
@@ -864,9 +869,9 @@ func (p *IBMS3fsProvisioner) Delete(ctx context.Context, pv *v1.PersistentVolume
 	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the pvc..")
 
-	endpointValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-endpoint"]
-	regionValue := pv.Spec.PersistentVolumeSource.FlexVolume.Options["object-store-storage-class"]
-	iamEndpoint := pv.Spec.PersistentVolumeSource.FlexVolume.Options["iam-endpoint"]
+	endpointValue := pv.Spec.FlexVolume.Options["object-store-endpoint"]
+	regionValue := pv.Spec.FlexVolume.Options["object-store-storage-class"]
+	iamEndpoint := pv.Spec.FlexVolume.Options["iam-endpoint"]
 
 	err := parser.UnmarshalMap(&pv.Annotations, &pvcAnnots)
 	if err != nil {

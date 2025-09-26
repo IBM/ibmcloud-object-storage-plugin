@@ -1,9 +1,9 @@
 /*******************************************************************************
  * IBM Confidential
  * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
  ******************************************************************************/
@@ -124,9 +124,8 @@ func (s *COSSession) CheckBucketAccess(bucket string) error {
 
 // CheckObjectPathExistence method checks that object-path exists inside bucket
 func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) {
-	if strings.HasPrefix(objectpath, "/") {
-		objectpath = strings.TrimPrefix(objectpath, "/")
-	}
+
+	objectpath = strings.TrimPrefix(objectpath, "/")
 	if !strings.HasSuffix(objectpath, "/") {
 		objectpath = objectpath + "/"
 	}

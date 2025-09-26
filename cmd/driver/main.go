@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -21,7 +21,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -60,7 +60,9 @@ func NewS3fsPlugin(logger *zap.Logger) *driver.S3fsPlugin {
 type versionCommand struct{}
 
 func (v *versionCommand) Execute(args []string) error {
-	fmt.Fprintf(stdout, "Version:%s, Build:%s\n", Version, Build)
+	if _, err := fmt.Fprintf(stdout, "Version:%s, Build:%s\n", Version, Build); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -108,7 +110,7 @@ func (m *mountCommand) Execute(args []string) error {
 	filelogger.Info(":MountCommand start:" + hostname)
 
 	mountOpts := make(map[string]string)
-	mountOptsLogs := make(map[string]string) // nolint:ineffassign
+	//mountOptsLogs := make(map[string]string) // nolint:ineffassign
 
 	switch len(args) {
 	case 2:
@@ -208,7 +210,7 @@ func main() {
 	// disable the console logging (if anywhere else being done by softlayer or any other pkg)
 	// presently softlayer logs few warning message, which makes the flexdriver unmarshall failure
 	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(io.Discard)
 
 	// Divert all loggers outputs and fmt.printf loggings (this will create issues with flex response)
 	NullDevice, _ := os.Open(os.DevNull)
@@ -294,7 +296,9 @@ func printResponse(f interfaces.FlexVolumeResponse) error {
 	filelogger.Info(":FlexVolumeResponse", zap.String("output", output))
 
 	// write it to stdout, so that flexdriver will read it
-	fmt.Fprintf(stdout, "%s", output)
+	if _, err := fmt.Fprintf(stdout, "%s", output); err != nil {
+		return err
+	}
 	return nil
 }
 

@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -36,6 +36,7 @@ type GrpcSes struct {
 
 func (gs *GrpcSes) Connect(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) {
 	var err error
+	// nolint:staticcheck // grpc.Dial is deprecated but still required until grpc.NewClient is available
 	gs.conn, err = grpc.Dial(target, opts...)
 	return gs.conn, err
 }

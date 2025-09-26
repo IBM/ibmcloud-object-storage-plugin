@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
 /******************************************************************************r
  * IBM Confidential
  * OCO Source Materials
@@ -13,11 +23,12 @@ package logger
 import (
 	"context"
 	"errors"
+	"os"
+
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
 	uid "github.com/gofrs/uuid"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
 )
 
 const (
@@ -140,5 +151,5 @@ func CreateZapPodNameKeyField() zapcore.Field {
 func generateContextWithRequestID() context.Context {
 	reqID, _ := uid.NewV4()
 	requestID := reqID.String()
-	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 }

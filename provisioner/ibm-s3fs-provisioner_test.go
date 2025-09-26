@@ -2,7 +2,7 @@
  * IBM Confidential
  * OCO Source Materials
  * IBM Cloud Kubernetes Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
  * The source code for this program is not published or otherwise divested of
  * its trade secrets, irrespective of what has been deposited with
  * the U.S. Copyright Office.
@@ -15,6 +15,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/IBM/ibmcloud-object-storage-plugin/driver"
 	"github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
 	fakeProvider "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/fake-provider"
@@ -28,15 +30,16 @@ import (
 	storagev1 "k8s.io/api/storage/v1"
 	"k8s.io/client-go/kubernetes"
 	k8fake "k8s.io/client-go/kubernetes/fake"
-	"os"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v6/controller"
+
 	//"k8s.io/client-go/pkg/api/v1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	//"k8s.io/client-go/pkg/runtime"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"strconv"
 	"testing"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -717,7 +720,7 @@ func Test_Provision_APIKeyWithoutServiceInstanceIDInBucketCreation(t *testing.T)
 
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "cannot create bucket using API key without service-instance-id")
+		assert.Contains(t, err.Error(), "cannot get credentials: service-instance-id secret missing")
 	}
 }
 
@@ -1472,7 +1475,7 @@ func Test_Wrong_Secret_Type_True(t *testing.T) {
 	v := getVolumeOptions()
 	_, _, err := p.Provision(context.Background(), v)
 	if assert.Error(t, err) {
-		assert.Contains(t, err.Error(), "Wrong Secret Type")
+		assert.Contains(t, err.Error(), "wrong secret type")
 	}
 }
 

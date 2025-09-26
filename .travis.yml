@@ -1,6 +1,6 @@
 language: go
 go:
-  - 1.24.2
+  - 1.24.5
 
 group: bluezone
 dist: focal
