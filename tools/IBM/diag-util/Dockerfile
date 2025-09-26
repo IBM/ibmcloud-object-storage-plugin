@@ -1,4 +1,4 @@
-FROM alpine:3.7
+FROM alpine:3.22
 RUN apk add --update bash
 RUN apk add --update python
 COPY entrypoint .
