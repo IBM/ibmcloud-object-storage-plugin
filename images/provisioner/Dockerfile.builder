@@ -1,4 +1,4 @@
-FROM golang:1.24.5
+FROM golang:1.25.1
 ADD . /go/src/github.com/IBM/ibmcloud-object-storage-plugin
 RUN set -ex; cd /go/src/github.com/IBM/ibmcloud-object-storage-plugin/ && CGO_ENABLED=0 go install -mod=mod -v github.com/IBM/ibmcloud-object-storage-plugin/cmd/provisioner
 RUN set -ex; tar cvC / ./etc/ssl  | gzip -n > /root/ca-certs.tar.gz
