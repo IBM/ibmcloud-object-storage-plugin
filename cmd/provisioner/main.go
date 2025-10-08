@@ -78,7 +78,7 @@ var leaseRetryPeriod = flag.Duration(
 
 func main() {
 	var err error
-	logger, _ := log.GetZapLogger()
+	logger, _ := log.GetZapLogger() //nolint:gosec
 	loggerLevel := zap.NewAtomicLevel()
 	err = flag.Set("logtostderr", "true")
 	if err != nil {
