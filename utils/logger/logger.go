@@ -8,16 +8,6 @@
  * the U.S. Copyright Office.
  ******************************************************************************/
 
-/******************************************************************************r
- * IBM Confidential
- * OCO Source Materials
- * IBM Cloud Container Service, 5737-D43
- * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
- * The source code for this program is not  published or otherwise divested of
- * its trade secrets, irrespective of what has been deposited with
- * the U.S. Copyright Office.
- ******************************************************************************/
-
 package logger
 
 import (
@@ -151,9 +141,9 @@ func CreateZapPodNameKeyField() zapcore.Field {
 func generateContextWithRequestID() context.Context {
 	reqID, err := uid.NewV4()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "failed to generate UUID: %v\n", err)
+		fmt.Sprintf("failed to generate UUID: %v", err)
 		reqID = uid.Nil
 	}
 	requestID := reqID.String()
-	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID)
+	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 }

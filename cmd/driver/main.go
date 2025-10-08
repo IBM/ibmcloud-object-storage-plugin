@@ -110,6 +110,7 @@ func (m *mountCommand) Execute(args []string) error {
 	filelogger.Info(":MountCommand start:" + hostname)
 
 	mountOpts := make(map[string]string)
+	//mountOptsLogs := make(map[string]string) // nolint:ineffassign
 
 	switch len(args) {
 	case 2:
