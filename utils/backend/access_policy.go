@@ -71,7 +71,7 @@ func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, 
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
 		URL:           ResourceConfigEPDirect,
-	})
+	}) //nolint:gosec
 
 	// Create a map to hold the bucket patch
 	bucketPatchMap := make(map[string]interface{})
@@ -116,7 +116,7 @@ func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoi
 	service, _ := rc.NewResourceConfigurationV1(&rc.ResourceConfigurationV1Options{
 		Authenticator: authenticator,
 		URL:           ConfigEP,
-	})
+	}) //nolint:gosec
 
 	// Create a map to hold the bucket patch
 	bucketPatchMap := make(map[string]interface{})

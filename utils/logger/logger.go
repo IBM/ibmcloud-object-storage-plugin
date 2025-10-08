@@ -52,7 +52,7 @@ func GetZapLogger() (*zap.Logger, error) {
 // returns the global logger
 func GetZapContextLogger(ctx context.Context) (*zap.Logger, error) {
 	var contextLogger *zap.Logger
-	globalLogger, _ := GetZapLogger()
+	globalLogger, _ := GetZapLogger() //nolint:gosec
 	if ctx != nil {
 		contextLogger = addContextFields(ctx, globalLogger)
 		return contextLogger, nil
@@ -64,7 +64,7 @@ func GetZapContextLogger(ctx context.Context) (*zap.Logger, error) {
 // context as logging field.
 func GetZapDefaultContextLogger() (*zap.Logger, error) {
 	var contextLogger *zap.Logger
-	globalLogger, _ := GetZapLogger()
+	globalLogger, _ := GetZapLogger() //nolint:gosec
 	contextLogger = addContextFields(generateContextWithRequestID(), globalLogger)
 	return contextLogger, nil
 }
@@ -100,7 +100,7 @@ func addContextFields(ctx context.Context, origLogger *zap.Logger) *zap.Logger {
 func NewZapLogger() (*zap.Logger, error) {
 	productionConfig := zap.NewProductionConfig()
 	productionConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	ZapLogger, _ := productionConfig.Build()
+	ZapLogger, _ := productionConfig.Build() //nolint:gosec
 	return ZapLogger, nil
 }
 
@@ -149,7 +149,11 @@ func CreateZapPodNameKeyField() zapcore.Field {
 
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
-	reqID, _ := uid.NewV4()
+	reqID, err := uid.NewV4()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to generate UUID: %v\n", err)
+		reqID = uid.Nil
+	}
 	requestID := reqID.String()
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 }

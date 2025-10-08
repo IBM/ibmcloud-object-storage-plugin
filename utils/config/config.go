@@ -39,7 +39,7 @@ func getEnv(key string) string {
 }
 
 func setEnv(key string, value string) {
-	_ = os.Setenv(strings.ToUpper(key), value)
+	_ = os.Setenv(strings.ToUpper(key), value) //nolint:gosec
 }
 
 // GetGoPath ...
