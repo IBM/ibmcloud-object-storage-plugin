@@ -139,7 +139,7 @@ var _ controller.Provisioner = &IBMS3fsProvisioner{}
 var writeFile = os.WriteFile
 
 func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
-	unix_addr, _ := net.ResolveUnixAddr("unix", addr) //nolint:gosec
+	unix_addr, _ := net.ResolveUnixAddr("unix", addr)
 	conn, err := net.DialUnix("unix", nil, unix_addr)
 	return conn, err
 }
@@ -233,7 +233,7 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 	var svcIp string
 	var err error
 
-	contextLogger, _ := logger.GetZapDefaultContextLogger() //nolint:gosec
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":validate annotations and assign default values to annotations")
 
 	if err := parser.UnmarshalMap(&options.PVC.Annotations, &pvc); err != nil {
@@ -477,7 +477,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	contextLogger, _ := logger.GetZapDefaultContextLogger() //nolint:gosec
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
 	contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("pvc", options.PVName))
 
@@ -569,7 +569,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 
 		providerClient = p.IBMProvider.NewIBMProviderClient(conn)
 		if conn != nil {
-			defer func() { _ = conn.Close() }() //nolint:gosec
+			defer func() { _ = conn.Close() }()
 		}
 
 		name := defaultName
@@ -866,7 +866,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 func (p *IBMS3fsProvisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) error {
 	var pvcAnnots pvcAnnotations
 
-	contextLogger, _ := logger.GetZapDefaultContextLogger() //nolint:gosec
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the pvc..")
 
 	endpointValue := pv.Spec.FlexVolume.Options["object-store-endpoint"]
@@ -889,7 +889,7 @@ func (p *IBMS3fsProvisioner) Delete(ctx context.Context, pv *v1.PersistentVolume
 }
 
 func (p *IBMS3fsProvisioner) deleteBucket(ctx context.Context, pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error {
-	contextLogger, _ := logger.GetZapDefaultContextLogger() //nolint:gosec
+	contextLogger, _ := logger.GetZapDefaultContextLogger()
 	contextLogger.Info("Deleting the bucket..")
 	// Retrieve CA Cert if provided in secert
 	if err := p.writeCrtFile(ctx, pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName); err != nil {

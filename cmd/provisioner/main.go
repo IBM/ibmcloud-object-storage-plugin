@@ -70,15 +70,9 @@ var leaseRetryPeriod = flag.Duration(
 	"How often lease acquisition and renewal should be retried",
 )
 
-//var leaseTermLimit = flag.Duration(
-//	"leaseTermLimit",
-//	10*time.Minute,
-//	"Maximum time that a provisioner can maintain a lease",
-//)
-
 func main() {
 	var err error
-	logger, _ := log.GetZapLogger() //nolint:gosec
+	logger, _ := log.GetZapLogger()
 	loggerLevel := zap.NewAtomicLevel()
 	err = flag.Set("logtostderr", "true")
 	if err != nil {

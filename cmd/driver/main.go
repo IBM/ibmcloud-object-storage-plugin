@@ -114,11 +114,11 @@ func (m *mountCommand) Execute(args []string) error {
 	switch len(args) {
 	case 2:
 		// Kubernetes 1.6+
-		_ = json.Unmarshal([]byte(args[1]), &mountOpts) //nolint:gosec
+		_ = json.Unmarshal([]byte(args[1]), &mountOpts)
 
 	case 3:
 		// Kubernetes 1.5-
-		_ = json.Unmarshal([]byte(args[2]), &mountOpts) //nolint:gosec
+		_ = json.Unmarshal([]byte(args[2]), &mountOpts)
 	default:
 
 		return printResponse(interfaces.FlexVolumeResponse{
@@ -212,29 +212,29 @@ func main() {
 	log.SetOutput(io.Discard)
 
 	// Divert all loggers outputs and fmt.printf loggings (this will create issues with flex response)
-	NullDevice, _ := os.Open(os.DevNull) //nolint:gosec
+	NullDevice, _ := os.Open(os.DevNull)
 	os.Stdout = NullDevice
 	os.Stderr = NullDevice
 	// nolint:errcheck
 	parser.AddCommand("version",
 		"Prints version",
 		"Prints version and build information",
-		&versionCommand) //nolint:gosec
+		&versionCommand)
 	// nolint:errcheck
 	parser.AddCommand("init",
 		"Init the plugin",
 		"The info command print the driver name and version.",
-		&initCommand) //nolint:gosec
+		&initCommand)
 	// nolint:errcheck
 	parser.AddCommand("mount",
 		"Mount Volume",
 		"Mount a volume Id to a path - returning the path.",
-		&mountCommand) //nolint:gosec
+		&mountCommand)
 	// nolint:errcheck
 	parser.AddCommand("unmount",
 		"Unmount Volume",
 		"UnMount given a mount dir",
-		&unmountCommand) //nolint:gosec
+		&unmountCommand)
 
 	_, err = parser.Parse()
 	if err != nil {
@@ -247,7 +247,7 @@ func main() {
 		_ = printResponse(interfaces.FlexVolumeResponse{
 			Status:  status,
 			Message: fmt.Sprintf("Error parsing arguments: %v", err),
-		}) //nolint:gosec
+		})
 	}
 }
 

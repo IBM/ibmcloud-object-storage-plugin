@@ -99,7 +99,7 @@ func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, cre
 		Endpoint:         aws.String(endpoint),
 		Credentials:      sdkCreds,
 		Region:           aws.String(region),
-	}) //nolint:gosec
+	})
 
 	return &COSSession{
 		svc:    s3.New(sess),
