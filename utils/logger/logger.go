@@ -140,11 +140,7 @@ func CreateZapPodNameKeyField() zapcore.Field {
 
 // Creates a context that contains a unique request ID
 func generateContextWithRequestID() context.Context {
-	reqID, err := uid.NewV4()
-	if err != nil {
-		fmt.Sprintf("failed to generate UUID: %v", err)
-		reqID = uid.Nil
-	}
+	reqID, _ := uid.NewV4()
 	requestID := reqID.String()
 	return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
 }
