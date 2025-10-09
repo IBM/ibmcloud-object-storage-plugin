@@ -13,7 +13,6 @@ package logger
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 
 	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"

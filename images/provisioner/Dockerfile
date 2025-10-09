@@ -37,7 +37,6 @@ RUN microdnf install iputils
 # Add the Provisioner executable
 ADD ca-certs.tar.gz /
 ADD provisioner.tar.gz /usr/local/
-RUN ls -al /usr/local/
 RUN ls -al /usr/local/bin/
 RUN chmod 755 /usr/local/bin/provisioner
 USER 2121:2121
