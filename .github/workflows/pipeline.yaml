@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: ["1.24", "stable"]   
+        go-version: ["1.24.5", "stable"]   
       fail-fast: false                    
 
     steps:
@@ -71,9 +71,8 @@ jobs:
           make provisioner
 
       - name: Publish coverage
-        if: success() && matrix.go-version == 'stable'
+        if: success()
         env:
           GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
         run: |
-          ./scripts/calculateCoverage.sh
-          ./scripts/publishCoverage.sh
+          ./scripts/publishCoverage.sh          
