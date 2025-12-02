@@ -1,4 +1,4 @@
-name: CI
+name: IBM Cloud Object Storage Plugin
 
 on:
   push:
@@ -41,7 +41,10 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y bc docker-ce-cli
 
-      - name: Prepare environment (same as your Travis before_script)
+      - name: Make scripts executable
+        run: chmod +x scripts/*.sh
+
+      - name: Prepare environment
         run: |
           export GO111MODULE=on
           go mod tidy
@@ -55,18 +58,20 @@ jobs:
         run: make test
 
       - name: Generate coverage
-        run: make coverage && touch "Passing" || touch "Failed"
+        run: |
+          make coverage
+          ./scripts/calculateCoverage.sh       
+          touch "Passing" || touch "Failed"
 
       - name: Build driver & provisioner image
         run: |
           make driver
           make provisioner
 
-      - name: Publish coverage to internal IBM dashboard
+      - name: Publish coverage
         if: success() && matrix.go-version == 'stable'
         env:
           GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
-          GHE_USER: github-actions
         run: |
           ./scripts/calculateCoverage.sh
-          ./scripts/publishCoverage.sh || echo "Coverage publish skipped"
+          ./scripts/publishCoverage.sh
