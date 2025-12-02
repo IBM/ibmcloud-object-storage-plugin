@@ -17,6 +17,9 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write        # needed to push to gh-pages
+      pull-requests: write   # needed to comment on PRs
 
     strategy:
       matrix:
