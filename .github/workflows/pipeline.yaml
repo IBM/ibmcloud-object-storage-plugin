@@ -49,7 +49,6 @@ jobs:
           export GO111MODULE=on
           go mod tidy
           make deps
-          go install github.com/pierrre/gotestcover@latest
 
       - name: Check code formatting
         run: make fmt
