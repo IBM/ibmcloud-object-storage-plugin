@@ -8,7 +8,7 @@
 
 IMAGE = ibmcloud-object-storage-plugin
 
-VERSION :=
+VERSION := latest
 TAG := $(shell git describe --abbrev=0 --tags HEAD 2>/dev/null)
 COMMIT := $(shell git rev-parse HEAD)
 GOPACKAGES=$(shell go list ./... | grep -v /vendor/ | grep -v /cmd)
@@ -18,16 +18,6 @@ GIT_COMMIT_SHA="$(shell git rev-parse HEAD 2>/dev/null)"
 GIT_REMOTE_URL="$(shell git config --get remote.origin.url 2>/dev/null)"
 BUILD_DATE="$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
-#ifeq ($(TAG),)
-#    VERSION := latest
-#else
-#    ifeq ($(COMMIT), $(shell git rev-list -n1 $(TAG)))
-#        VERSION := $(TAG)
-#    else
-#        VERSION := $(TAG)-$(COMMIT)
-#    endif
-#endif
-VERSION := latest
 export GO111MODULE=on
 
 .PHONY: all
@@ -41,15 +31,14 @@ driver: deps builddriver
 
 .PHONY: deps
 deps:
-	echo "Installing dependencies ..."
+	@echo "Installing dependencies ..."
 	go mod download
-	# go get github.com/coreos/go-systemd
 	go install github.com/pierrre/gotestcover@latest
 
 .PHONY: fmt
 fmt:
 	gofmt -l ${GOFILES}
-	@if [ -n "$$(gofmt -l ${GOFILES})" ]; then echo 'Above Files needs gofmt fixes. Please run gofmt -l -w on your code.' && exit 1; fi
+	@if [ -n "$$(gofmt -l ${GOFILES})" ]; then echo 'Above files need gofmt fixes. Please run: gofmt -w .' && exit 1; fi
 
 .PHONY: vet
 vet:
@@ -58,11 +47,11 @@ vet:
 .PHONY: test
 test:
 	$(GOPATH)/bin/gotestcover -v -race -coverprofile=cover.out ${GOPACKAGES}
-	#go test -v -race -coverprofile=cover.out ${GOPACKAGES}
 
 .PHONY: coverage
 coverage:
 	go tool cover -html=cover.out -o=cover.html
+	@./scripts/calculateCoverage.sh
 
 .PHONY: buildgo
 buildgo:
@@ -70,7 +59,7 @@ buildgo:
 
 .PHONY: buildprovisioner
 buildprovisioner:
-	#Build provisioner executable on target env
+	# Build provisioner executable on target env
 	docker build -t provisioner-builder --pull -f images/provisioner/Dockerfile.builder .
 	docker run provisioner-builder /bin/true
 	docker cp `docker ps -q -n=1`:/root/ca-certs.tar.gz ./

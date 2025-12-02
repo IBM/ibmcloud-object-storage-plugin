@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+*"
+  pull_request:
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go-version: ["1.24", "stable"]   
+      fail-fast: false                    
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache: true
+
+      - name: Install system dependencies (bc + docker)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y bc docker-ce-cli
+
+      - name: Prepare environment (same as your Travis before_script)
+        run: |
+          export GO111MODULE=on
+          go mod tidy
+          make deps
+          go install github.com/pierrre/gotestcover@latest
+
+      - name: Check code formatting
+        run: make fmt
+
+      - name: Run unit tests
+        run: make test
+
+      - name: Generate coverage
+        run: make coverage && touch "Passing" || touch "Failed"
+
+      - name: Build driver & provisioner image
+        run: |
+          make driver
+          make provisioner
+
+      - name: Publish coverage to internal IBM dashboard
+        if: success() && matrix.go-version == 'stable'
+        env:
+          GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
+          GHE_USER: github-actions
+        run: |
+          ./scripts/calculateCoverage.sh
+          ./scripts/publishCoverage.sh || echo "Coverage publish skipped"
