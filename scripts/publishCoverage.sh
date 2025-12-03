@@ -1,7 +1,7 @@
 #!/bin/bash
 #******************************************************************************
-# Copyright 2021 IBM Corp.
-# Licensed under the Apache License, Version 2.0 (the "License");
+# Copyright 2022 IBM Corp.
+# Licensed under the Apache License, Version  2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
@@ -13,80 +13,101 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #******************************************************************************
-set -e
+set -euo pipefail
 
-echo "Publishing coverage results..."
+echo "===== Publishing the coverage results ====="
 
-# Skip if no token (safe for forks)
-if [ -z "$GHE_TOKEN" ]; then
-  echo "GHE_TOKEN not set → skipping coverage publish"
-  exit 0
-fi
+WORKDIR="$GITHUB_WORKSPACE/gh-pages"
+NEW_COVERAGE_SOURCE="$GITHUB_WORKSPACE/cover.html"
+BADGE_COLOR="red"
+GREEN_THRESHOLD=85
+YELLOW_THRESHOLD=50
 
-REPO_SLUG="${GITHUB_REPOSITORY}"
-BRANCH="${GITHUB_REF_NAME:-master}"
-COMMIT="${GITHUB_SHA}"
-RUN_ID="${GITHUB_RUN_ID}"
+# Helper: extract coverage % from cover.html
+get_coverage() {
+    local file="$1"
+    if [[ -f "$file" ]]; then
+        grep "%)" "$file" \
+          | sed 's/[][()><%]/ /g' \
+          | awk '{s+=$4}END{if(NR>0)print s/NR; else print 0}'
+    else
+        echo "0"
+    fi
+}
 
-# Temporary directory for gh-pages
-TEMP_DIR=$(mktemp -d)
-echo "Cloning gh-pages branch into $TEMP_DIR"
-
-# Try to clone gh-pages, create if it doesn't exist
-if ! git clone -q --depth 1 -b gh-pages "https://x-access-token:$GHE_TOKEN@github.com/$REPO_SLUG.git" "$TEMP_DIR" 2>/dev/null; then
-  echo "gh-pages branch not found → creating new one"
-  git init "$TEMP_DIR"
-  cd "$TEMP_DIR"
-  git checkout -b gh-pages
+# Base branch for comparison
+if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+    BASE_BRANCH="$GITHUB_BASE_REF"
 else
-  cd "$TEMP_DIR"
+    BASE_BRANCH="$GITHUB_REF_NAME"
 fi
 
-# Git config
+# Calculate new coverage
+NEW_COVERAGE=$(get_coverage "$NEW_COVERAGE_SOURCE")
+NEW_COVERAGE=$(printf "%.2f" "$NEW_COVERAGE")
+
+# Clone gh-pages
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+if ! git clone -q -b gh-pages "https://x-access-token:$GHE_TOKEN@github.com/$GITHUB_REPOSITORY.git" . 2>/dev/null; then
+    echo "gh-pages branch not found → creating it"
+    git init -q
+    git checkout -b gh-pages
+fi
+
 git config user.name "github-actions[bot]"
 git config user.email "github-actions[bot]@users.noreply.github.com"
 
-# Create directories
-mkdir -p "coverage/$BRANCH"
-mkdir -p "coverage/$COMMIT"
+# Calculate old coverage (from base branch)
+COVERAGE_DIR="coverage/$BASE_BRANCH"
+OLD_COVER_HTML="$COVERAGE_DIR/cover.html"
+OLD_COVERAGE=$(get_coverage "$OLD_COVER_HTML")
+OLD_COVERAGE=$(printf "%.2f" "$OLD_COVERAGE")
 
-# Copy coverage report
-cp "$GITHUB_WORKSPACE/cover.html" "coverage/$BRANCH/cover.html"
-cp "$GITHUB_WORKSPACE/cover.html" "coverage/$COMMIT/cover.html"
+echo "===== Coverage comparison ====="
+echo "Old Coverage: $OLD_COVERAGE%"
+echo "New Coverage: $NEW_COVERAGE%"
 
-# Calculate coverage percentage
-NEW_COVERAGE=$(grep -o '[0-9.]\+%' "coverage/$BRANCH/cover.html" | sed 's/%//' | awk '{sum += $1; count++} END {printf "%.4f", sum/count}')
+# Update reports
+mkdir -p "$COVERAGE_DIR"
+mkdir -p "coverage/$GITHUB_SHA"
+cp "$NEW_COVERAGE_SOURCE" "$COVERAGE_DIR/cover.html"
+cp "$NEW_COVERAGE_SOURCE" "coverage/$GITHUB_SHA/cover.html"
 
-echo "Current coverage: ${NEW_COVERAGE}%"
-
-# Determine badge color
-BADGE_COLOR="red"
-if (( $(echo "$NEW_COVERAGE >= 85" | bc -l) )); then
-  BADGE_COLOR="brightgreen"
-elif (( $(echo "$NEW_COVERAGE >= 50" | bc -l) )); then
-  BADGE_COLOR="yellow"
+# Badge color
+if (( $(echo "$NEW_COVERAGE > $GREEN_THRESHOLD" | bc -l) )); then
+    BADGE_COLOR="green"
+elif (( $(echo "$NEW_COVERAGE > $YELLOW_THRESHOLD" | bc -l) )); then
+    BADGE_COLOR="yellow"
 fi
 
-# Generate badge
-curl -s "https://img.shields.io/badge/coverage-${NEW_COVERAGE}%25-${BADGE_COLOR}.svg" -o "coverage/$BRANCH/badge.svg"
+curl -s "https://img.shields.io/badge/coverage-${NEW_COVERAGE}%25-${BADGE_COLOR}.svg" \
+     > "$COVERAGE_DIR/badge.svg"
 
-# Commit and push (normal push — NO --force)
-git add .
-git commit -m "Coverage update: $COMMIT (run $RUN_ID)" || echo "No changes to commit"
-git push "https://x-access-token:$GHE_TOKEN@github.com/$REPO_SLUG.git" gh-pages
-
-echo "Coverage published!"
-echo "Badge URL: https://$REPO_SLUG.github.io/coverage/$BRANCH/badge.svg"
-
-# Post comment on PR if applicable
-if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-  PR_NUMBER=$(echo "$GITHUB_REF" | awk -F / '{print $3}')
-  MESSAGE="**Code Coverage:** ${NEW_COVERAGE}%  
-![coverage](https://$REPO_SLUG.github.io/coverage/$BRANCH/badge.svg)"
-
-  curl -s -X POST \
-    -H "Authorization: token $GHE_TOKEN" \
-    -H "Content-Type: application/json" \
-    "https://api.github.com/repos/$REPO_SLUG/issues/$PR_NUMBER/comments" \
-    -d "{\"body\": \"$MESSAGE\"}"
+# Result message
+if (( $(echo "$OLD_COVERAGE > $NEW_COVERAGE" | bc -l) )); then
+    RESULT_MESSAGE="Coverage decreased from **$OLD_COVERAGE%** → **$NEW_COVERAGE%**"
+elif (( $(echo "$OLD_COVERAGE == $NEW_COVERAGE" | bc -l) )); then
+    RESULT_MESSAGE="Coverage remained the same at **$NEW_COVERAGE%**"
+else
+    RESULT_MESSAGE="Coverage increased from **$OLD_COVERAGE%** → **$NEW_COVERAGE%**"
 fi
+
+# Push to gh-pages (only on push events) or comment on PR
+if [[ "$GITHUB_EVENT_NAME" == "push" ]] || [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+    git add .
+    git commit -m "Coverage: $GITHUB_SHA (run $GITHUB_RUN_NUMBER)" || echo "Nothing to commit"
+    git push "https://x-access-token:$GHE_TOKEN@github.com/$GITHUB_REPOSITORY.git" gh-pages
+fi
+
+if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
+    PR_NUMBER=$(jq -r .pull_request.number "$GITHUB_EVENT_PATH")
+    curl -s -X POST \
+      -H "Authorization: token $GHE_TOKEN" \
+      -H "Content-Type: application/json" \
+      -d "{\"body\": \"$RESULT_MESSAGE\"}" \
+      "https://api.github.com/repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments"
+fi
+
+echo "===== Coverage publishing finished ====="

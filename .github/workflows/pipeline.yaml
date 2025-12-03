@@ -71,7 +71,7 @@ jobs:
           make provisioner
 
       - name: Publish coverage
-        if: success()
+        if: success() && matrix.go-version == 'stable'
         env:
           GHE_TOKEN: ${{ secrets.GHE_TOKEN }}
         run: |
