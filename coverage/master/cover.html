@@ -1,0 +1,3595 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>driver: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/IBM/ibmcloud-object-storage-plugin/driver/driver.go (84.8%)</option>
+				
+				<option value="file1">github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/fake-provider/provider_grpc_fake.pb.go (0.0%)</option>
+				
+				<option value="file2">github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/provider.pb.go (0.0%)</option>
+				
+				<option value="file3">github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/provider_grpc.pb.go (0.0%)</option>
+				
+				<option value="file4">github.com/IBM/ibmcloud-object-storage-plugin/provisioner/ibm-s3fs-provisioner.go (85.5%)</option>
+				
+				<option value="file5">github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/access_policy.go (93.3%)</option>
+				
+				<option value="file6">github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/backend.go (90.2%)</option>
+				
+				<option value="file7">github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/fake/fake_access_policy.go (0.0%)</option>
+				
+				<option value="file8">github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/fake/fake_backend.go (0.0%)</option>
+				
+				<option value="file9">github.com/IBM/ibmcloud-object-storage-plugin/utils/config/config.go (95.2%)</option>
+				
+				<option value="file10">github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client/fake-grpc/fake_grpc_client.go (0.0%)</option>
+				
+				<option value="file11">github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client/grpc_client.go (62.5%)</option>
+				
+				<option value="file12">github.com/IBM/ibmcloud-object-storage-plugin/utils/logger/logger.go (93.5%)</option>
+				
+				<option value="file13">github.com/IBM/ibmcloud-object-storage-plugin/utils/parser/parser.go (97.1%)</option>
+				
+				<option value="file14">github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid/uuid.go (100.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package driver
+
+import (
+        "crypto/sha256"
+        "errors"
+        "fmt"
+        "os"
+        "os/exec"
+        "path"
+        "path/filepath"
+        "strconv"
+        "strings"
+        "syscall"
+
+        "github.com/IBM/ibmcloud-object-storage-plugin/driver/interfaces"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
+        "go.uber.org/zap"
+)
+
+const (
+        dataRootPath     = "/var/lib/ibmc-s3fs"
+        passwordFileName = "passwd"
+        //cacheDirectoryName = "cache"
+        caPath = "/tmp"
+        // SecretAccessKey is the key name for the AWS Access Key
+        SecretAccessKey = "access-key"
+        // SecretSecretKey is the key name for the AWS Secret Key
+        SecretSecretKey = "secret-key"
+        // SecretAPIKey is the key name for the IBM API Key (IAM Authentication)
+        SecretAPIKey = "api-key"
+        // SecretAllowedNS is the key name for the Allowed Namespace
+        SecretAllowedNS = "allowed_ns"
+        // SecretServiceInstanceID is the key name for the service instance ID (IAM Authentication)
+        SecretServiceInstanceID = "service-instance-id"
+        // defaultIAMEndPoint is the default URL of the IBM IAM endpoint
+        defaultIAMEndPoint = "https://iam.cloud.ibm.com"
+        // CrtBundle is the base64 encoded crt bundle
+        CrtBundle = "ca-bundle-crt"
+)
+
+var (
+        command   = exec.Command
+        stat      = os.Stat
+        unmount   = syscall.Unmount
+        mount     = syscall.Mount
+        writeFile = os.WriteFile
+        mkdirAll  = os.MkdirAll
+        removeAll = os.RemoveAll
+        //hostname, anyerror = os.Hostname()
+)
+
+// buildVersion holds the driver version string
+var buildVersion = ""
+var podUID = ""
+
+// Options are the FlexVolume driver options
+type Options struct {
+        ChunkSizeMB             int    `json:"chunk-size-mb,string"`
+        ParallelCount           int    `json:"parallel-count,string"`
+        MultiReqMax             int    `json:"multireq-max,string"`
+        StatCacheSize           int    `json:"stat-cache-size,string"`
+        FSGroup                 string `json:"kubernetes.io/fsGroup,omitempty"`
+        FSGroupNew              string `json:"kubernetes.io/mounterArgs.FsGroup,omitempty"`
+        Endpoint                string `json:"endpoint,omitempty"` //Will be deprecated
+        Region                  string `json:"region,omitempty"`   //Will be deprecated
+        Bucket                  string `json:"bucket"`
+        ObjectPath              string `json:"object-path,omitempty"`
+        DebugLevel              string `json:"debug-level"`
+        CurlDebug               bool   `json:"curl-debug,string"`
+        KernelCache             bool   `json:"kernel-cache,string,omitempty"`
+        TLSCipherSuite          string `json:"tls-cipher-suite,omitempty"`
+        S3FSFUSERetryCount      string `json:"s3fs-fuse-retry-count,omitempty"`
+        StatCacheExpireSeconds  string `json:"stat-cache-expire-seconds,omitempty"`
+        AccessKeyB64            string `json:"kubernetes.io/secret/access-key,omitempty"`
+        SecretKeyB64            string `json:"kubernetes.io/secret/secret-key,omitempty"`
+        APIKeyB64               string `json:"kubernetes.io/secret/api-key,omitempty"`
+        OSEndpoint              string `json:"object-store-endpoint,omitempty"`
+        OSStorageClass          string `json:"object-store-storage-class,omitempty"`
+        IAMEndpoint             string `json:"iam-endpoint,omitempty"`
+        ConnectTimeoutSeconds   string `json:"connect-timeout,omitempty"`
+        ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
+        UseXattr                bool   `json:"use-xattr,string,omitempty"`
+        AccessMode              string `json:"access-mode,omitempty"`
+        ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
+        CAbundleB64             string `json:"kubernetes.io/secret/ca-bundle-crt,omitempty"`
+        CosServiceIP            string `json:"service-ip,omitempty"`
+        AutoCache               bool   `json:"auto_cache,string,omitempty"`
+        AddMountParam           string `json:"add-mount-param,omitempty"`
+}
+
+// PathExists returns true if the specified path exists.
+func pathExists(path string) (bool, error) <span class="cov9" title="33">{
+        if path == "" </span><span class="cov3" title="3">{
+                return false, errors.New("undefined path")
+        }</span>
+        <span class="cov9" title="30">_, err := os.Stat(path)
+        if err == nil </span><span class="cov1" title="1">{
+                return true, nil
+        }</span> else<span class="cov9" title="29"> if os.IsNotExist(err) </span><span class="cov9" title="29">{
+                return false, nil
+        }</span> else<span class="cov0" title="0"> if isCorruptedMnt(err) </span><span class="cov0" title="0">{
+                return true, err
+        }</span> else<span class="cov0" title="0"> {
+                return false, err
+        }</span>
+}
+
+// isCorruptedMnt return true if err is about corrupted mount point
+func isCorruptedMnt(err error) bool <span class="cov0" title="0">{
+        if err == nil </span><span class="cov0" title="0">{
+                return false
+        }</span>
+        <span class="cov0" title="0">var underlyingError error
+        switch pe := err.(type) </span>{
+        case nil:<span class="cov0" title="0">
+                return false</span>
+        case *os.PathError:<span class="cov0" title="0">
+                underlyingError = pe.Err</span>
+        case *os.LinkError:<span class="cov0" title="0">
+                underlyingError = pe.Err</span>
+        case *os.SyscallError:<span class="cov0" title="0">
+                underlyingError = pe.Err</span>
+        }
+        <span class="cov0" title="0">return underlyingError == syscall.ENOTCONN || underlyingError == syscall.ESTALE</span>
+}
+
+// S3fsPlugin supports mount &amp; unmount requests of s3fs volumes
+type S3fsPlugin struct {
+        Backend backend.ObjectStorageSessionFactory
+        Logger  *zap.Logger
+}
+
+// SetBuildVersion sets the driver version
+func SetBuildVersion(version string) <span class="cov0" title="0">{
+        buildVersion = version
+}</span>
+
+// SetPodUID sets the POD UID
+func SetPodUID(poduid string) <span class="cov0" title="0">{
+        podUID = poduid
+}</span>
+
+// isMountpoint return true if pathname is a mountpoint
+func (p *S3fsPlugin) isMountpoint(pathname string) (bool, error) <span class="cov3" title="3">{
+        p.Logger.Info(podUID+":"+"Checking if path is mountpoint",
+                zap.String("Pathname", pathname))
+
+        out, err := command("mountpoint", pathname).CombinedOutput()
+        outStr := strings.TrimSpace(string(out))
+        if err != nil </span><span class="cov1" title="1">{
+                if strings.HasSuffix(outStr, "Transport endpoint is not connected") </span><span class="cov0" title="0">{
+                        return true, err
+                }</span> else<span class="cov1" title="1"> {
+                        return false, err
+                }</span>
+        }
+        //outStr := strings.TrimSpace(string(out))
+
+        <span class="cov2" title="2">if strings.HasSuffix(outStr, "is a mountpoint") </span><span class="cov0" title="0">{
+                p.Logger.Info(podUID+":"+"Path is a mountpoint",
+                        zap.String("Pathname", pathname))
+                return true, nil
+        }</span> else<span class="cov2" title="2"> if strings.HasSuffix(outStr, "is not a mountpoint") </span><span class="cov0" title="0">{
+                p.Logger.Info(podUID+":"+"Path is NOT a mountpoint",
+                        zap.String("Pathname", pathname))
+                return false, nil
+        }</span> else<span class="cov2" title="2"> {
+                p.Logger.Error(podUID+":"+"cannot parse mountpoint result",
+                        zap.String("Error", outStr))
+                return false, fmt.Errorf("cannot parse mountpoint result: %s", outStr)
+        }</span>
+}
+
+func (p *S3fsPlugin) unmountPath(mountPath string, delete bool) error <span class="cov9" title="33">{
+        p.Logger.Info(podUID+":"+"Deleting mountpoint",
+                zap.String("Mount path", mountPath))
+
+        pathExist, err := pathExists(mountPath)
+        if !pathExist </span><span class="cov9" title="32">{
+                //If path does not exist
+                if err == nil </span><span class="cov9" title="29">{
+                        p.Logger.Info(podUID+":"+"Path does not exist",
+                                zap.String("Mount path", mountPath))
+                        return nil
+                }</span> else<span class="cov3" title="3"> {
+                        p.Logger.Error(podUID+":"+"cannot stat directory",
+                                zap.String("Mount path", mountPath), zap.Error(err))
+                        return fmt.Errorf("cannot stat directory %s: %v", mountPath, err)
+                }</span>
+        }
+
+        // directory exists
+        <span class="cov1" title="1">isMount, checkMountErr := p.isMountpoint(mountPath)
+        if isMount || checkMountErr != nil </span><span class="cov1" title="1">{
+                p.Logger.Info(podUID+":"+"Calling unmount",
+                        zap.String("Mount path", mountPath))
+                err = unmount(mountPath, syscall.MNT_DETACH)
+                if err != nil &amp;&amp; checkMountErr == nil </span><span class="cov0" title="0">{
+                        p.Logger.Error(podUID+":"+"cannot unmount. Trying force unmount",
+                                zap.String("Mount path", mountPath), zap.Error(err))
+                        //Do force unmount
+                        err = unmount(mountPath, syscall.MNT_FORCE)
+                        if err != nil </span><span class="cov0" title="0">{
+                                p.Logger.Error(podUID+":"+"cannot force unmount",
+                                        zap.String("Mount path", mountPath), zap.Error(err))
+                                return fmt.Errorf("cannot force unmount %s: %v", mountPath, err)
+                        }</span>
+                }
+        }
+
+        <span class="cov1" title="1">if delete </span><span class="cov0" title="0">{
+                p.Logger.Info(podUID+":"+"Deleting directory",
+                        zap.String("Mount path", mountPath))
+                err = removeAll(mountPath)
+                if err != nil </span><span class="cov0" title="0">{
+                        p.Logger.Error(podUID+":"+"cannot remove",
+                                zap.String("Mount path", mountPath), zap.Error(err))
+                        return fmt.Errorf("cannot remove %s: %v", mountPath, err)
+                }</span>
+        }
+
+        <span class="cov1" title="1">return nil</span>
+}
+
+func (p *S3fsPlugin) createEmptyMountpoint(mountPath string) error <span class="cov8" title="24">{
+        p.Logger.Info(podUID+":"+"Creating empty mountpoint",
+                zap.String("mountPath", mountPath))
+
+        err := p.unmountPath(mountPath, true)
+        if err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+
+        // directory does not exist
+
+        <span class="cov8" title="24">p.Logger.Info(podUID+":"+"Creating directory",
+                zap.String("mountPath", mountPath))
+        err = mkdirAll(mountPath, 0755)
+        if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":cannot create directory",
+                        zap.String("mountPath", mountPath), zap.Error(err))
+                return fmt.Errorf("cannot create directory %s: %v", mountPath, err)
+        }</span>
+
+        // directory exists and unmounted
+        <span class="cov8" title="23">p.Logger.Info(podUID+":"+"Creating tmpfs mountpoint",
+                zap.String("mountPath", mountPath))
+        err = mount("tmpfs", mountPath, "tmpfs", 0, "size=4k")
+        if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":cannot create tmpfs mountpoint",
+                        zap.String("mountPath", mountPath), zap.Error(err))
+                return fmt.Errorf("cannot create tmpfs mountpoint %s: %v", mountPath, err)
+        }</span>
+
+        <span class="cov8" title="22">return nil</span>
+}
+
+// Init method is to initialize the flexvolume, it is a no op right now
+func (p *S3fsPlugin) Init() interfaces.FlexVolumeResponse <span class="cov1" title="1">{
+        p.Logger.Info(podUID + ":" + "S3fsPlugin-Init()-start")
+        defer p.Logger.Info(podUID + ":" + "S3fsPlugin-Init()-end")
+
+        return interfaces.FlexVolumeResponse{
+                Status:       interfaces.StatusSuccess,
+                Message:      "Plugin init successfully",
+                Capabilities: interfaces.CapabilitiesResponse{Attach: false, FSGroup: false, SupportsMetrics: true},
+        }
+}</span>
+
+func (p *S3fsPlugin) checkBucket(endpoint, region, bucket string, creds *backend.ObjectStorageCredentials) error <span class="cov9" title="29">{
+        p.Logger.Info(podUID+":"+"Checking if bucket exists",
+                zap.String("bucket", bucket))
+        sess := p.Backend.NewObjectStorageSession(endpoint, region, creds, p.Logger)
+        return sess.CheckBucketAccess(bucket)
+}</span>
+
+func (p *S3fsPlugin) checkObjectPath(endpoint, region, bucket, objectpath string, creds *backend.ObjectStorageCredentials) (bool, error) <span class="cov4" title="4">{
+        p.Logger.Info(podUID+":"+"Checking if object-path exists inside bucket",
+                zap.String("bucket", bucket), zap.String("object-path", objectpath))
+        sess := p.Backend.NewObjectStorageSession(endpoint, region, creds, p.Logger)
+        return sess.CheckObjectPathExistence(bucket, objectpath)
+}</span>
+
+func (p *S3fsPlugin) createDirectoryIfNotExists(path string) error <span class="cov8" title="26">{
+        p.Logger.Info(podUID+":"+"Checking if directory exists",
+                zap.String("path", path))
+
+        _, err := stat(path)
+        if err == nil </span><span class="cov8" title="24">{
+                p.Logger.Info(podUID+":"+"Directory exists",
+                        zap.String("path", path))
+        }</span> else<span class="cov2" title="2"> {
+                if os.IsNotExist(err) </span><span class="cov1" title="1">{
+                        p.Logger.Info(podUID+":"+"Creating directory",
+                                zap.String("path", path))
+                        err = mkdirAll(path, 0755)
+                        if err != nil </span><span class="cov1" title="1">{
+                                p.Logger.Error(podUID+":"+"cannot create directory",
+                                        zap.Error(err))
+                                return fmt.Errorf("cannot create directory: %v", err)
+                        }</span>
+                } else<span class="cov1" title="1"> {
+                        p.Logger.Error(podUID+":"+"cannot stat directory",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot stat directory: %v", err)
+                }</span>
+        }
+        <span class="cov8" title="24">return nil</span>
+}
+
+// Mount method allows to mount the volume/fileset to a given location for a pod
+func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountRequest) error <span class="cov10" title="43">{
+        var options Options
+        var apiKey, serviceInstanceId, accessKey, secretKey string
+        var fInfo os.FileInfo
+        var regionValue, endptValue, iamEndpoint string
+        var fullBucketPath string
+
+        err := parser.UnmarshalMap(&amp;mountRequest.Opts, &amp;options)
+        if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":"+"cannot unmarshal driver options",
+                        zap.Error(err))
+                return fmt.Errorf("cannot unmarshal driver options: %v", err)
+        }</span>
+
+        // Support both endpoint and object-store-endpoint option
+        <span class="cov9" title="42">if options.OSEndpoint != "" </span><span class="cov9" title="42">{
+                endptValue = options.OSEndpoint
+        }</span> else<span class="cov0" title="0"> {
+                endptValue = options.Endpoint
+        }</span>
+        // Support both region and object-store-storage-class option
+        <span class="cov9" title="42">if options.OSStorageClass != "" </span><span class="cov9" title="41">{
+                regionValue = options.OSStorageClass
+        }</span> else<span class="cov1" title="1"> if options.Region != "" </span><span class="cov0" title="0">{
+                regionValue = options.Region
+        }</span> else<span class="cov1" title="1"> {
+                regionValue = "dummy-object-store-storageclass"
+        }</span>
+
+        <span class="cov9" title="42">if !strings.HasPrefix(endptValue, "https://") &amp;&amp; !strings.HasPrefix(endptValue, "http://") </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":"+
+                        "bad value for object-store-endpoint: scheme is missing."+
+                        " must be of the form http://&lt;hostname&gt; or https://&lt;hostname&gt;",
+                        zap.String("object-store-endpoint", endptValue))
+                return fmt.Errorf(podUID+":"+
+                        "bad value for object-store-endpoint \"%v\": scheme is missing."+
+                        " must be of the form http://&lt;hostname&gt; or https://&lt;hostname&gt;",
+                        endptValue)
+        }</span>
+
+        //Check if value of s3fs-fuse-retry-count parameter can be converted to integer
+        <span class="cov9" title="41">if options.S3FSFUSERetryCount != "" </span><span class="cov3" title="3">{
+                retryCount, err := strconv.Atoi(options.S3FSFUSERetryCount)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                "cannot convert value of s3fs-fuse-retry-count into integer",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+                }</span>
+                <span class="cov2" title="2">if retryCount &lt; 1 </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " value of s3fs-fuse-retry-count should be &gt;= 1",
+                                zap.Error(err))
+                        return fmt.Errorf("value of s3fs-fuse-retry-count should be &gt;= 1")
+                }</span>
+        }
+
+        //Check if value of stat-cache-expire-seconds parameter can be converted to integer
+        <span class="cov9" title="39">if options.StatCacheExpireSeconds != "" </span><span class="cov3" title="3">{
+                cacheExpireSeconds, err := strconv.Atoi(options.StatCacheExpireSeconds)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " cannot convert value of stat-cache-expire-seconds into integer",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+                }</span> else<span class="cov2" title="2"> if cacheExpireSeconds &lt; 0 </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " value of stat-cache-expire-seconds should be &gt;= 0",
+                                zap.Error(err))
+                        return fmt.Errorf("value of stat-cache-expire-seconds should be &gt;= 0")
+                }</span>
+        }
+
+        //Check if value of connect_timeout parameter can be converted to integer
+        <span class="cov9" title="37">if options.ConnectTimeoutSeconds != "" </span><span class="cov2" title="2">{
+                _, err := strconv.Atoi(options.ConnectTimeoutSeconds)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                "cannot convert value of connect-timeout-seconds into integer",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot convert value of connect-timeout-seconds into integer: %v", err)
+                }</span>
+        }
+
+        //Check if value of connect_timeout parameter can be converted to integer
+        <span class="cov9" title="36">if options.ReadwriteTimeoutSeconds != "" </span><span class="cov2" title="2">{
+                _, err := strconv.Atoi(options.ReadwriteTimeoutSeconds)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                "cannot convert value of readwrite-timeout-seconds into integer",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot convert value of readwrite-timeout-seconds into integer: %v", err)
+                }</span>
+        }
+
+        <span class="cov9" title="35">if options.APIKeyB64 != "" </span><span class="cov4" title="5">{
+                apiKey, err = parser.DecodeBase64(options.APIKeyB64)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " cannot decode API key",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot decode API key: %v", err)
+                }</span>
+                <span class="cov4" title="4">serviceInstanceId, err = parser.DecodeBase64(options.ServiceInstanceIDB64)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " cannot decode Service Instance ID",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot decode Service Instance ID: %v", err)
+                }</span>
+        } else<span class="cov9" title="30"> {
+                accessKey, err = parser.DecodeBase64(options.AccessKeyB64)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " cannot decode access key",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot decode access key: %v", err)
+                }</span>
+
+                <span class="cov9" title="29">secretKey, err = parser.DecodeBase64(options.SecretKeyB64)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+
+                                " cannot decode secret key",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot decode secret key: %v", err)
+                }</span>
+        }
+
+        <span class="cov9" title="31">if apiKey != "" </span><span class="cov3" title="3">{
+                if options.IAMEndpoint == "" </span><span class="cov1" title="1">{
+                        iamEndpoint = defaultIAMEndPoint
+                }</span> else<span class="cov2" title="2"> {
+                        if !strings.HasPrefix(options.IAMEndpoint, "https://") &amp;&amp; !strings.HasPrefix(options.IAMEndpoint, "http://") </span><span class="cov1" title="1">{
+                                p.Logger.Error(podUID+":"+
+                                        " bad value for iam-endpoint."+
+                                        " must be of the form https://&lt;hostname&gt; or http://&lt;hostname&gt;",
+                                        zap.String("iam-endpoint", options.IAMEndpoint))
+                                return fmt.Errorf(podUID+":"+
+                                        " bad value for iam-endpoint \"%v\":"+
+                                        " must be of the form https://&lt;hostname&gt; or http://&lt;hostname&gt;",
+                                        options.IAMEndpoint)
+                        }</span> else<span class="cov1" title="1"> {
+                                iamEndpoint = options.IAMEndpoint
+                        }</span>
+                }
+        }
+        <span class="cov9" title="30">if options.CAbundleB64 != "" </span><span class="cov2" title="2">{
+                CaBundleKey, err := parser.DecodeBase64(options.CAbundleB64)
+                if err != nil </span><span class="cov0" title="0">{
+                        p.Logger.Error(podUID+":"+" cannot decode CA bundle",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot decode CA bundle: %v", err)
+                }</span>
+                <span class="cov2" title="2">caFileName := "_ca.crt" // nolint:ineffassign
+                if options.CosServiceIP != "" </span><span class="cov2" title="2">{
+                        caFileName = options.CosServiceIP + "_ca.crt"
+                }</span> else<span class="cov0" title="0"> {
+                        pvName := filepath.Base(mountRequest.MountDir)
+                        caFileName = pvName + "_ca.crt"
+                }</span>
+                <span class="cov2" title="2">caFile := path.Join(caPath, caFileName)
+                p.Logger.Info(podUID+": CA CERT", zap.String("CA bundle file", caFile))
+                err = writeFile(caFile, []byte(CaBundleKey), 0600)
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+" cannot create ca crt file",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot create ca crt file: %v", err)
+                }</span>
+
+                <span class="cov1" title="1">err = os.Setenv("CURL_CA_BUNDLE", caFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        p.Logger.Error(podUID+":"+" cannot set CURL_CA_BUNDLE env var",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot set CURL_CA_BUNDLE env var: %v", err)
+                }</span>
+                <span class="cov1" title="1">err = os.Setenv("AWS_CA_BUNDLE", caFile)
+                if err != nil </span><span class="cov0" title="0">{
+                        p.Logger.Error(podUID+":"+" cannot set AWS_CA_BUNDLE env var",
+                                zap.Error(err))
+                        return fmt.Errorf("cannot set AWS_CA_BUNDLE env var: %v", err)
+                }</span>
+        }
+        // check that bucket exists before doing the mount
+        <span class="cov9" title="29">err = p.checkBucket(endptValue, regionValue, options.Bucket,
+                &amp;backend.ObjectStorageCredentials{
+                        AccessKey:         accessKey,
+                        SecretKey:         secretKey,
+                        APIKey:            apiKey,
+                        ServiceInstanceID: serviceInstanceId,
+                        IAMEndpoint:       iamEndpoint})
+        if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":"+" cannot access bucket",
+                        zap.Error(err))
+                return fmt.Errorf("cannot access bucket: %v", err)
+        }</span>
+
+        // check that object-path exists inside bucket before doing the mount
+        <span class="cov8" title="28">if options.ObjectPath != "" </span><span class="cov4" title="4">{
+                exist, err := p.checkObjectPath(endptValue, regionValue, options.Bucket, options.ObjectPath,
+                        &amp;backend.ObjectStorageCredentials{
+                                AccessKey:         accessKey,
+                                SecretKey:         secretKey,
+                                APIKey:            apiKey,
+                                ServiceInstanceID: serviceInstanceId,
+                                IAMEndpoint:       iamEndpoint})
+                if err != nil </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+" cannot access object-path inside bucket",
+                                zap.String("bucket", options.Bucket), zap.String("object-path", options.ObjectPath), zap.Error(err))
+                        return fmt.Errorf("cannot access object-path \"%s\" inside bucket %s: %v", options.ObjectPath, options.Bucket, err)
+                }</span> else<span class="cov3" title="3"> if !exist </span><span class="cov1" title="1">{
+                        p.Logger.Error(podUID+":"+" object-path not found inside bucket",
+                                zap.String("bucket", options.Bucket), zap.String("object-path", options.ObjectPath))
+                        return fmt.Errorf("object-path \"%s\" not found inside bucket %s", options.ObjectPath, options.Bucket)
+                }</span>
+        }
+
+        // create target directory
+        <span class="cov8" title="26">err = p.createDirectoryIfNotExists(mountRequest.MountDir)
+        if err != nil </span><span class="cov2" title="2">{
+                p.Logger.Error(podUID+":"+"cannot create target directory",
+                        zap.Error(err))
+                return fmt.Errorf("cannot create target directory: %v", err)
+        }</span>
+
+        // mount data path
+        <span class="cov8" title="24">mountPath := path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(mountRequest.MountDir))))
+        done := false
+        err = p.createEmptyMountpoint(mountPath)
+        if err != nil </span><span class="cov2" title="2">{
+                p.Logger.Error(podUID+":"+" cannot create mount point",
+                        zap.Error(err))
+                return fmt.Errorf("cannot create mount point: %v", err)
+        }</span>
+
+        <span class="cov8" title="22">defer func() </span><span class="cov8" title="22">{
+                // try to delete cache upon error or panic
+                if !done </span><span class="cov2" title="2">{
+                        mounterr := p.unmountPath(mountPath, true)
+                        if mounterr != nil </span><span class="cov0" title="0">{
+                                p.Logger.Error(podUID+":"+"Error unmounting volume",
+                                        zap.Error(mounterr))
+                        }</span>
+                }
+        }()
+
+        // create password file
+        <span class="cov8" title="22">passwordFile := path.Join(mountPath, passwordFileName)
+        if apiKey != "" </span><span class="cov2" title="2">{
+                err = writeFile(passwordFile, []byte(":"+apiKey), 0600)
+        }</span> else<span class="cov8" title="20"> {
+                err = writeFile(passwordFile, []byte(accessKey+":"+secretKey), 0600)
+        }</span>
+        <span class="cov8" title="22">if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":"+" cannot create password file",
+                        zap.Error(err))
+                return fmt.Errorf("cannot create password file: %v", err)
+        }</span>
+
+        <span class="cov8" title="21">if options.ObjectPath != "" </span><span class="cov2" title="2">{
+                if strings.HasPrefix(options.ObjectPath, "/") </span><span class="cov1" title="1">{
+                        fullBucketPath = options.Bucket + ":" + options.ObjectPath
+                }</span> else<span class="cov1" title="1"> {
+                        fullBucketPath = options.Bucket + ":/" + options.ObjectPath
+                }</span>
+        } else<span class="cov8" title="19"> {
+                fullBucketPath = options.Bucket
+        }</span>
+        <span class="cov8" title="21">args := []string{fullBucketPath, mountRequest.MountDir,
+                "-o", "multireq_max=" + strconv.Itoa(options.MultiReqMax),
+                "-o", "use_path_request_style",
+                "-o", "passwd_file=" + passwordFile,
+                "-o", "url=" + endptValue,
+                "-o", "endpoint=" + regionValue,
+                "-o", "parallel_count=" + strconv.Itoa(options.ParallelCount),
+                "-o", "multipart_size=" + strconv.Itoa(options.ChunkSizeMB),
+                "-o", "dbglevel=" + options.DebugLevel,
+                "-o", "max_stat_cache_size=" + strconv.Itoa(options.StatCacheSize),
+                "-o", "allow_other",
+                "-o", "max_background=1000",
+                "-o", "mp_umask=002",
+                "-o", "instance_name=" + mountRequest.MountDir,
+        }
+
+        //if options.FSGroup != "" {
+        if _, ok := mountRequest.Opts["kubernetes.io/fsGroup"]; ok </span><span class="cov1" title="1">{
+                args = append(args, "-o", "gid="+options.FSGroup)
+                args = append(args, "-o", "uid="+options.FSGroup)
+        }</span> else<span class="cov8" title="20"> if _, ok := mountRequest.Opts["kubernetes.io/mounterArgs.FsGroup"]; ok </span><span class="cov1" title="1">{
+                args = append(args, "-o", "gid="+options.FSGroupNew)
+                args = append(args, "-o", "uid="+options.FSGroupNew)
+        }</span>
+
+        // Check if AccessMode is ReadOnlyMany
+        <span class="cov8" title="21">if options.AccessMode == "ReadOnlyMany" </span><span class="cov1" title="1">{
+                args = append(args, "-o", "ro")
+        }</span>
+
+        <span class="cov8" title="21">if len(strings.TrimSpace(options.TLSCipherSuite)) != 0 &amp;&amp; options.TLSCipherSuite != "default" </span><span class="cov8" title="20">{
+                // Add cipher_suite option only if the value is !=default or nonempty
+                args = append(args, "-o", "cipher_suites="+options.TLSCipherSuite)
+        }</span>
+
+        //Number of retries for failed S3 transaction
+        <span class="cov8" title="21">if options.S3FSFUSERetryCount != "" </span><span class="cov1" title="1">{
+                args = append(args, "-o", "retries="+options.S3FSFUSERetryCount)
+        }</span>
+
+        <span class="cov8" title="21">if options.StatCacheExpireSeconds != "" </span><span class="cov1" title="1">{
+                args = append(args, "-o", "stat_cache_expire="+options.StatCacheExpireSeconds)
+        }</span>
+
+        <span class="cov8" title="21">if options.CurlDebug </span><span class="cov1" title="1">{
+                args = append(args, "-o", "curldbg=body")
+        }</span>
+
+        <span class="cov8" title="21">if options.AutoCache </span><span class="cov1" title="1">{
+                args = append(args, "-o", "auto_cache")
+        }</span>
+
+        <span class="cov8" title="21">if options.KernelCache </span><span class="cov1" title="1">{
+                args = append(args, "-o", "kernel_cache")
+        }</span>
+
+        <span class="cov8" title="21">if apiKey != "" </span><span class="cov2" title="2">{
+                args = append(args, "-o", "ibm_iam_auth")
+                args = append(args, "-o", "ibm_iam_endpoint="+iamEndpoint)
+        }</span> else<span class="cov8" title="19"> {
+                args = append(args, "-o", "default_acl=private")
+        }</span>
+
+        <span class="cov8" title="21">if options.ConnectTimeoutSeconds != "" </span><span class="cov1" title="1">{
+                args = append(args, "-o", "connect_timeout="+options.ConnectTimeoutSeconds)
+        }</span>
+
+        <span class="cov8" title="21">if options.ReadwriteTimeoutSeconds != "" </span><span class="cov1" title="1">{
+                args = append(args, "-o", "readwrite_timeout="+options.ReadwriteTimeoutSeconds)
+        }</span>
+
+        <span class="cov8" title="21">if options.UseXattr </span><span class="cov1" title="1">{
+                args = append(args, "-o", "use_xattr")
+        }</span>
+
+        <span class="cov8" title="21">if options.AddMountParam != "" </span><span class="cov1" title="1">{
+                paramSlice := strings.Split(options.AddMountParam, ",")
+                for _, value := range paramSlice </span><span class="cov2" title="2">{
+                        args = append(args, "-o", value)
+                }</span>
+        }
+
+        <span class="cov8" title="21">fInfo, err = os.Lstat(mountRequest.MountDir)
+        if err == nil </span><span class="cov8" title="21">{
+                p.Logger.Info(podUID+":"+"Target directory before-mount: ",
+                        zap.String("mode:", fInfo.Mode().String()),
+                        zap.Uint32("uid:", fInfo.Sys().(*syscall.Stat_t).Uid),
+                        zap.Uint32("gid:", fInfo.Sys().(*syscall.Stat_t).Gid),
+                        zap.String("path:", mountRequest.MountDir))
+        }</span>
+
+        <span class="cov8" title="21">p.Logger.Info(podUID+":"+"Running s3fs",
+                zap.Reflect("args", args))
+
+        output, err := command("s3fs", "--version").CombinedOutput()
+        if err == nil </span><span class="cov8" title="20">{
+                version := strings.Split(string(output), "\n")
+                p.Logger.Info(podUID+":S3FS-Fuse info:", zap.String("Version", version[0]))
+        }</span>
+        <span class="cov8" title="21">p.Logger.Info(podUID+":S3FS-Driver info:", zap.String("Version", buildVersion))
+
+        out, err := command("s3fs", args...).CombinedOutput()
+        if err != nil </span><span class="cov1" title="1">{
+                p.Logger.Error(podUID+":"+"Running s3fs",
+                        zap.String("Error", string(out)))
+                return fmt.Errorf("s3fs mount failed: %s", string(out))
+        }</span>
+
+        <span class="cov8" title="20">fInfo, err = os.Lstat(mountRequest.MountDir)
+        if err == nil </span><span class="cov8" title="20">{
+                p.Logger.Info(podUID+":"+"Target directory after-mount: ",
+                        zap.String("mode:", fInfo.Mode().String()),
+                        zap.Uint32("uid:", fInfo.Sys().(*syscall.Stat_t).Uid),
+                        zap.Uint32("gid:", fInfo.Sys().(*syscall.Stat_t).Gid),
+                        zap.String("path:", mountRequest.MountDir))
+        }</span>
+
+        <span class="cov8" title="20">done = true
+        return nil</span>
+}
+
+// Mount method allows to mount the volume/fileset to a given location for a pod
+func (p *S3fsPlugin) Mount(mountRequest interfaces.FlexVolumeMountRequest) interfaces.FlexVolumeResponse <span class="cov10" title="43">{
+        p.Logger.Info(podUID + ":" + "S3fsPlugin-Mount()-start")
+        defer p.Logger.Info(podUID + ":" + "S3fsPlugin-Mount()-end")
+
+        err := p.mountInternal(mountRequest)
+        if err != nil </span><span class="cov8" title="23">{
+                p.Logger.Info(podUID+":"+"Error mounting volume",
+                        zap.Reflect("err", err))
+
+                return interfaces.FlexVolumeResponse{
+                        Status:  interfaces.StatusFailure,
+                        Message: fmt.Sprintf("Error mounting volume: %v", err),
+                }
+        }</span>
+
+        <span class="cov8" title="20">p.Logger.Info(podUID+":"+"Successfully executed mount",
+                zap.String("mountRequest.MountDir", mountRequest.MountDir))
+
+        return interfaces.FlexVolumeResponse{
+                Status:  interfaces.StatusSuccess,
+                Message: fmt.Sprintf("Volume mounted successfully to %s", mountRequest.MountDir),
+        }</span>
+}
+
+// Unmount methods unmounts the volume/ fileset from the pod
+func (p *S3fsPlugin) Unmount(unmountRequest interfaces.FlexVolumeUnmountRequest) interfaces.FlexVolumeResponse <span class="cov1" title="1">{
+        p.Logger.Info(podUID + ":" + "S3fsPlugin-Unmount()-start")
+        defer p.Logger.Info(podUID + ":" + "S3fsPlugin-Unmount()-end")
+
+        err := p.unmountInternal(unmountRequest)
+        if err != nil </span><span class="cov0" title="0">{
+                p.Logger.Info(podUID+":"+"Error unmounting volume",
+                        zap.Reflect("err", err))
+
+                return interfaces.FlexVolumeResponse{
+                        Status:  interfaces.StatusFailure,
+                        Message: fmt.Sprintf("Error unmounting volume: %v", err),
+                }
+        }</span>
+
+        <span class="cov1" title="1">p.Logger.Info(podUID+":"+"Successfully executed unmount",
+                zap.String("mountRequest.MountDir", unmountRequest.MountDir))
+
+        return interfaces.FlexVolumeResponse{
+                Status:  interfaces.StatusSuccess,
+                Message: "Volume unmounted successfully",
+        }</span>
+}
+
+// Unmount methods unmounts the volume/ fileset from the pod
+func (p *S3fsPlugin) unmountInternal(unmountRequest interfaces.FlexVolumeUnmountRequest) error <span class="cov1" title="1">{
+        err := p.unmountPath(unmountRequest.MountDir, false)
+        if err != nil </span><span class="cov0" title="0">{
+                p.Logger.Error(podUID+":"+"cannot unmount s3fs mount point",
+                        zap.String("Request", unmountRequest.MountDir),
+                        zap.Error(err))
+                return fmt.Errorf("cannot unmount s3fs mount point %s: %v", unmountRequest.MountDir, err)
+        }</span>
+
+        <span class="cov1" title="1">mountPath := path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(unmountRequest.MountDir))))
+        err = p.unmountPath(mountPath, true)
+        if err != nil </span><span class="cov0" title="0">{
+                p.Logger.Error(podUID+":"+"cannot delete data  mount point",
+                        zap.String("mountpath", mountPath), zap.Error(err))
+                return fmt.Errorf("cannot delete data mount point %s: %v", mountPath, err)
+        }</span>
+
+        <span class="cov1" title="1">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package fake_provider
+
+import (
+        "context"
+        "errors"
+        "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
+        "google.golang.org/grpc"
+)
+
+const (
+        clusterTypeVpcG2   = "vpc-gen2"
+        clusterTypeClassic = "cruiser"
+        clusterTypeOther   = "other"
+        testSvcEndpoint    = "10.10.10.10"
+        emptySvcEndpoint   = ""
+)
+
+// FakeIBMProviderClientFactory implements provider.IBMProviderClientFactory
+type FakeIBMProviderClientFactory struct {
+        ClusterTypeVpcG2      bool
+        ClusterTypeClassic    bool
+        ClusterTypeOther      bool
+        FailClusterType       bool
+        FailClusterTypeErrMsg string
+        FailSvcEndpoint       bool
+        FailSvcEndpointErrMsg string
+        TestSvcEndpoint       bool
+        EmptySvcEndpoint      bool
+}
+
+var _ provider.IBMProviderClientFactory = (*FakeIBMProviderClientFactory)(nil)
+
+// FakeIBMProviderClient implements provider.IBMProviderClient
+type fakeIBMProviderClient struct {
+        provider *FakeIBMProviderClientFactory
+}
+
+// NewIBMProviderClient method creates a new fake-grpc-client IBMProviderClient instance
+func (pc *FakeIBMProviderClientFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) provider.IBMProviderClient <span class="cov0" title="0">{
+        return &amp;fakeIBMProviderClient{provider: pc}
+}</span>
+
+func (c *fakeIBMProviderClient) GetProviderType(
+        ctx context.Context, in *provider.ProviderTypeRequest,
+        opts ...grpc.CallOption,
+) (*provider.ProviderTypeReply, error) <span class="cov0" title="0">{
+        var reply provider.ProviderTypeReply
+        if c.provider.ClusterTypeVpcG2 </span><span class="cov0" title="0">{
+                reply = provider.ProviderTypeReply{Type: clusterTypeVpcG2}
+        }</span> else<span class="cov0" title="0"> if c.provider.ClusterTypeClassic </span><span class="cov0" title="0">{
+                reply = provider.ProviderTypeReply{Type: clusterTypeClassic}
+        }</span> else<span class="cov0" title="0"> if c.provider.ClusterTypeOther </span><span class="cov0" title="0">{
+                reply = provider.ProviderTypeReply{Type: clusterTypeOther}
+        }</span> else<span class="cov0" title="0"> if c.provider.FailClusterType </span><span class="cov0" title="0">{
+                return &amp;reply, errors.New(c.provider.FailClusterTypeErrMsg)
+        }</span>
+        <span class="cov0" title="0">out := &amp;reply
+        return out, nil</span>
+}
+
+func (c *fakeIBMProviderClient) GetVPCSvcEndpoint(
+        ctx context.Context, in *provider.VPCSvcEndpointRequest,
+        opts ...grpc.CallOption,
+) (*provider.VPCSvcEndpointReply, error) <span class="cov0" title="0">{
+        var reply provider.VPCSvcEndpointReply
+        if c.provider.ClusterTypeVpcG2 &amp;&amp; c.provider.TestSvcEndpoint </span><span class="cov0" title="0">{
+                reply = provider.VPCSvcEndpointReply{Cse: testSvcEndpoint}
+        }</span> else<span class="cov0" title="0"> if c.provider.ClusterTypeVpcG2 &amp;&amp; c.provider.EmptySvcEndpoint </span><span class="cov0" title="0">{
+                reply = provider.VPCSvcEndpointReply{Cse: emptySvcEndpoint}
+        }</span> else<span class="cov0" title="0"> if c.provider.ClusterTypeVpcG2 &amp;&amp; c.provider.FailSvcEndpoint </span><span class="cov0" title="0">{
+                return &amp;reply, errors.New(c.provider.FailSvcEndpointErrMsg)
+        }</span> else<span class="cov0" title="0"> {
+                return &amp;reply, errors.New(c.provider.FailSvcEndpointErrMsg)
+        }</span>
+        <span class="cov0" title="0">out := &amp;reply
+        return out, nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">// *******************************************************************************
+// * IBM Confidential
+// * OCO Source Materials
+// * IBM Cloud Container Service, 5737-D43
+// * (C) Copyright IBM Corp. 2020 All Rights Reserved.
+// * The source code for this program is not  published or otherwise divested of
+// * its trade secrets, irrespective of what has been deposited with
+// * the U.S. Copyright Office.
+// ******************************************************************************/
+
+// Code generated by protoc-gen-go. DO NOT EDIT.
+// versions:
+//         protoc-gen-go v1.24.0
+//         protoc        v3.12.4
+// source: provider/provider.proto
+
+package provider
+
+import (
+        proto "github.com/golang/protobuf/proto"
+        protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+        protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+        reflect "reflect"
+        sync "sync"
+)
+
+const (
+        // Verify that this generated code is sufficiently up-to-date.
+        _ = protoimpl.EnforceVersion(20 - protoimpl.MinVersion)
+        // Verify that runtime/protoimpl is sufficiently up-to-date.
+        _ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
+)
+
+// This is a compile-time assertion that a sufficiently up-to-date version
+// of the legacy proto package is being used.
+const _ = proto.ProtoPackageIsVersion4
+
+// The provider type request
+type ProviderTypeRequest struct {
+        state         protoimpl.MessageState
+        sizeCache     protoimpl.SizeCache
+        unknownFields protoimpl.UnknownFields
+
+        Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *ProviderTypeRequest) Reset() <span class="cov0" title="0">{
+        *x = ProviderTypeRequest{}
+        if protoimpl.UnsafeEnabled </span><span class="cov0" title="0">{
+                mi := &amp;file_provider_provider_proto_msgTypes[0]
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                ms.StoreMessageInfo(mi)
+        }</span>
+}
+
+func (x *ProviderTypeRequest) String() string <span class="cov0" title="0">{
+        return protoimpl.X.MessageStringOf(x)
+}</span>
+
+func (*ProviderTypeRequest) ProtoMessage() {<span class="cov0" title="0">}</span>
+
+func (x *ProviderTypeRequest) ProtoReflect() protoreflect.Message <span class="cov0" title="0">{
+        mi := &amp;file_provider_provider_proto_msgTypes[0]
+        if protoimpl.UnsafeEnabled &amp;&amp; x != nil </span><span class="cov0" title="0">{
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                if ms.LoadMessageInfo() == nil </span><span class="cov0" title="0">{
+                        ms.StoreMessageInfo(mi)
+                }</span>
+                <span class="cov0" title="0">return ms</span>
+        }
+        <span class="cov0" title="0">return mi.MessageOf(x)</span>
+}
+
+// Deprecated: Use ProviderTypeRequest.ProtoReflect.Descriptor instead.
+func (*ProviderTypeRequest) Descriptor() ([]byte, []int) <span class="cov0" title="0">{
+        return file_provider_provider_proto_rawDescGZIP(), []int{0}
+}</span>
+
+func (x *ProviderTypeRequest) GetId() string <span class="cov0" title="0">{
+        if x != nil </span><span class="cov0" title="0">{
+                return x.Id
+        }</span>
+        <span class="cov0" title="0">return ""</span>
+}
+
+// The provider type reply
+type ProviderTypeReply struct {
+        state         protoimpl.MessageState
+        sizeCache     protoimpl.SizeCache
+        unknownFields protoimpl.UnknownFields
+
+        Type string `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
+}
+
+func (x *ProviderTypeReply) Reset() <span class="cov0" title="0">{
+        *x = ProviderTypeReply{}
+        if protoimpl.UnsafeEnabled </span><span class="cov0" title="0">{
+                mi := &amp;file_provider_provider_proto_msgTypes[1]
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                ms.StoreMessageInfo(mi)
+        }</span>
+}
+
+func (x *ProviderTypeReply) String() string <span class="cov0" title="0">{
+        return protoimpl.X.MessageStringOf(x)
+}</span>
+
+func (*ProviderTypeReply) ProtoMessage() {<span class="cov0" title="0">}</span>
+
+func (x *ProviderTypeReply) ProtoReflect() protoreflect.Message <span class="cov0" title="0">{
+        mi := &amp;file_provider_provider_proto_msgTypes[1]
+        if protoimpl.UnsafeEnabled &amp;&amp; x != nil </span><span class="cov0" title="0">{
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                if ms.LoadMessageInfo() == nil </span><span class="cov0" title="0">{
+                        ms.StoreMessageInfo(mi)
+                }</span>
+                <span class="cov0" title="0">return ms</span>
+        }
+        <span class="cov0" title="0">return mi.MessageOf(x)</span>
+}
+
+// Deprecated: Use ProviderTypeReply.ProtoReflect.Descriptor instead.
+func (*ProviderTypeReply) Descriptor() ([]byte, []int) <span class="cov0" title="0">{
+        return file_provider_provider_proto_rawDescGZIP(), []int{1}
+}</span>
+
+func (x *ProviderTypeReply) GetType() string <span class="cov0" title="0">{
+        if x != nil </span><span class="cov0" title="0">{
+                return x.Type
+        }</span>
+        <span class="cov0" title="0">return ""</span>
+}
+
+// The VPC cloud service endpoint request
+type VPCSvcEndpointRequest struct {
+        state         protoimpl.MessageState
+        sizeCache     protoimpl.SizeCache
+        unknownFields protoimpl.UnknownFields
+
+        Id string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+}
+
+func (x *VPCSvcEndpointRequest) Reset() <span class="cov0" title="0">{
+        *x = VPCSvcEndpointRequest{}
+        if protoimpl.UnsafeEnabled </span><span class="cov0" title="0">{
+                mi := &amp;file_provider_provider_proto_msgTypes[2]
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                ms.StoreMessageInfo(mi)
+        }</span>
+}
+
+func (x *VPCSvcEndpointRequest) String() string <span class="cov0" title="0">{
+        return protoimpl.X.MessageStringOf(x)
+}</span>
+
+func (*VPCSvcEndpointRequest) ProtoMessage() {<span class="cov0" title="0">}</span>
+
+func (x *VPCSvcEndpointRequest) ProtoReflect() protoreflect.Message <span class="cov0" title="0">{
+        mi := &amp;file_provider_provider_proto_msgTypes[2]
+        if protoimpl.UnsafeEnabled &amp;&amp; x != nil </span><span class="cov0" title="0">{
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                if ms.LoadMessageInfo() == nil </span><span class="cov0" title="0">{
+                        ms.StoreMessageInfo(mi)
+                }</span>
+                <span class="cov0" title="0">return ms</span>
+        }
+        <span class="cov0" title="0">return mi.MessageOf(x)</span>
+}
+
+// Deprecated: Use VPCSvcEndpointRequest.ProtoReflect.Descriptor instead.
+func (*VPCSvcEndpointRequest) Descriptor() ([]byte, []int) <span class="cov0" title="0">{
+        return file_provider_provider_proto_rawDescGZIP(), []int{2}
+}</span>
+
+func (x *VPCSvcEndpointRequest) GetId() string <span class="cov0" title="0">{
+        if x != nil </span><span class="cov0" title="0">{
+                return x.Id
+        }</span>
+        <span class="cov0" title="0">return ""</span>
+}
+
+// The VPC cloud service endpoint reply
+type VPCSvcEndpointReply struct {
+        state         protoimpl.MessageState
+        sizeCache     protoimpl.SizeCache
+        unknownFields protoimpl.UnknownFields
+
+        Cse string `protobuf:"bytes,1,opt,name=cse,proto3" json:"cse,omitempty"`
+}
+
+func (x *VPCSvcEndpointReply) Reset() <span class="cov0" title="0">{
+        *x = VPCSvcEndpointReply{}
+        if protoimpl.UnsafeEnabled </span><span class="cov0" title="0">{
+                mi := &amp;file_provider_provider_proto_msgTypes[3]
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                ms.StoreMessageInfo(mi)
+        }</span>
+}
+
+func (x *VPCSvcEndpointReply) String() string <span class="cov0" title="0">{
+        return protoimpl.X.MessageStringOf(x)
+}</span>
+
+func (*VPCSvcEndpointReply) ProtoMessage() {<span class="cov0" title="0">}</span>
+
+func (x *VPCSvcEndpointReply) ProtoReflect() protoreflect.Message <span class="cov0" title="0">{
+        mi := &amp;file_provider_provider_proto_msgTypes[3]
+        if protoimpl.UnsafeEnabled &amp;&amp; x != nil </span><span class="cov0" title="0">{
+                ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+                if ms.LoadMessageInfo() == nil </span><span class="cov0" title="0">{
+                        ms.StoreMessageInfo(mi)
+                }</span>
+                <span class="cov0" title="0">return ms</span>
+        }
+        <span class="cov0" title="0">return mi.MessageOf(x)</span>
+}
+
+// Deprecated: Use VPCSvcEndpointReply.ProtoReflect.Descriptor instead.
+func (*VPCSvcEndpointReply) Descriptor() ([]byte, []int) <span class="cov0" title="0">{
+        return file_provider_provider_proto_rawDescGZIP(), []int{3}
+}</span>
+
+func (x *VPCSvcEndpointReply) GetCse() string <span class="cov0" title="0">{
+        if x != nil </span><span class="cov0" title="0">{
+                return x.Cse
+        }</span>
+        <span class="cov0" title="0">return ""</span>
+}
+
+var File_provider_provider_proto protoreflect.FileDescriptor
+
+var file_provider_provider_proto_rawDesc = []byte{
+        0x0a, 0x17, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x70, 0x72, 0x6f, 0x76, 0x69,
+        0x64, 0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x08, 0x70, 0x72, 0x6f, 0x76, 0x69,
+        0x64, 0x65, 0x72, 0x22, 0x25, 0x0a, 0x13, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54,
+        0x79, 0x70, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64,
+        0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x27, 0x0a, 0x11, 0x50, 0x72,
+        0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12,
+        0x12, 0x0a, 0x04, 0x74, 0x79, 0x70, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x74,
+        0x79, 0x70, 0x65, 0x22, 0x27, 0x0a, 0x15, 0x56, 0x50, 0x43, 0x53, 0x76, 0x63, 0x45, 0x6e, 0x64,
+        0x70, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x0e, 0x0a, 0x02,
+        0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64, 0x22, 0x27, 0x0a, 0x13,
+        0x56, 0x50, 0x43, 0x53, 0x76, 0x63, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x65,
+        0x70, 0x6c, 0x79, 0x12, 0x10, 0x0a, 0x03, 0x63, 0x73, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
+        0x52, 0x03, 0x63, 0x73, 0x65, 0x32, 0xad, 0x01, 0x0a, 0x0b, 0x49, 0x42, 0x4d, 0x50, 0x72, 0x6f,
+        0x76, 0x69, 0x64, 0x65, 0x72, 0x12, 0x4f, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x50, 0x72, 0x6f, 0x76,
+        0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x12, 0x1d, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69,
+        0x64, 0x65, 0x72, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65,
+        0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1b, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64,
+        0x65, 0x72, 0x2e, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x54, 0x79, 0x70, 0x65, 0x52,
+        0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x4d, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x56, 0x50, 0x43,
+        0x43, 0x53, 0x45, 0x12, 0x1f, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2e, 0x56,
+        0x50, 0x43, 0x53, 0x76, 0x63, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x65, 0x71,
+        0x75, 0x65, 0x73, 0x74, 0x1a, 0x1d, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2e,
+        0x56, 0x50, 0x43, 0x53, 0x76, 0x63, 0x45, 0x6e, 0x64, 0x70, 0x6f, 0x69, 0x6e, 0x74, 0x52, 0x65,
+        0x70, 0x6c, 0x79, 0x22, 0x00, 0x42, 0x7d, 0x0a, 0x14, 0x69, 0x6f, 0x2e, 0x67, 0x72, 0x70, 0x63,
+        0x2e, 0x69, 0x62, 0x6d, 0x2e, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x42, 0x0b, 0x49,
+        0x42, 0x4d, 0x50, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x50, 0x01, 0x5a, 0x56, 0x67, 0x69,
+        0x74, 0x68, 0x75, 0x62, 0x2e, 0x69, 0x62, 0x6d, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x61, 0x6c, 0x63,
+        0x68, 0x65, 0x6d, 0x79, 0x2d, 0x63, 0x6f, 0x6e, 0x74, 0x61, 0x69, 0x6e, 0x65, 0x72, 0x73, 0x2f,
+        0x61, 0x72, 0x6d, 0x61, 0x64, 0x61, 0x2d, 0x73, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x2d, 0x73,
+        0x33, 0x66, 0x73, 0x2d, 0x70, 0x6c, 0x75, 0x67, 0x69, 0x6e, 0x2f, 0x63, 0x6d, 0x64, 0x2f, 0x69,
+        0x62, 0x6d, 0x2d, 0x70, 0x72, 0x6f, 0x76, 0x69, 0x64, 0x65, 0x72, 0x2f, 0x70, 0x72, 0x6f, 0x76,
+        0x69, 0x64, 0x65, 0x72, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+}
+
+var (
+        file_provider_provider_proto_rawDescOnce sync.Once
+        file_provider_provider_proto_rawDescData = file_provider_provider_proto_rawDesc
+)
+
+func file_provider_provider_proto_rawDescGZIP() []byte <span class="cov0" title="0">{
+        file_provider_provider_proto_rawDescOnce.Do(func() </span><span class="cov0" title="0">{
+                file_provider_provider_proto_rawDescData = protoimpl.X.CompressGZIP(file_provider_provider_proto_rawDescData)
+        }</span>)
+        <span class="cov0" title="0">return file_provider_provider_proto_rawDescData</span>
+}
+
+var file_provider_provider_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_provider_provider_proto_goTypes = []interface{}{
+        (*ProviderTypeRequest)(nil),   // 0: provider.ProviderTypeRequest
+        (*ProviderTypeReply)(nil),     // 1: provider.ProviderTypeReply
+        (*VPCSvcEndpointRequest)(nil), // 2: provider.VPCSvcEndpointRequest
+        (*VPCSvcEndpointReply)(nil),   // 3: provider.VPCSvcEndpointReply
+}
+var file_provider_provider_proto_depIdxs = []int32{
+        0, // 0: provider.IBMProvider.GetProviderType:input_type -&gt; provider.ProviderTypeRequest
+        2, // 1: provider.IBMProvider.GetVPCSvcEndpoint:input_type -&gt; provider.VPCSvcEndpointRequest
+        1, // 2: provider.IBMProvider.GetProviderType:output_type -&gt; provider.ProviderTypeReply
+        3, // 3: provider.IBMProvider.GetVPCSvcEndpoint:output_type -&gt; provider.VPCSvcEndpointReply
+        2, // [2:4] is the sub-list for method output_type
+        0, // [0:2] is the sub-list for method input_type
+        0, // [0:0] is the sub-list for extension type_name
+        0, // [0:0] is the sub-list for extension extendee
+        0, // [0:0] is the sub-list for field type_name
+}
+
+func init() <span class="cov0" title="0">{ file_provider_provider_proto_init() }</span>
+func file_provider_provider_proto_init() <span class="cov0" title="0">{
+        if File_provider_provider_proto != nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">if !protoimpl.UnsafeEnabled </span><span class="cov0" title="0">{
+                file_provider_provider_proto_msgTypes[0].Exporter = func(v interface{}, i int) interface{} </span><span class="cov0" title="0">{
+                        switch v := v.(*ProviderTypeRequest); i </span>{
+                        case 0:<span class="cov0" title="0">
+                                return &amp;v.state</span>
+                        case 1:<span class="cov0" title="0">
+                                return &amp;v.sizeCache</span>
+                        case 2:<span class="cov0" title="0">
+                                return &amp;v.unknownFields</span>
+                        default:<span class="cov0" title="0">
+                                return nil</span>
+                        }
+                }
+                <span class="cov0" title="0">file_provider_provider_proto_msgTypes[1].Exporter = func(v interface{}, i int) interface{} </span><span class="cov0" title="0">{
+                        switch v := v.(*ProviderTypeReply); i </span>{
+                        case 0:<span class="cov0" title="0">
+                                return &amp;v.state</span>
+                        case 1:<span class="cov0" title="0">
+                                return &amp;v.sizeCache</span>
+                        case 2:<span class="cov0" title="0">
+                                return &amp;v.unknownFields</span>
+                        default:<span class="cov0" title="0">
+                                return nil</span>
+                        }
+                }
+                <span class="cov0" title="0">file_provider_provider_proto_msgTypes[2].Exporter = func(v interface{}, i int) interface{} </span><span class="cov0" title="0">{
+                        switch v := v.(*VPCSvcEndpointRequest); i </span>{
+                        case 0:<span class="cov0" title="0">
+                                return &amp;v.state</span>
+                        case 1:<span class="cov0" title="0">
+                                return &amp;v.sizeCache</span>
+                        case 2:<span class="cov0" title="0">
+                                return &amp;v.unknownFields</span>
+                        default:<span class="cov0" title="0">
+                                return nil</span>
+                        }
+                }
+                <span class="cov0" title="0">file_provider_provider_proto_msgTypes[3].Exporter = func(v interface{}, i int) interface{} </span><span class="cov0" title="0">{
+                        switch v := v.(*VPCSvcEndpointReply); i </span>{
+                        case 0:<span class="cov0" title="0">
+                                return &amp;v.state</span>
+                        case 1:<span class="cov0" title="0">
+                                return &amp;v.sizeCache</span>
+                        case 2:<span class="cov0" title="0">
+                                return &amp;v.unknownFields</span>
+                        default:<span class="cov0" title="0">
+                                return nil</span>
+                        }
+                }
+        }
+        <span class="cov0" title="0">type x struct{}
+        out := protoimpl.TypeBuilder{
+                File: protoimpl.DescBuilder{
+                        GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
+                        RawDescriptor: file_provider_provider_proto_rawDesc,
+                        NumEnums:      0,
+                        NumMessages:   4,
+                        NumExtensions: 0,
+                        NumServices:   1,
+                },
+                GoTypes:           file_provider_provider_proto_goTypes,
+                DependencyIndexes: file_provider_provider_proto_depIdxs,
+                MessageInfos:      file_provider_provider_proto_msgTypes,
+        }.Build()
+        File_provider_provider_proto = out.File
+        file_provider_provider_proto_rawDesc = nil
+        file_provider_provider_proto_goTypes = nil
+        file_provider_provider_proto_depIdxs = nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">// Code generated by protoc-gen-go-grpc-client. DO NOT EDIT.
+
+package provider
+
+import (
+        "context"
+        "google.golang.org/grpc"
+        "google.golang.org/grpc/codes"
+        "google.golang.org/grpc/status"
+)
+
+// This is a compile-time assertion to ensure that this generated file
+// is compatible with the grpc-client package it is being compiled against.
+const _ = grpc.SupportPackageIsVersion6
+
+type IBMProviderClientFactory interface {
+
+        // NewIBMProviderClient method creates a new NewIBMProviderClient instance
+        NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient
+}
+
+// IBMProviderClient is the client API for IBMProvider service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+type IBMProviderClient interface {
+        GetProviderType(ctx context.Context, in *ProviderTypeRequest, opts ...grpc.CallOption) (*ProviderTypeReply, error)
+        GetVPCSvcEndpoint(ctx context.Context, in *VPCSvcEndpointRequest, opts ...grpc.CallOption) (*VPCSvcEndpointReply, error)
+}
+
+type IBMProviderClntFactory struct{}
+
+type IBMProviderClnt struct {
+        cc grpc.ClientConnInterface
+}
+
+// NewIBMProviderClient method creates a new NewIBMProviderClient instance
+func (c *IBMProviderClntFactory) NewIBMProviderClient(cc grpc.ClientConnInterface) IBMProviderClient <span class="cov0" title="0">{
+        return &amp;IBMProviderClnt{cc}
+}</span>
+
+func (c *IBMProviderClnt) GetProviderType(
+        ctx context.Context, in *ProviderTypeRequest,
+        opts ...grpc.CallOption,
+) (*ProviderTypeReply, error) <span class="cov0" title="0">{
+        out := new(ProviderTypeReply)
+        err := c.cc.Invoke(ctx, "/provider.IBMProvider/GetProviderType", in, out, opts...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return out, nil</span>
+}
+
+func (c *IBMProviderClnt) GetVPCSvcEndpoint(
+        ctx context.Context, in *VPCSvcEndpointRequest,
+        opts ...grpc.CallOption,
+) (*VPCSvcEndpointReply, error) <span class="cov0" title="0">{
+        out := new(VPCSvcEndpointReply)
+        err := c.cc.Invoke(ctx, "/provider.IBMProvider/GetVPCSvcEndpoint", in, out, opts...)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">return out, nil</span>
+}
+
+// IBMProviderServer is the server API for IBMProvider service.
+// All implementations must embed UnimplementedIBMProviderServer
+// for forward compatibility
+type IBMProviderServer interface {
+        GetProviderType(context.Context, *ProviderTypeRequest) (*ProviderTypeReply, error)
+        GetVPCSvcEndpoint(context.Context, *VPCSvcEndpointRequest) (*VPCSvcEndpointReply, error)
+        mustEmbedUnimplementedIBMProviderServer()
+}
+
+// UnimplementedIBMProviderServer must be embedded to have forward compatible implementations.
+type UnimplementedIBMProviderServer struct {
+}
+
+func (*UnimplementedIBMProviderServer) GetProviderType(
+        context.Context, *ProviderTypeRequest,
+) (*ProviderTypeReply, error) <span class="cov0" title="0">{
+        return nil, status.Errorf(codes.Unimplemented, "method GetProviderType not implemented")
+}</span>
+func (*UnimplementedIBMProviderServer) GetVPCSvcEndpoint(
+        context.Context, *VPCSvcEndpointRequest,
+) (*VPCSvcEndpointReply, error) <span class="cov0" title="0">{
+        return nil, status.Errorf(codes.Unimplemented, "method GetVPCSvcEndpoint not implemented")
+}</span>
+func (*UnimplementedIBMProviderServer) mustEmbedUnimplementedIBMProviderServer() {<span class="cov0" title="0">}</span>
+
+func RegisterIBMProviderServer(s *grpc.Server, srv IBMProviderServer) <span class="cov0" title="0">{
+        s.RegisterService(&amp;_IBMProvider_serviceDesc, srv)
+}</span>
+
+func _IBMProvider_GetProviderType_Handler(
+        srv interface{}, ctx context.Context,
+        dec func(interface{}) error,
+        interceptor grpc.UnaryServerInterceptor,
+) (interface{}, error) <span class="cov0" title="0">{
+        in := new(ProviderTypeRequest)
+        if err := dec(in); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">if interceptor == nil </span><span class="cov0" title="0">{
+                return srv.(IBMProviderServer).GetProviderType(ctx, in)
+        }</span>
+        <span class="cov0" title="0">info := &amp;grpc.UnaryServerInfo{
+                Server:     srv,
+                FullMethod: "/provider.IBMProvider/GetProviderType",
+        }
+        handler := func(ctx context.Context, req interface{}) (interface{}, error) </span><span class="cov0" title="0">{
+                return srv.(IBMProviderServer).GetProviderType(ctx, req.(*ProviderTypeRequest))
+        }</span>
+        <span class="cov0" title="0">return interceptor(ctx, in, info, handler)</span>
+}
+
+func _IBMProvider_GetVPCSvcEndpoint_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) <span class="cov0" title="0">{
+        in := new(VPCSvcEndpointRequest)
+        if err := dec(in); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+        <span class="cov0" title="0">if interceptor == nil </span><span class="cov0" title="0">{
+                return srv.(IBMProviderServer).GetVPCSvcEndpoint(ctx, in)
+        }</span>
+        <span class="cov0" title="0">info := &amp;grpc.UnaryServerInfo{
+                Server:     srv,
+                FullMethod: "/provider.IBMProvider/GetVPCSvcEndpoint",
+        }
+        handler := func(ctx context.Context, req interface{}) (interface{}, error) </span><span class="cov0" title="0">{
+                return srv.(IBMProviderServer).GetVPCSvcEndpoint(ctx, req.(*VPCSvcEndpointRequest))
+        }</span>
+        <span class="cov0" title="0">return interceptor(ctx, in, info, handler)</span>
+}
+
+var _IBMProvider_serviceDesc = grpc.ServiceDesc{
+        ServiceName: "provider.IBMProvider",
+        HandlerType: (*IBMProviderServer)(nil),
+        Methods: []grpc.MethodDesc{
+                {
+                        MethodName: "GetProviderType",
+                        Handler:    _IBMProvider_GetProviderType_Handler,
+                },
+                {
+                        MethodName: "GetVPCSvcEndpoint",
+                        Handler:    _IBMProvider_GetVPCSvcEndpoint_Handler,
+                },
+        },
+        Streams:  []grpc.StreamDesc{},
+        Metadata: "provider/provider.proto",
+}
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package provisioner
+
+import (
+        "context"
+        "errors"
+        "fmt"
+        "net"
+        "os"
+        "path"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/IBM/ibmcloud-object-storage-plugin/driver"
+        "github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+        grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/parser"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/uuid"
+        "go.uber.org/zap"
+        "google.golang.org/grpc"
+        "google.golang.org/grpc/credentials/insecure"
+        v1 "k8s.io/api/core/v1"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+        "sigs.k8s.io/sig-storage-lib-external-provisioner/v6/controller"
+)
+
+// PVC annotations
+type pvcAnnotations struct {
+        AutoCreateBucket        string `json:"ibm.io/auto-create-bucket"`
+        AutoDeleteBucket        string `json:"ibm.io/auto-delete-bucket"`
+        Bucket                  string `json:"ibm.io/bucket"`
+        ObjectPath              string `json:"ibm.io/object-path,omitempty"`
+        Endpoint                string `json:"ibm.io/endpoint,omitempty"` //Will be deprecated
+        Region                  string `json:"ibm.io/region,omitempty"`   //Will be deprecated
+        SecretName              string `json:"ibm.io/secret-name"`
+        ChunkSizeMB             string `json:"ibm.io/chunk-size-mb,omitempty"`
+        ParallelCount           string `json:"ibm.io/parallel-count,omitempty"`
+        MultiReqMax             string `json:"ibm.io/multireq-max,omitempty"`
+        StatCacheSize           string `json:"ibm.io/stat-cache-size,omitempty"`
+        S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+        StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
+        IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
+        ValidateBucket          string `json:"ibm.io/validate-bucket,omitempty"`
+        SecretNamespace         string `json:"ibm.io/secret-namespace,omitempty"`
+        ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
+        ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
+        UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
+        CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
+        DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
+        TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
+        CosServiceName          string `json:"ibm.io/cos-service"`
+        CosServiceNamespace     string `json:"ibm.io/cos-service-ns,omitempty"`
+        AutoCache               bool   `json:"ibm.io/auto_cache,string,omitempty"`
+        SetAccessPolicy         string `json:"ibm.io/set-access-policy,omitempty"`
+        AccessPolicyAllowedIps  string `json:"ibm.io/access-policy-allowed-ips,omitempty"`
+        AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
+        QuotaLimit              string `json:"ibm.io/quota-limit,omitempty"`
+        BucketVersioning        string `json:"ibm.io/bucket-versioning,omitempty"`
+}
+
+// Storage Class options
+type scOptions struct {
+        AutoCreateBucket        string `json:"ibm.io/auto-create-bucket,omitempty"`
+        AutoDeleteBucket        string `json:"ibm.io/auto-delete-bucket,omitempty"`
+        Bucket                  string `json:"ibm.io/bucket,omitempty"`
+        ObjectPath              string `json:"ibm.io/object-path,omitempty"`
+        SecretName              string `json:"ibm.io/secret-name,omitempty"`
+        SecretNamespace         string `json:"ibm.io/secret-namespace,omitempty"`
+        ChunkSizeMB             int    `json:"ibm.io/chunk-size-mb,string"`
+        ParallelCount           int    `json:"ibm.io/parallel-count,string"`
+        MultiReqMax             int    `json:"ibm.io/multireq-max,string"`
+        StatCacheSize           int    `json:"ibm.io/stat-cache-size,string"`
+        TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
+        DebugLevel              string `json:"ibm.io/debug-level"`
+        CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
+        KernelCache             bool   `json:"ibm.io/kernel-cache,string,omitempty"`
+        S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
+        StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
+        IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
+        OSEndpoint              string `json:"ibm.io/object-store-endpoint,omitempty"`
+        OSStorageClass          string `json:"ibm.io/object-store-storage-class,omitempty"`
+        ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
+        ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
+        UseXattr                bool   `json:"ibm.io/use-xattr,string"`
+        AddMountParam           string `json:"ibm.io/add-mount-param,omitempty"`
+        BucketVersioning        string `json:"ibm.io/bucket-versioning,omitempty"`
+}
+
+const (
+        driverName           = "ibm/ibmc-s3fs"
+        autoBucketNamePrefix = "tmp-s3fs-"
+        fsType               = ""
+        caBundlePath         = "/tmp/"
+        defaultName          = "IBMGrpcProvider"
+        clusterTypeVpcG2     = "vpc-gen2"
+        clusterTypeClassic   = "cruiser"
+        ResConfApiKey        = "res-conf-apikey" // #nosec G101 -- False positive
+        KPRootKeyCRN         = "kp-root-key-crn"
+)
+
+var SockEndpoint *string
+var ConfigBucketAccessPolicy *bool
+var ConfigQuotaLimit *bool
+var AllowCrossNsSecret *bool
+
+// IBMS3fsProvisioner is a dynamic provisioner of persistent volumes backed by Object Storage via s3fs
+type IBMS3fsProvisioner struct {
+        // Backend is the object store session factory
+        Backend backend.ObjectStorageSessionFactory
+        // GRPCBackend is the grpc session factory
+        GRPCBackend grpcClient.GrpcSessionFactory
+        // AccessPolicy is the resource configuration session factory
+        AccessPolicy backend.AccessPolicyFactory
+        // IBMProvider is the ibm provider client
+        IBMProvider provider.IBMProviderClientFactory
+
+        // Logger will be used for logging
+        Logger *zap.Logger
+        // Client is the Kubernetes Go-Client that will be used to fetch user credentials
+        Client kubernetes.Interface
+        // UUIDGenerator is a UUID generator that will be used to generate bucket names
+        UUIDGenerator uuid.Generator
+}
+
+var _ controller.Provisioner = &amp;IBMS3fsProvisioner{}
+var writeFile = os.WriteFile
+
+func UnixConnect(addr string, t time.Duration) (net.Conn, error) <span class="cov0" title="0">{
+        unix_addr, _ := net.ResolveUnixAddr("unix", addr)
+        conn, err := net.DialUnix("unix", nil, unix_addr)
+        return conn, err
+}</span>
+
+func parseSecret(secret *v1.Secret, keyName string) (string, error) <span class="cov10" title="301">{
+        bytesVal, ok := secret.Data[keyName]
+        if !ok </span><span class="cov8" title="156">{
+                return "", fmt.Errorf("%s secret missing", keyName)
+        }</span>
+        <span class="cov8" title="145">return string(bytesVal), nil</span>
+}
+
+func (p *IBMS3fsProvisioner) writeCrtFile(ctx context.Context, secretName, secretNamespace, serviceName string) error <span class="cov8" title="93">{
+        if serviceName == "" </span><span class="cov8" title="87">{
+                serviceName = "standard-cos"
+        }</span>
+        <span class="cov8" title="93">crtFile := path.Join(caBundlePath, serviceName)
+        secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
+        if err != nil </span><span class="cov2" title="3">{
+                return err
+        }</span>
+        <span class="cov8" title="90">crtKey, err := parseSecret(secrets, driver.CrtBundle)
+        if err != nil </span><span class="cov8" title="85">{
+                //CA Cert not provided, try default one
+                return nil
+        }</span>
+        <span class="cov3" title="5">if err = writeFile(crtFile, []byte(crtKey), 0600); err != nil </span><span class="cov2" title="2">{
+                return err
+        }</span>
+        <span class="cov2" title="3">if err = os.Setenv("AWS_CA_BUNDLE", crtFile); err != nil </span><span class="cov0" title="0">{
+                return err
+        }</span>
+        <span class="cov2" title="3">return nil</span>
+}
+
+func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, kpRootKeyCrn string, err error) <span class="cov7" title="73">{
+        secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
+        }</span>
+
+        <span class="cov7" title="73">if strings.TrimSpace(string(secrets.Type)) != driverName </span><span class="cov1" title="1">{
+                return nil, nil, "", "", fmt.Errorf("wrong secret type. provided secret of type %s. expected type %s", string(secrets.Type), driverName)
+        }</span>
+
+        <span class="cov7" title="72">var accessKey, secretKey, apiKey, serviceInstanceID string
+
+        if bytesVal, ok := secrets.Data[driver.SecretAllowedNS]; ok </span><span class="cov2" title="2">{
+                allowedNamespace = strings.Split(string(bytesVal), " ")
+        }</span>
+
+        <span class="cov7" title="72">apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
+        if err != nil </span><span class="cov7" title="68">{
+                accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, nil, "", "", err
+                }</span>
+
+                <span class="cov7" title="67">secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, nil, "", "", err
+                }</span>
+        } else<span class="cov3" title="4"> {
+                serviceInstanceID, err = parseSecret(secrets, driver.SecretServiceInstanceID)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, nil, "", "", err
+                }</span>
+        }
+
+        <span class="cov7" title="69">if bytesVal, ok := secrets.Data[ResConfApiKey]; ok </span><span class="cov5" title="15">{
+                resConfApiKey = string(bytesVal)
+        }</span>
+
+        <span class="cov7" title="69">if bytesVal, ok := secrets.Data[KPRootKeyCRN]; ok </span><span class="cov0" title="0">{
+                kpRootKeyCrn = string(bytesVal)
+        }</span>
+
+        <span class="cov7" title="69">return &amp;backend.ObjectStorageCredentials{
+                AccessKey:         accessKey,
+                SecretKey:         secretKey,
+                APIKey:            apiKey,
+                ServiceInstanceID: serviceInstanceID,
+        }, allowedNamespace, resConfApiKey, kpRootKeyCrn, nil</span>
+}
+
+func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options controller.ProvisionOptions) (pvcAnnotations, scOptions, string, error) <span class="cov8" title="95">{
+        var pvc pvcAnnotations
+        var sc scOptions
+        var pvcName = options.PVC.Name
+        var clusterID = os.Getenv("CLUSTER_ID")
+        var svcIp string
+        var err error
+
+        contextLogger, _ := logger.GetZapDefaultContextLogger()
+        contextLogger.Info(pvcName + ":" + clusterID + ":validate annotations and assign default values to annotations")
+
+        if err := parser.UnmarshalMap(&amp;options.PVC.Annotations, &amp;pvc); err != nil </span><span class="cov0" title="0">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal PVC annotations: %v", err)
+        }</span>
+
+        <span class="cov8" title="95">if err := parser.UnmarshalMap(&amp;options.StorageClass.Parameters, &amp;sc); err != nil </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
+        }</span>
+
+        <span class="cov8" title="94">if pvc.SecretName == "" </span><span class="cov1" title="1">{
+                if sc.SecretName != "" </span><span class="cov0" title="0">{
+                        pvc.SecretName = sc.SecretName
+                }</span> else<span class="cov1" title="1"> {
+                        return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":secret-name not specified")
+                }</span>
+        }
+
+        <span class="cov8" title="93">contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
+
+        if AllowCrossNsSecret != nil &amp;&amp; !*AllowCrossNsSecret </span><span class="cov2" title="2">{
+                contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
+                if pvc.SecretNamespace != "" </span><span class="cov2" title="2">{
+                        contextLogger.Warn(pvcName + ":" + clusterID + " Ignoring 'ibm.io/secret-namespace' annotation as AllowCrossNsSecret is set to false")
+                }</span>
+                <span class="cov2" title="2">pvc.SecretNamespace = options.PVC.Namespace</span>
+        } else<span class="cov8" title="91"> {
+                if pvc.SecretNamespace == "" </span><span class="cov8" title="89">{
+                        if sc.SecretNamespace != "" </span><span class="cov0" title="0">{
+                                pvc.SecretNamespace = sc.SecretNamespace
+                        }</span> else<span class="cov8" title="89"> {
+                                pvc.SecretNamespace = options.PVC.Namespace
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="93">if pvc.AutoCreateBucket == "" </span><span class="cov7" title="70">{
+                if sc.AutoCreateBucket != "" </span><span class="cov0" title="0">{
+                        pvc.AutoCreateBucket = sc.AutoCreateBucket
+                }</span> else<span class="cov7" title="70"> {
+                        pvc.AutoCreateBucket = "true"
+                }</span>
+        } else<span class="cov5" title="23"> if _, err := strconv.ParseBool(pvc.AutoCreateBucket); err != nil </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
+        }</span>
+
+        <span class="cov8" title="92">if pvc.BucketVersioning == "" </span><span class="cov8" title="92">{
+                pvc.BucketVersioning = sc.BucketVersioning
+        }</span>
+        // TODO: Update this logic if bucket-versioning is expected to be enabled by default
+        <span class="cov8" title="92">if pvc.BucketVersioning != "" </span><span class="cov0" title="0">{
+                pvc.BucketVersioning = strings.ToLower(strings.TrimSpace(pvc.BucketVersioning))
+                if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil </span><span class="cov0" title="0">{
+                        return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
+                }</span>
+        }
+
+        <span class="cov8" title="92">if pvc.AutoDeleteBucket == "" </span><span class="cov7" title="79">{
+                if sc.AutoDeleteBucket != "" </span><span class="cov0" title="0">{
+                        pvc.AutoDeleteBucket = sc.AutoDeleteBucket
+                }</span> else<span class="cov7" title="79"> {
+                        pvc.AutoDeleteBucket = "false"
+                }</span>
+        } else<span class="cov5" title="13"> if _, err := strconv.ParseBool(pvc.AutoDeleteBucket); err != nil </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
+        }</span>
+
+        <span class="cov8" title="91">if pvc.Bucket == "" &amp;&amp; sc.Bucket != "" </span><span class="cov0" title="0">{
+                pvc.Bucket = sc.Bucket
+        }</span>
+
+        <span class="cov8" title="91">if pvc.ObjectPath == "" &amp;&amp; sc.ObjectPath != "" </span><span class="cov0" title="0">{
+                pvc.ObjectPath = sc.ObjectPath
+        }</span>
+
+        <span class="cov8" title="91">if pvc.AccessPolicyAllowedIps != "" </span><span class="cov2" title="2">{
+                validIps, wrongIpArr := parser.ParseIPs(pvc.AccessPolicyAllowedIps)
+                if !validIps </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for access-policy-allowed-ips,  invalid ips are : %v", wrongIpArr)
+                }</span>
+        }
+
+        <span class="cov8" title="90">if pvc.SetAccessPolicy != "" </span><span class="cov2" title="3">{
+                if _, err := strconv.ParseBool(pvc.SetAccessPolicy); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for set-access-policy, expects true/false: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="89">if pvc.QuotaLimit != "" </span><span class="cov2" title="2">{
+                if _, err := strconv.ParseBool(pvc.QuotaLimit); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for quota-limit, expects true/false: %v", err)
+                }</span>
+        }
+
+        <span class="cov8" title="88">if pvc.CosServiceName != "" </span><span class="cov3" title="5">{
+                // TLS enabled COS Service
+                if pvc.CosServiceNamespace != "" </span><span class="cov3" title="4">{
+                        // Generate the COS Service DNS name
+                        svc, err := p.Client.CoreV1().Services(pvc.CosServiceNamespace).Get(ctx, pvc.CosServiceName, metav1.GetOptions{})
+                        if err != nil </span><span class="cov1" title="1">{
+                                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot retrieve service details: %v", err)
+                        }</span>
+                        <span class="cov2" title="3">port := svc.Spec.Ports[0].Port
+                        svcIp = svc.Spec.ClusterIP
+                        endPoint := "https://" + pvc.CosServiceName + "." + pvc.CosServiceNamespace + ".svc.cluster.local:" + strconv.Itoa(int(port))
+                        pvc.Endpoint = endPoint</span>
+                }
+        }
+        // retrieve CA Cert if provided in secrets
+        <span class="cov8" title="87">if err := p.writeCrtFile(ctx, pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName); err != nil </span><span class="cov2" title="3">{
+                return pvc, sc, svcIp, fmt.Errorf("cannot retrieve secret: %v", err)
+        }</span>
+
+        //Override value of EndPoint defined in storageclass
+        // EndPoint should be defined in storage class.
+        <span class="cov7" title="84">if pvc.Endpoint != "" </span><span class="cov3" title="4">{
+                sc.OSEndpoint = pvc.Endpoint
+        }</span>
+
+        //Override value of OSStorageClass defined in storageclass.
+        // pvc Region will be deprecated.
+        <span class="cov7" title="84">if pvc.Region != "" </span><span class="cov1" title="1">{
+                sc.OSStorageClass = pvc.Region
+        }</span>
+
+        <span class="cov7" title="84">if !strings.HasPrefix(sc.OSEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.OSEndpoint, "http://") </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
+                        ":Bad value for ibm.io/object-store-endpoint \"%v\": scheme is missing. "+
+                        "Must be of the form http://&lt;hostname&gt; or https://&lt;hostname&gt;",
+                        sc.OSEndpoint)
+        }</span>
+
+        <span class="cov7" title="83">if pvc.IAMEndpoint != "" </span><span class="cov2" title="2">{
+                sc.IAMEndpoint = pvc.IAMEndpoint
+        }</span>
+
+        <span class="cov7" title="83">if !strings.HasPrefix(sc.IAMEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.IAMEndpoint, "http://") </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
+                        ":Bad value for ibm.io/iam-endpoint \"%v\":"+
+                        " Must be of the form https://&lt;hostname&gt; or http://&lt;hostname&gt;",
+                        sc.IAMEndpoint)
+        }</span>
+
+        //Override value of s3fs-fuse-retry-count defined in storageclass
+        <span class="cov7" title="82">if pvc.S3FSFUSERetryCount != "" </span><span class="cov2" title="3">{
+                sc.S3FSFUSERetryCount = pvc.S3FSFUSERetryCount
+        }</span>
+        <span class="cov7" title="82">if sc.S3FSFUSERetryCount != "" </span><span class="cov7" title="82">{
+                if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
+                }</span> else<span class="cov7" title="81"> if retryCount &lt; 1 </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be &gt;= 1")
+                }</span>
+        }
+
+        //Override value of stat-cache-expire-seconds defined in storageclass
+        <span class="cov7" title="80">if pvc.StatCacheExpireSeconds != "" </span><span class="cov2" title="3">{
+                sc.StatCacheExpireSeconds = pvc.StatCacheExpireSeconds
+        }</span>
+        <span class="cov7" title="80">if sc.StatCacheExpireSeconds != "" </span><span class="cov7" title="80">{
+                if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
+                }</span> else<span class="cov7" title="79"> if cacheExpireSeconds &lt; 0 </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be &gt;= 0")
+                }</span>
+        }
+
+        //Override value of chunk-size-mb defined in storageclass
+        <span class="cov7" title="78">if pvc.ChunkSizeMB != "" </span><span class="cov2" title="2">{
+                if sc.ChunkSizeMB, err = strconv.Atoi(pvc.ChunkSizeMB); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of chunk-size-mb into integer: %v", err)
+                }</span>
+        }
+
+        //Override value of parallel-count defined in storageclass
+        <span class="cov7" title="77">if pvc.ParallelCount != "" </span><span class="cov2" title="2">{
+                if sc.ParallelCount, err = strconv.Atoi(pvc.ParallelCount); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of parallel-count into integer: %v", err)
+                }</span>
+        }
+
+        //Override value of multireq-max defined in storageclass
+        <span class="cov7" title="76">if pvc.MultiReqMax != "" </span><span class="cov2" title="2">{
+                if sc.MultiReqMax, err = strconv.Atoi(pvc.MultiReqMax); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of multireq-max into integer: %v", err)
+                }</span>
+        }
+
+        //Override value of stat-cache-size defined in storageclass
+        <span class="cov7" title="75">if pvc.StatCacheSize != "" </span><span class="cov2" title="2">{
+                if sc.StatCacheSize, err = strconv.Atoi(pvc.StatCacheSize); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-size into integer: %v", err)
+                }</span>
+        }
+
+        <span class="cov7" title="74">if pvc.ConnectTimeoutSeconds != "" </span><span class="cov2" title="2">{
+                if _, err := strconv.Atoi(pvc.ConnectTimeoutSeconds); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of connect-timeout-seconds into integer: %v", err)
+                }</span>
+                <span class="cov1" title="1">sc.ConnectTimeoutSeconds = pvc.ConnectTimeoutSeconds</span>
+        }
+
+        <span class="cov7" title="73">if pvc.ReadwriteTimeoutSeconds != "" </span><span class="cov2" title="2">{
+                if _, err := strconv.Atoi(pvc.ReadwriteTimeoutSeconds); err != nil </span><span class="cov1" title="1">{
+                        return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
+                }</span>
+                <span class="cov1" title="1">sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds</span>
+        }
+
+        <span class="cov7" title="72">if pvc.AutoCreateBucket == "true" &amp;&amp; pvc.ObjectPath != "" </span><span class="cov1" title="1">{
+                return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
+        }</span>
+
+        // Additional parameter should be of form "-o opt1 -o opt2=xxx -o opt3"
+        <span class="cov7" title="71">if pvc.AddMountParam != "" </span><span class="cov1" title="1">{
+                sc.AddMountParam = pvc.AddMountParam
+        }</span>
+
+        <span class="cov7" title="71">return pvc, sc, svcIp, nil</span>
+}
+
+// Provision provisions a new persistent volume
+func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.ProvisionOptions) (*v1.PersistentVolume, controller.ProvisioningState, error) <span class="cov8" title="95">{
+        //var pvc pvcAnnotations
+        //var sc scOptions
+        var pvcName = options.PVC.Name
+        var pvcNamespace = options.PVC.Namespace
+        var clusterID = os.Getenv("CLUSTER_ID")
+        var msg, resConfApiKey, kpRootKeyCrn, providerType, vpcServiceEndpoints string
+        var valBucket = true // nolint:ineffassign
+        var allowedNamespace []string
+        var creds *backend.ObjectStorageCredentials
+        var sess backend.ObjectStorageSession
+        var grpcSess grpcClient.GrpcSession
+        var updateAP backend.AccessPolicy
+        var rcc backend.ResourceConfigurationV1
+        var providerClient provider.IBMProviderClient
+        var setBucketAccessPolicy = false
+        var setQuotaLimit = false
+        var quotaLimit int64
+
+        ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+        defer cancel()
+        contextLogger, _ := logger.GetZapDefaultContextLogger()
+        contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
+        contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("pvc", options.PVName))
+
+        pvc, sc, svcIp, err := p.validateAnnotations(ctx, options)
+        if err != nil </span><span class="cov6" title="24">{
+                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot validate annotations: %v", err)
+        }</span>
+
+        //this handles the case where AutoDeleteBucket is set to true
+        <span class="cov7" title="71">if pvc.AutoDeleteBucket == "true" </span><span class="cov4" title="8">{
+                if pvc.AutoCreateBucket == "false" </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
+                }</span>
+
+                //if pvc.Bucket != "" {
+                //        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":bucket cannot be set when auto-delete is enabled, got: %s", pvc.Bucket)
+                //}
+
+                <span class="cov4" title="7">if pvc.Bucket == "" </span><span class="cov3" title="6">{
+                        id, err := p.UUIDGenerator.New()
+                        if err != nil </span><span class="cov1" title="1">{
+                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
+                        }</span>
+                        <span class="cov3" title="5">pvc.Bucket = autoBucketNamePrefix + id</span>
+                }
+        }
+
+        <span class="cov7" title="69">if pvc.ValidateBucket == "no" &amp;&amp; pvc.AutoCreateBucket == "false" </span><span class="cov0" title="0">{
+                valBucket = false
+        }</span> else<span class="cov7" title="69"> {
+                valBucket = true
+        }</span>
+
+        //var err_msg error
+        <span class="cov7" title="69">if valBucket </span><span class="cov7" title="69">{
+                creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
+                if err != nil </span><span class="cov3" title="4">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
+                }</span>
+
+                <span class="cov7" title="65">creds.IAMEndpoint = sc.IAMEndpoint
+                sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)</span>
+        }
+
+        <span class="cov7" title="65">if len(allowedNamespace) &gt; 0 </span><span class="cov2" title="2">{
+                var allowed = false
+
+                for _, item := range allowedNamespace </span><span class="cov2" title="3">{
+                        if item == pvcNamespace </span><span class="cov1" title="1">{
+                                allowed = true
+                                break</span>
+                        }
+                }
+                <span class="cov2" title="2">if !allowed </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":PVC creation in " + pvcNamespace + " namespace is not allowed")
+                }</span>
+        }
+
+        <span class="cov7" title="64">contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetQuotaLimit: " + strconv.FormatBool(*ConfigQuotaLimit))
+
+        if ConfigQuotaLimit != nil &amp;&amp; *ConfigQuotaLimit &amp;&amp; pvc.QuotaLimit != "false" </span><span class="cov3" title="4">{
+
+                updateAP = p.AccessPolicy.NewAccessPolicy()
+                rcc = &amp;backend.UpdateAPObj{}
+
+                //retrieve the quota value from PVC spec =&gt; spec.resources.requests.storage
+                quotaSet := options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)]
+
+                quotaLimit = quotaSet.Value()
+                contextLogger.Info(pvcName + ":" + clusterID + ":quota-limit value to be set for bucket: " + strconv.FormatInt(quotaLimit, 10))
+                setQuotaLimit = true
+
+        }</span> else<span class="cov7" title="60"> {
+                if pvc.QuotaLimit == "false" </span><span class="cov0" title="0">{
+                        contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " quota-limit annotation is set to false for this PVC. bucket quota limit will not be set for this PVC")
+                }</span>
+        }
+
+        //add check for region = BNNP
+        <span class="cov7" title="64">if ConfigBucketAccessPolicy != nil &amp;&amp; *ConfigBucketAccessPolicy &amp;&amp; pvc.SetAccessPolicy != "false" </span><span class="cov5" title="13">{
+                grpcSess = p.GRPCBackend.NewGrpcSession()
+                cc := &amp;grpcClient.GrpcSes{}
+                // nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
+                conn, err := grpcSess.GrpcDial(cc, *SockEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock(), grpc.WithDialer(UnixConnect))
+
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":failed to establish grpc-client connection: %v", err)
+                }</span>
+
+                <span class="cov4" title="12">providerClient = p.IBMProvider.NewIBMProviderClient(conn)
+                if conn != nil </span><span class="cov0" title="0">{
+                        defer func() </span><span class="cov0" title="0">{ _ = conn.Close() }</span>()
+                }
+
+                <span class="cov4" title="12">name := defaultName
+                if len(os.Args) &gt; 1 </span><span class="cov4" title="12">{
+                        name = os.Args[1]
+                }</span>
+
+                <span class="cov4" title="12">clusterTypeResp, err := providerClient.GetProviderType(ctx, &amp;provider.ProviderTypeRequest{Id: name})
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to get provider type for cluster: %v", err)
+                }</span>
+                <span class="cov4" title="11">providerType = clusterTypeResp.GetType()
+                contextLogger.Info(pvcName + ":" + clusterID + " : ClusterType  : " + providerType)
+
+                if strings.Contains(providerType, clusterTypeVpcG2) </span><span class="cov4" title="9">{
+                        if pvc.AccessPolicyAllowedIps != "" </span><span class="cov1" title="1">{
+                                vpcServiceEndpoints = pvc.AccessPolicyAllowedIps
+                                contextLogger.Info(pvcName + ":" + clusterID + " :VPC service endpoints passed: " + vpcServiceEndpoints)
+                        }</span> else<span class="cov4" title="8"> {
+                                svcEndpointResp, err := providerClient.GetVPCSvcEndpoint(ctx, &amp;provider.VPCSvcEndpointRequest{Id: name})
+                                if err != nil </span><span class="cov1" title="1">{
+                                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :failed to get VPC service endpoints for cluster: %v", err)
+                                }</span>
+                                <span class="cov4" title="7">vpcServiceEndpoints = svcEndpointResp.GetCse()
+                                contextLogger.Info(pvcName + ":" + clusterID + " :fetched VPC service endpoints : " + vpcServiceEndpoints)
+                                if vpcServiceEndpoints == "" </span><span class="cov1" title="1">{
+                                        return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :cannot set access policy for bucket. VPC service endpoints for the cluster not found")
+                                }</span>
+                        }
+
+                        <span class="cov4" title="7">setBucketAccessPolicy = true
+                        updateAP = p.AccessPolicy.NewAccessPolicy()
+                        rcc = &amp;backend.UpdateAPObj{}</span>
+
+                } else<span class="cov2" title="2"> if strings.Contains(providerType, clusterTypeClassic) </span><span class="cov1" title="1">{
+                        //add logic to fetch cluster subnet ips
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" : set-access-policy not supported for classic cluster: %v", providerType)
+                }</span> else<span class="cov1" title="1"> {
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :set-access-policy not suppoerted on cluster-type: %v", providerType)
+                }</span>
+        } else<span class="cov7" title="51"> {
+                if pvc.SetAccessPolicy == "false" </span><span class="cov1" title="1">{
+                        contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy annotation is set to false for this PVC. bucket access policy will not be set for this PVC")
+                }</span>
+                <span class="cov7" title="51">if pvc.AccessPolicyAllowedIps != "" &amp;&amp; !*ConfigBucketAccessPolicy </span><span class="cov0" title="0">{
+                        contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " configBucketAccessPolicy is not enabled for this release. bucket access policy will not be set for this PVC")
+                }</span>
+        }
+
+        <span class="cov7" title="58">if (setBucketAccessPolicy &amp;&amp; resConfApiKey == "") || (setQuotaLimit &amp;&amp; resConfApiKey == "") </span><span class="cov0" title="0">{
+                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+": res-conf-apikey missing, cannot set access policy for bucket '%s'", pvc.Bucket)
+        }</span>
+
+        <span class="cov7" title="58">if pvc.AutoCreateBucket == "true" </span><span class="cov7" title="51">{
+                var deleteBucket = true
+                if pvc.AutoDeleteBucket != "true" &amp;&amp; pvc.Bucket == "" </span><span class="cov6" title="42">{ //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
+                        id, err := p.UUIDGenerator.New()
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
+                        }</span>
+                        <span class="cov6" title="42">pvc.Bucket = autoBucketNamePrefix + id</span>
+                }
+
+                <span class="cov7" title="51">if creds.APIKey != "" &amp;&amp; creds.ServiceInstanceID == "" </span><span class="cov0" title="0">{
+                        return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :cannot create bucket using API key without service-instance-id")
+                }</span>
+
+                <span class="cov7" title="51">contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
+                if kpRootKeyCrn != "" </span><span class="cov0" title="0">{
+                        contextLogger.Info("key protect root key crn provided for bucket" + pvc.Bucket)
+                }</span>
+                <span class="cov7" title="51">msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass, kpRootKeyCrn)
+                if msg != "" </span><span class="cov0" title="0">{
+                        contextLogger.Info(pvcName + ":" + clusterID + " : " + msg)
+                }</span>
+                // When using existing bucket with auto-create-bucket: true
+                <span class="cov7" title="51">if err != nil </span><span class="cov2" title="3">{
+                        if strings.Contains(fmt.Sprintf("%v", err), "BucketAlreadyExists") </span><span class="cov2" title="2">{
+                                valBucket = true
+                                deleteBucket = false
+                                contextLogger.Info(pvcName + ":" + clusterID + " :bucket '" + pvc.Bucket + "' already exists")
+                        }</span> else<span class="cov1" title="1"> {
+                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :cannot create bucket %s: %v", pvc.Bucket, err)
+                        }</span>
+                }
+
+                <span class="cov7" title="50">if pvc.BucketVersioning != "" </span><span class="cov0" title="0">{
+                        enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+                        contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning value evaluated to: %t", pvcName, clusterID, enable))
+
+                        err := sess.SetBucketVersioning(pvc.Bucket, enable)
+                        if err != nil </span><span class="cov0" title="0">{
+                                if deleteBucket </span><span class="cov0" title="0">{
+                                        err1 := sess.DeleteBucket(pvc.Bucket)
+                                        if err1 != nil </span><span class="cov0" title="0">{
+                                                return nil, controller.ProvisioningFinished, fmt.Errorf("%s : %s : cannot set bucket versioning: %v and cannot delete bucket %s: %v", pvcName, clusterID, err, pvc.Bucket, err1)
+                                        }</span>
+                                }
+                                <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf("%s:%s : failed to set versioning %t for bucket %s: %v", pvcName, clusterID, enable, pvc.Bucket, err)</span>
+                        }
+                        <span class="cov0" title="0">contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning set to '%t' for bucket %s", pvcName, clusterID, enable, pvc.Bucket))</span>
+                }
+
+                <span class="cov7" title="50">if setBucketAccessPolicy </span><span class="cov3" title="6">{
+                        err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
+                        if err != nil </span><span class="cov1" title="1">{
+                                //revert bucket creation if updating bucket access policy fails
+                                if deleteBucket </span><span class="cov1" title="1">{
+                                        err1 := sess.DeleteBucket(pvc.Bucket)
+                                        if err1 != nil </span><span class="cov0" title="0">{
+                                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set access policy %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
+                                        }</span>
+                                }
+                                <span class="cov1" title="1">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set access policy for bucket %s : %v", pvc.Bucket, err)</span>
+                        }
+                        <span class="cov3" title="5">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' access policy configured successfully")</span>
+                }
+
+                <span class="cov7" title="49">if setQuotaLimit </span><span class="cov3" title="4">{
+                        err := updateAP.UpdateQuotaLimit(quotaLimit, resConfApiKey, pvc.Bucket, sc.OSEndpoint, sc.IAMEndpoint, rcc)
+                        if err != nil </span><span class="cov0" title="0">{
+                                //revert bucket creation if updating bucket access policy fails
+                                if deleteBucket </span><span class="cov0" title="0">{
+                                        err1 := sess.DeleteBucket(pvc.Bucket)
+                                        if err1 != nil </span><span class="cov0" title="0">{
+                                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot set quota limit %v", err1, " and cannot delete bucket %s :  %v", pvc.Bucket, err)
+                                        }</span>
+                                }
+                                <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set quota limit for bucket %s : %v", pvc.Bucket, err)</span>
+                        }
+                        <span class="cov3" title="4">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")</span>
+                }
+        } else<span class="cov4" title="7"> {
+                if pvc.Bucket == "" </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :bucket name not specified")
+                }</span>
+
+                <span class="cov3" title="6">if pvc.BucketVersioning != "" </span><span class="cov0" title="0">{
+                        enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
+                        err := sess.SetBucketVersioning(pvc.Bucket, enable)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, controller.ProvisioningFinished, fmt.Errorf("%s:%s : failed to set versioning for bucket %s: %v", pvcName, clusterID, pvc.Bucket, err)
+                        }</span>
+                        <span class="cov0" title="0">contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning set to '%t' for bucket %s", pvcName, clusterID, enable, pvc.Bucket))</span>
+                }
+
+                // this enables to set access policy for existing bucket
+                // when AutoCreateBucket is false, AutoDeleteBucket is false and SetAccessPolicy is true
+                <span class="cov3" title="6">if setBucketAccessPolicy </span><span class="cov1" title="1">{
+                        err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set access policy for bucket %s : %v", pvc.Bucket, err)
+                        }</span>
+                        <span class="cov1" title="1">valBucket = true
+                        contextLogger.Info(pvcName + ":" + clusterID + " :bucket '" + pvc.Bucket + "' access policy configured successfully")</span>
+                }
+                <span class="cov3" title="6">if setQuotaLimit </span><span class="cov0" title="0">{
+                        err := updateAP.UpdateQuotaLimit(quotaLimit, resConfApiKey, pvc.Bucket, sc.OSEndpoint, sc.IAMEndpoint, rcc)
+                        if err != nil </span><span class="cov0" title="0">{
+                                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :failed to set quota limit for bucket %s : %v", pvc.Bucket, err)
+                        }</span>
+                        <span class="cov0" title="0">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' quota limit configured successfully")</span>
+                }
+        }
+
+        <span class="cov7" title="55">if valBucket </span><span class="cov7" title="55">{
+                if err := sess.CheckBucketAccess(pvc.Bucket); err != nil </span><span class="cov2" title="3">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot access bucket %s: %v", pvc.Bucket, err)
+                }</span>
+        }
+
+        <span class="cov7" title="52">if pvc.ObjectPath != "" </span><span class="cov2" title="3">{
+                exist, err := sess.CheckObjectPathExistence(pvc.Bucket, pvc.ObjectPath)
+                if err != nil </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :cannot access object-path \"%s\" inside bucket %s: %v", pvc.ObjectPath, pvc.Bucket, err)
+                }</span> else<span class="cov2" title="2"> if !exist </span><span class="cov1" title="1">{
+                        return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :object-path \"%s\" not found inside bucket %s", pvc.ObjectPath, pvc.Bucket)
+                }</span>
+        }
+
+        <span class="cov7" title="50">if pvc.UseXattr </span><span class="cov1" title="1">{
+                sc.UseXattr = pvc.UseXattr
+        }</span>
+
+        <span class="cov7" title="50">if pvc.DebugLevel != "" </span><span class="cov1" title="1">{
+                sc.DebugLevel = pvc.DebugLevel
+        }</span>
+
+        <span class="cov7" title="50">if pvc.CurlDebug </span><span class="cov1" title="1">{
+                sc.CurlDebug = pvc.CurlDebug
+        }</span>
+
+        <span class="cov7" title="50">if strings.TrimSpace(pvc.TLSCipherSuite) != "" </span><span class="cov1" title="1">{
+                sc.TLSCipherSuite =
+                        strings.TrimSpace(pvc.TLSCipherSuite)
+        }</span>
+
+        // Check AccessMode
+        <span class="cov7" title="50">accessMode := options.PVC.Spec.AccessModes
+        contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
+        if len(accessMode) &gt; 1 </span><span class="cov1" title="1">{
+                return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
+        }</span>
+
+        <span class="cov7" title="49">if pvc.AutoCache </span><span class="cov1" title="1">{
+                sc.KernelCache = false
+        }</span>
+
+        <span class="cov7" title="49">driverOptions, err := parser.MarshalToMap(&amp;driver.Options{
+                ChunkSizeMB:             sc.ChunkSizeMB,
+                ParallelCount:           sc.ParallelCount,
+                MultiReqMax:             sc.MultiReqMax,
+                StatCacheSize:           sc.StatCacheSize,
+                TLSCipherSuite:          sc.TLSCipherSuite,
+                CurlDebug:               sc.CurlDebug,
+                KernelCache:             sc.KernelCache,
+                DebugLevel:              sc.DebugLevel,
+                S3FSFUSERetryCount:      sc.S3FSFUSERetryCount,
+                StatCacheExpireSeconds:  sc.StatCacheExpireSeconds,
+                IAMEndpoint:             sc.IAMEndpoint,
+                OSEndpoint:              sc.OSEndpoint,
+                OSStorageClass:          sc.OSStorageClass,
+                Bucket:                  pvc.Bucket,
+                ObjectPath:              pvc.ObjectPath,
+                ReadwriteTimeoutSeconds: sc.ReadwriteTimeoutSeconds,
+                ConnectTimeoutSeconds:   sc.ConnectTimeoutSeconds,
+                UseXattr:                sc.UseXattr,
+                AccessMode:              string(accessMode[0]),
+                CosServiceIP:            svcIp,
+                AutoCache:               pvc.AutoCache,
+                AddMountParam:           sc.AddMountParam,
+        })
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
+        }</span>
+
+        <span class="cov7" title="49">pvcAnnots, err := parser.MarshalToMap(&amp;pvcAnnotations{
+                AutoCreateBucket:        pvc.AutoCreateBucket,
+                AutoDeleteBucket:        pvc.AutoDeleteBucket,
+                Bucket:                  pvc.Bucket,
+                ObjectPath:              pvc.ObjectPath,
+                Endpoint:                pvc.Endpoint,
+                Region:                  pvc.Region,
+                SecretName:              pvc.SecretName,
+                ChunkSizeMB:             pvc.ChunkSizeMB,
+                ParallelCount:           pvc.ParallelCount,
+                MultiReqMax:             pvc.MultiReqMax,
+                StatCacheSize:           pvc.StatCacheSize,
+                S3FSFUSERetryCount:      pvc.S3FSFUSERetryCount,
+                StatCacheExpireSeconds:  pvc.StatCacheExpireSeconds,
+                IAMEndpoint:             pvc.IAMEndpoint,
+                ValidateBucket:          pvc.ValidateBucket,
+                SecretNamespace:         pvc.SecretNamespace,
+                ReadwriteTimeoutSeconds: pvc.ReadwriteTimeoutSeconds,
+                ConnectTimeoutSeconds:   pvc.ConnectTimeoutSeconds,
+                UseXattr:                pvc.UseXattr,
+                CurlDebug:               pvc.CurlDebug,
+                DebugLevel:              pvc.DebugLevel,
+                CosServiceName:          pvc.CosServiceName,
+                SetAccessPolicy:         pvc.SetAccessPolicy,
+                AddMountParam:           pvc.AddMountParam,
+        })
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
+        }</span>
+
+        <span class="cov7" title="49">reclaimPolicy := options.StorageClass.ReclaimPolicy
+        return &amp;v1.PersistentVolume{
+                ObjectMeta: metav1.ObjectMeta{
+                        Name:        options.PVName,
+                        Annotations: pvcAnnots,
+                },
+                Spec: v1.PersistentVolumeSpec{
+                        PersistentVolumeReclaimPolicy: *reclaimPolicy,
+                        AccessModes:                   options.PVC.Spec.AccessModes,
+                        Capacity: v1.ResourceList{
+                                v1.ResourceStorage: options.PVC.Spec.Resources.Requests[v1.ResourceName(v1.ResourceStorage)],
+                        },
+                        PersistentVolumeSource: v1.PersistentVolumeSource{
+                                FlexVolume: &amp;v1.FlexPersistentVolumeSource{
+                                        Driver:    driverName,
+                                        FSType:    fsType,
+                                        SecretRef: &amp;v1.SecretReference{Name: pvc.SecretName, Namespace: pvc.SecretNamespace},
+                                        ReadOnly:  false,
+                                        Options:   driverOptions,
+                                },
+                        },
+                },
+        }, controller.ProvisioningFinished, nil</span>
+}
+
+// Delete deletes a persistent volume
+func (p *IBMS3fsProvisioner) Delete(ctx context.Context, pv *v1.PersistentVolume) error <span class="cov4" title="7">{
+        var pvcAnnots pvcAnnotations
+
+        contextLogger, _ := logger.GetZapDefaultContextLogger()
+        contextLogger.Info("Deleting the pvc..")
+
+        endpointValue := pv.Spec.FlexVolume.Options["object-store-endpoint"]
+        regionValue := pv.Spec.FlexVolume.Options["object-store-storage-class"]
+        iamEndpoint := pv.Spec.FlexVolume.Options["iam-endpoint"]
+
+        err := parser.UnmarshalMap(&amp;pv.Annotations, &amp;pvcAnnots)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot unmarshal PV annotations: %v", err)
+        }</span>
+
+        <span class="cov4" title="7">if pvcAnnots.AutoDeleteBucket == "true" </span><span class="cov3" title="6">{
+                if err = p.deleteBucket(ctx, &amp;pvcAnnots, endpointValue, regionValue, iamEndpoint); err != nil </span><span class="cov2" title="3">{
+                        return fmt.Errorf("cannot delete bucket: %v", err)
+                }</span>
+        } else<span class="cov1" title="1"> if _, err = strconv.ParseBool(pvcAnnots.AutoDeleteBucket); err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("invalid value for auto-delete-bucket, expects true/false: %v", err)
+        }</span>
+        <span class="cov2" title="3">return nil</span>
+}
+
+func (p *IBMS3fsProvisioner) deleteBucket(ctx context.Context, pvcAnnots *pvcAnnotations, endpointValue, regionValue, iamEndpoint string) error <span class="cov3" title="6">{
+        contextLogger, _ := logger.GetZapDefaultContextLogger()
+        contextLogger.Info("Deleting the bucket..")
+        // Retrieve CA Cert if provided in secert
+        if err := p.writeCrtFile(ctx, pvcAnnots.SecretName, pvcAnnots.SecretNamespace, pvcAnnots.CosServiceName); err != nil </span><span class="cov2" title="2">{
+                return fmt.Errorf("cannot retrieve secret: %v", err)
+        }</span>
+
+        <span class="cov3" title="4">creds, _, _, _, err := p.getCredentials(ctx, pvcAnnots.SecretName, pvcAnnots.SecretNamespace)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot get credentials: %v", err)
+        }</span>
+        <span class="cov3" title="4">creds.IAMEndpoint = iamEndpoint
+        sess := p.Backend.NewObjectStorageSession(endpointValue, regionValue, creds, p.Logger)
+
+        return sess.DeleteBucket(pvcAnnots.Bucket)</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package backend
+
+import (
+        "fmt"
+        "strconv"
+        "strings"
+
+        "github.com/IBM/go-sdk-core/v5/core"
+        rc "github.com/IBM/ibm-cos-sdk-go-config/v2/resourceconfigurationv1"
+)
+
+const ResourceConfigEPDirect = "https://config.direct.cloud-object-storage.cloud.ibm.com/v1"
+const ResourceConfigEPPrivate = "https://config.private.cloud-object-storage.cloud.ibm.com/v1"
+const IAMEPForVPC = "https://private.iam.cloud.ibm.com/identity/token"
+const Private = "private"
+
+type AccessPolicyFactory interface {
+        NewAccessPolicy() AccessPolicy
+}
+
+type AccessPolicy interface {
+        UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc ResourceConfigurationV1) error
+        UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc ResourceConfigurationV1) error
+}
+
+type UpdateAPFactory struct{}
+
+type ResourceConfigurationV1 interface {
+        // UpdateBucketConfig updates the bucket access policy configuration with given ips
+        UpdateBucketConfig(*rc.ResourceConfigurationV1, *rc.UpdateBucketConfigOptions) (*core.DetailedResponse, error)
+}
+
+type UpdateAPObj struct {
+        rcv1 ResourceConfigurationV1
+}
+
+func (uc *UpdateAPObj) UpdateBucketConfig(service *rc.ResourceConfigurationV1, options *rc.UpdateBucketConfigOptions) (res *core.DetailedResponse, err error) <span class="cov0" title="0">{
+        return service.UpdateBucketConfig(options)
+}</span>
+
+func (c *UpdateAPFactory) NewAccessPolicy() AccessPolicy <span class="cov1" title="1">{
+
+        return &amp;UpdateAPObj{}
+}</span>
+
+//var rcc ResourceConfigurationV1 = &amp;UpdateAPObj{}
+
+// UpdateAccessPolicy updates the bucket access policy configuration with given ips
+func (c *UpdateAPObj) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc ResourceConfigurationV1) error <span class="cov10" title="2">{
+
+        allowedIPs := strings.Split(allowedIps, ",")
+        for i := range allowedIPs </span><span class="cov10" title="2">{
+                allowedIPs[i] = strings.TrimSpace(allowedIPs[i])
+        }</span>
+
+        <span class="cov10" title="2">authenticator := &amp;core.IamAuthenticator{
+                ApiKey: apiKey,
+                URL:    IAMEPForVPC,
+        }
+
+        service, _ := rc.NewResourceConfigurationV1(&amp;rc.ResourceConfigurationV1Options{
+                Authenticator: authenticator,
+                URL:           ResourceConfigEPDirect,
+        })
+
+        // Create a map to hold the bucket patch
+        bucketPatchMap := make(map[string]interface{})
+
+        // Set firewall in the map
+        bucketPatchMap["firewall"] = &amp;rc.Firewall{
+                AllowedIp: allowedIPs,
+        }
+
+        updateConfigOptions := &amp;rc.UpdateBucketConfigOptions{
+                Bucket:      core.StringPtr(bucketName),
+                BucketPatch: bucketPatchMap,
+        }
+
+        response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
+        if response != nil </span><span class="cov1" title="1">{
+                fmt.Println("UpdateAccessPolicy Response ", strconv.Itoa(response.StatusCode))
+        }</span>
+        <span class="cov10" title="2">return err</span>
+}
+
+// UpdateQuotaLimit updates the bucket quota limits
+func (c *UpdateAPObj) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc ResourceConfigurationV1) error <span class="cov10" title="2">{
+
+        ConfigEP := ""
+        IAMEP := iamEndpoint + "/identity/token"
+
+        if strings.Contains(osEndpoint, Private) </span><span class="cov0" title="0">{
+                ConfigEP = ResourceConfigEPPrivate
+        }</span> else<span class="cov10" title="2"> {
+                ConfigEP = ResourceConfigEPDirect
+        }</span>
+
+        <span class="cov10" title="2">fmt.Println("ConfigEP used: ", ConfigEP)
+        fmt.Println("IAMEndpoint used: ", IAMEP)
+
+        authenticator := &amp;core.IamAuthenticator{
+                ApiKey: apiKey,
+                URL:    IAMEP,
+        }
+
+        service, _ := rc.NewResourceConfigurationV1(&amp;rc.ResourceConfigurationV1Options{
+                Authenticator: authenticator,
+                URL:           ConfigEP,
+        })
+
+        // Create a map to hold the bucket patch
+        bucketPatchMap := make(map[string]interface{})
+
+        // Set firewall in the map
+        bucketPatchMap["hard_quota"] = core.Int64Ptr(quota)
+
+        updateConfigOptions := &amp;rc.UpdateBucketConfigOptions{
+                Bucket:      core.StringPtr(bucketName),
+                BucketPatch: bucketPatchMap,
+        }
+
+        response, err := rcc.UpdateBucketConfig(service, updateConfigOptions)
+        if response != nil </span><span class="cov1" title="1">{
+                fmt.Println("UpdateQuotaLimit Response ", strconv.Itoa(response.StatusCode))
+        }</span>
+        <span class="cov10" title="2">return err</span>
+}
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package backend
+
+import (
+        "fmt"
+        "strings"
+
+        "github.com/IBM/ibm-cos-sdk-go/aws"
+        "github.com/IBM/ibm-cos-sdk-go/aws/awserr"
+        "github.com/IBM/ibm-cos-sdk-go/aws/credentials"
+        "github.com/IBM/ibm-cos-sdk-go/aws/credentials/ibmiam"
+        "github.com/IBM/ibm-cos-sdk-go/aws/session"
+        "github.com/IBM/ibm-cos-sdk-go/service/s3"
+        "go.uber.org/zap"
+)
+
+// ObjectStorageCredentials holds credentials for accessing an object storage service
+type ObjectStorageCredentials struct {
+        // AccessKey is the account identifier in AWS authentication
+        AccessKey string
+        // SecretKey is the "password" in AWS authentication
+        SecretKey string
+        // APIKey is the "password" in IBM IAM authentication
+        APIKey string
+        // ServiceInstanceID is the account identifier in IBM IAM authentication
+        ServiceInstanceID string
+        //IAMEndpoint ...
+        IAMEndpoint string
+}
+
+// ObjectStorageSessionFactory is an interface of an object store session factory
+type ObjectStorageSessionFactory interface {
+
+        // NewObjectStorageBackend method creates a new object store session
+        NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession
+}
+
+// ObjectStorageSession is an interface of an object store session
+type ObjectStorageSession interface {
+
+        // CheckBucketAccess method check that a bucket can be accessed
+        CheckBucketAccess(bucket string) error
+
+        // CheckObjectPathExistence method checks that object-path exists inside bucket
+        CheckObjectPathExistence(bucket, objectpath string) (bool, error)
+
+        // CreateBucket methods creates a new bucket
+        CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error)
+
+        // DeleteBucket methods deletes a bucket (with all of its objects)
+        DeleteBucket(bucket string) error
+
+        // SetBucketVersioning sets the versioning state of a bucket
+        SetBucketVersioning(bucket string, enabled bool) error
+}
+
+// COSSessionFactory represents a COS (S3) session factory
+type COSSessionFactory struct{}
+
+type s3API interface {
+        HeadBucket(input *s3.HeadBucketInput) (*s3.HeadBucketOutput, error)
+        CreateBucket(input *s3.CreateBucketInput) (*s3.CreateBucketOutput, error)
+        ListObjects(input *s3.ListObjectsInput) (*s3.ListObjectsOutput, error)
+        //ListObjectsV2(input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error)
+        DeleteObject(input *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error)
+        DeleteBucket(input *s3.DeleteBucketInput) (*s3.DeleteBucketOutput, error)
+        PutBucketVersioning(input *s3.PutBucketVersioningInput) (*s3.PutBucketVersioningOutput, error)
+}
+
+// COSSession represents a COS (S3) session
+type COSSession struct {
+        svc    s3API
+        logger *zap.Logger
+}
+
+const (
+        KPEncryptionAlgorithm = "AES256" // https://github.com/IBM/ibm-cos-sdk-go/blob/master/service/s3/api.go#L8509-L8511
+)
+
+// NewObjectStorageSession method creates a new object store session
+func (s *COSSessionFactory) NewObjectStorageSession(endpoint, region string, creds *ObjectStorageCredentials, logger *zap.Logger) ObjectStorageSession <span class="cov4" title="2">{
+        var sdkCreds *credentials.Credentials
+        if creds.APIKey != "" </span><span class="cov1" title="1">{
+                sdkCreds = ibmiam.NewStaticCredentials(aws.NewConfig(), creds.IAMEndpoint+"/identity/token", creds.APIKey, creds.ServiceInstanceID)
+        }</span> else<span class="cov1" title="1"> {
+                sdkCreds = credentials.NewStaticCredentials(creds.AccessKey, creds.SecretKey, "")
+        }</span>
+        <span class="cov4" title="2">sess, _ := session.NewSession(&amp;aws.Config{
+                S3ForcePathStyle: aws.Bool(true),
+                Endpoint:         aws.String(endpoint),
+                Credentials:      sdkCreds,
+                Region:           aws.String(region),
+        })
+
+        return &amp;COSSession{
+                svc:    s3.New(sess),
+                logger: logger,
+        }</span>
+}
+
+// CheckBucketAccess method check that a bucket can be accessed
+func (s *COSSession) CheckBucketAccess(bucket string) error <span class="cov4" title="2">{
+        _, err := s.svc.HeadBucket(&amp;s3.HeadBucketInput{
+                Bucket: aws.String(bucket),
+        })
+        if err != nil </span><span class="cov1" title="1">{
+                if aerr, ok := err.(awserr.Error); ok &amp;&amp; aerr.Code() == "RequestError" &amp;&amp; strings.Contains(err.Error(), "Credential=") </span><span class="cov0" title="0">{
+                        s.logger.Warn(fmt.Sprintf("Check your secret access key for bucket %s", bucket))
+                        return fmt.Errorf("AccessKey/SecretKey is wrong")
+                }</span>
+        }
+
+        <span class="cov4" title="2">return err</span>
+}
+
+// CheckObjectPathExistence method checks that object-path exists inside bucket
+func (s *COSSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) <span class="cov8" title="4">{
+
+        objectpath = strings.TrimPrefix(objectpath, "/")
+        if !strings.HasSuffix(objectpath, "/") </span><span class="cov8" title="4">{
+                objectpath = objectpath + "/"
+        }</span>
+
+        <span class="cov8" title="4">resp, err := s.svc.ListObjects(&amp;s3.ListObjectsInput{
+                Bucket:  aws.String(bucket),
+                MaxKeys: aws.Int64(1),
+                Prefix:  aws.String(objectpath),
+        })
+
+        if err != nil </span><span class="cov1" title="1">{
+                return false, fmt.Errorf("cannot list bucket '%s': %v", bucket, err)
+        }</span>
+
+        <span class="cov7" title="3">if len(resp.Contents) == 1 </span><span class="cov7" title="3">{
+                object := *(resp.Contents[0].Key)
+                if (object == objectpath) || (strings.TrimSuffix(object, "/") == objectpath) </span><span class="cov1" title="1">{
+                        return true, nil
+                }</span>
+        }
+        <span class="cov4" title="2">return false, nil</span>
+}
+
+// CreateBucket methods creates a new bucket
+func (s *COSSession) CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error) <span class="cov7" title="3">{
+        var err error
+        if kpRootKeyCrn != "" </span><span class="cov7" title="3">{
+                _, err = s.svc.CreateBucket(&amp;s3.CreateBucketInput{
+                        Bucket: aws.String(bucket),
+                        CreateBucketConfiguration: &amp;s3.CreateBucketConfiguration{
+                                LocationConstraint: aws.String(locationConstraint),
+                        },
+                        IBMSSEKPCustomerRootKeyCrn:  aws.String(kpRootKeyCrn),
+                        IBMSSEKPEncryptionAlgorithm: aws.String(KPEncryptionAlgorithm),
+                })
+        }</span> else<span class="cov0" title="0"> {
+                _, err = s.svc.CreateBucket(&amp;s3.CreateBucketInput{
+                        Bucket: aws.String(bucket),
+                        CreateBucketConfiguration: &amp;s3.CreateBucketConfiguration{
+                                LocationConstraint: aws.String(locationConstraint),
+                        },
+                })
+        }</span>
+
+        <span class="cov7" title="3">if err != nil </span><span class="cov4" title="2">{
+                if aerr, ok := err.(awserr.Error); ok &amp;&amp; aerr.Code() == "BucketAlreadyOwnedByYou" </span><span class="cov1" title="1">{
+                        s.logger.Warn(fmt.Sprintf("bucket '%s' already exists", bucket))
+                        return fmt.Sprintf("bucket '%s' already exists", bucket), nil
+                }</span> else<span class="cov1" title="1"> if aerr, ok := err.(awserr.Error); ok &amp;&amp; aerr.Code() == "RequestError" &amp;&amp; strings.Contains(err.Error(), "Credential=") </span><span class="cov0" title="0">{
+                        s.logger.Warn(fmt.Sprintf("Check your secret access key for bucket %s", bucket))
+                        return fmt.Sprintf("Check your secret access key for bucket %s", bucket), fmt.Errorf("AccessKey/SecretKey is wrong")
+                }</span>
+                <span class="cov1" title="1">return "", err</span>
+        }
+        <span class="cov1" title="1">return "", nil</span>
+}
+
+// DeleteBucket methods deletes a bucket (with all of its objects)
+func (s *COSSession) DeleteBucket(bucket string) error <span class="cov10" title="5">{
+        resp, err := s.svc.ListObjects(&amp;s3.ListObjectsInput{
+                Bucket: aws.String(bucket),
+        })
+
+        if err != nil </span><span class="cov4" title="2">{
+                if aerr, ok := err.(awserr.Error); ok &amp;&amp; aerr.Code() == "NoSuchBucket" </span><span class="cov1" title="1">{
+                        s.logger.Warn(fmt.Sprintf("bucket %s is already deleted", bucket))
+                        return nil
+                }</span>
+
+                <span class="cov1" title="1">return fmt.Errorf("cannot list bucket '%s': %v", bucket, err)</span>
+        }
+
+        <span class="cov7" title="3">for _, key := range resp.Contents </span><span class="cov7" title="3">{
+                _, err = s.svc.DeleteObject(&amp;s3.DeleteObjectInput{
+                        Bucket: aws.String(bucket),
+                        Key:    key.Key,
+                })
+
+                if err != nil </span><span class="cov1" title="1">{
+                        return fmt.Errorf("cannot delete object %s/%s: %v", bucket, *key.Key, err)
+                }</span>
+        }
+
+        <span class="cov4" title="2">_, err = s.svc.DeleteBucket(&amp;s3.DeleteBucketInput{
+                Bucket: aws.String(bucket),
+        })
+        return err</span>
+}
+
+func (s *COSSession) SetBucketVersioning(bucket string, enabled bool) error <span class="cov7" title="3">{
+        var status string
+
+        // Set the versioning status based on whether it's enabled or suspended.
+        if enabled </span><span class="cov4" title="2">{
+                status = s3.BucketVersioningStatusEnabled
+        }</span> else<span class="cov1" title="1"> {
+                status = s3.BucketVersioningStatusSuspended
+        }</span>
+
+        // Log the versioning status that is being set
+        <span class="cov7" title="3">s.logger.Info("Setting bucket versioning",
+                zap.String("bucket", bucket),
+                zap.String("versioningStatus", status))
+
+        // Make the SDK call to set the versioning status of the bucket.
+        out, err := s.svc.PutBucketVersioning(&amp;s3.PutBucketVersioningInput{
+                Bucket: aws.String(bucket),
+                VersioningConfiguration: &amp;s3.VersioningConfiguration{
+                        Status: aws.String(status),
+                },
+        })
+
+        // Check for errors from the AWS SDK call
+        if err != nil </span><span class="cov1" title="1">{
+                if aerr, ok := err.(awserr.Error); ok </span><span class="cov0" title="0">{
+                        s.logger.Error("Versioning operation failed",
+                                zap.String("bucket", bucket),
+                                zap.String("versioningStatus", status),
+                                zap.Error(aerr))
+                }</span>
+                <span class="cov1" title="1">return fmt.Errorf("failed to set versioning status %s on bucket %s : %w", status, bucket, err)</span>
+        }
+
+        // Log the output for debugging or confirmation
+        <span class="cov4" title="2">if out != nil </span><span class="cov4" title="2">{
+                s.logger.Info("Bucket versioning response",
+                        zap.String("bucket", bucket),
+                        zap.String("versioningStatus", status),
+                        zap.Any("response", out))
+        }</span>
+
+        <span class="cov4" title="2">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package fake
+
+import (
+        "errors"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+)
+
+// FakeAccessPolicyFactory implements backend.AccessPolicyFactory
+type FakeAccessPolicyFactory struct {
+        //FailUpdateAccessPolicy ...
+        FailUpdateAccessPolicy bool
+        //FailUpdateAccessPolicyErrMsg with specific error msg...
+        FailUpdateAccessPolicyErrMsg string
+        //PassUpdateAccessPolicy ...
+        PassUpdateAccessPolicy bool
+        //FailUpdateAccessPolicy ...
+        FailUpdateQuotaLimit bool
+        //FailUpdateAccessPolicyErrMsg with specific error msg...
+        FailUpdateQuotaLimitErrMsg string
+        //PassUpdateAccessPolicy ...
+        PassUpdateQuotaLimit bool
+}
+
+var _ backend.AccessPolicyFactory = (*FakeAccessPolicyFactory)(nil)
+
+// fakeAccessPolicy implements backend.AccessPolicy
+type fakeAccessPolicy struct {
+        rcv1 *FakeAccessPolicyFactory
+}
+
+// NewAccessPolicy method creates a new fakeAccessPolicy session
+func (c *FakeAccessPolicyFactory) NewAccessPolicy() backend.AccessPolicy <span class="cov0" title="0">{
+        return &amp;fakeAccessPolicy{
+                rcv1: c,
+        }
+}</span>
+
+// UpdateAccessPolicy method creates a fake updateBucketConfig call
+func (c *fakeAccessPolicy) UpdateAccessPolicy(allowedIps, apiKey, bucketName string, rcc backend.ResourceConfigurationV1) error <span class="cov0" title="0">{
+        if c.rcv1.FailUpdateAccessPolicy </span><span class="cov0" title="0">{
+                return errors.New(c.rcv1.FailUpdateAccessPolicyErrMsg)
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+// UpdateQuotaLimit method creates a fake updateQuotaLimit call
+func (c *fakeAccessPolicy) UpdateQuotaLimit(quota int64, apiKey, bucketName, osEndpoint, iamEndpoint string, rcc backend.ResourceConfigurationV1) error <span class="cov0" title="0">{
+        if c.rcv1.FailUpdateAccessPolicy </span><span class="cov0" title="0">{
+                return errors.New(c.rcv1.FailUpdateAccessPolicyErrMsg)
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file8" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Container Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
+ * The source code for this program is not  published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package fake
+
+import (
+        "errors"
+
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/backend"
+        "go.uber.org/zap"
+)
+
+// ObjectStorageSessionFactory is a factory for mocked object storage sessions
+type ObjectStorageSessionFactory struct {
+        //FailCheckBucketAccess ...
+        FailCheckBucketAccess bool
+        //FailCreateBucket ...
+        FailCreateBucket bool
+        //FailCreateBucket with specific error msg...
+        FailCreateBucketErrMsg string
+        //FailDeleteBucket ...
+        FailDeleteBucket bool
+        //CheckObjectPathExistenceError ...
+        CheckObjectPathExistenceError bool
+        //CheckObjectPathExistencePathNotFound ...
+        CheckObjectPathExistencePathNotFound bool
+        //FailSetBucketVersioning
+        FailSetBucketVersioning bool
+
+        // LastEndpoint holds the endpoint of the last created session
+        LastEndpoint string
+        // LastRegion holds the region of the last created session
+        LastRegion string
+        // LastCredentials holds the credentials of the last created session
+        LastCredentials *backend.ObjectStorageCredentials
+        // LastCheckedBucket stores the name of the last bucket that was checked
+        LastCheckedBucket string
+        // LastCreatedBucket stores the name of the last bucket that was created
+        LastCreatedBucket string
+        // LastDeletedBucket stores the name of the last bucket that was deleted
+        LastDeletedBucket string
+        //LastUpdatedBucket
+        LastUpdatedBucket string
+}
+
+type fakeObjectStorageSession struct {
+        factory *ObjectStorageSessionFactory
+}
+
+// NewObjectStorageSession method creates a new fake object store session
+func (f *ObjectStorageSessionFactory) NewObjectStorageSession(endpoint, region string, creds *backend.ObjectStorageCredentials, logger *zap.Logger) backend.ObjectStorageSession <span class="cov0" title="0">{
+        f.LastEndpoint = endpoint
+        f.LastRegion = region
+        f.LastCredentials = creds
+        return &amp;fakeObjectStorageSession{
+                factory: f,
+        }
+}</span>
+
+// ResetStats clears the details about previous sessions
+func (f *ObjectStorageSessionFactory) ResetStats() <span class="cov0" title="0">{
+        f.LastEndpoint = ""
+        f.LastRegion = ""
+        f.LastCredentials = &amp;backend.ObjectStorageCredentials{}
+        f.LastCheckedBucket = ""
+        f.LastCreatedBucket = ""
+        f.LastDeletedBucket = ""
+        f.LastUpdatedBucket = ""
+}</span>
+
+func (s *fakeObjectStorageSession) CheckBucketAccess(bucket string) error <span class="cov0" title="0">{
+        s.factory.LastCheckedBucket = bucket
+        if s.factory.FailCheckBucketAccess </span><span class="cov0" title="0">{
+                return errors.New("")
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (s *fakeObjectStorageSession) CheckObjectPathExistence(bucket, objectpath string) (bool, error) <span class="cov0" title="0">{
+        if s.factory.CheckObjectPathExistenceError </span><span class="cov0" title="0">{
+                return false, errors.New("")
+        }</span> else<span class="cov0" title="0"> if s.factory.CheckObjectPathExistencePathNotFound </span><span class="cov0" title="0">{
+                return false, nil
+        }</span>
+        <span class="cov0" title="0">return true, nil</span>
+}
+
+func (s *fakeObjectStorageSession) CreateBucket(bucket, locationConstraint string, kpRootKeyCrn string) (string, error) <span class="cov0" title="0">{
+        s.factory.LastCreatedBucket = bucket
+        if s.factory.FailCreateBucket </span><span class="cov0" title="0">{
+                return "", errors.New(s.factory.FailCreateBucketErrMsg)
+        }</span>
+        <span class="cov0" title="0">return "", nil</span>
+}
+
+func (s *fakeObjectStorageSession) DeleteBucket(bucket string) error <span class="cov0" title="0">{
+        s.factory.LastDeletedBucket = bucket
+        if s.factory.FailDeleteBucket </span><span class="cov0" title="0">{
+                return errors.New("")
+        }</span>
+        <span class="cov0" title="0">return nil</span>
+}
+
+func (s *fakeObjectStorageSession) SetBucketVersioning(bucket string, enabled bool) error <span class="cov0" title="0">{
+        s.factory.LastUpdatedBucket = bucket
+        if s.factory.FailSetBucketVersioning </span><span class="cov0" title="0">{
+                return errors.New("failed to set versioning")
+        }</span>
+
+        <span class="cov0" title="0">return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file9" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package config
+
+import (
+        "context"
+        "encoding/json"
+        "fmt"
+        "os"
+        "strconv"
+        "strings"
+        "time"
+
+        "github.com/BurntSushi/toml"
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
+        "go.uber.org/zap"
+        metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+        "k8s.io/client-go/kubernetes"
+)
+
+// ClusterInfo ...
+type ClusterInfo struct {
+        ClusterID   string `json:"cluster_id"`
+        ClusterName string `json:"cluster_name,omitempty"`
+        DataCenter  string `json:"datacenter,omitempty"`
+        CustomerID  string `json:"customer_id,omitempty"`
+}
+
+func getEnv(key string) string <span class="cov10" title="17">{
+        return os.Getenv(strings.ToUpper(key))
+}</span>
+
+func setEnv(key string, value string) <span class="cov7" title="8">{
+        _ = os.Setenv(strings.ToUpper(key), value)
+}</span>
+
+// GetGoPath ...
+func GetGoPath() string <span class="cov3" title="2">{
+        if goPath := getEnv("GOPATH"); goPath != "" </span><span class="cov1" title="1">{
+                return goPath
+        }</span>
+        <span class="cov1" title="1">return ""</span>
+}
+
+// ParseConfig ...
+func ParseConfig(filePath string, conf interface{}, logger zap.Logger) <span class="cov3" title="2">{
+        if _, err := toml.DecodeFile(filePath, conf); err != nil </span><span class="cov0" title="0">{
+                logger.Fatal("error parsing config file", zap.Error(err))
+        }</span>
+}
+
+// GetConfigString ...
+func GetConfigString(envKey, defaultConf string) string <span class="cov3" title="2">{
+        if val := getEnv(envKey); val != "" </span><span class="cov1" title="1">{
+                return val
+        }</span>
+        <span class="cov1" title="1">return defaultConf</span>
+}
+
+// GetConfigInt ...
+func GetConfigInt(envKey string, defaulfConf int, logger zap.Logger) int <span class="cov3" title="2">{
+        if val := getEnv(envKey); val != "" </span><span class="cov1" title="1">{
+                if envInt, err := strconv.Atoi(val); err == nil </span><span class="cov1" title="1">{
+                        return envInt
+                }</span>
+                <span class="cov0" title="0">logger.Error("error parsing env val to int", zap.String("env", envKey))</span>
+        }
+        <span class="cov1" title="1">return defaulfConf</span>
+}
+
+// GetConfigBool ...
+func GetConfigBool(envKey string, defaultConf bool, logger zap.Logger) bool <span class="cov3" title="2">{
+        if val := getEnv(envKey); val != "" </span><span class="cov1" title="1">{
+                if envBool, err := strconv.ParseBool(val); err == nil </span><span class="cov1" title="1">{
+                        return envBool
+                }</span>
+                <span class="cov0" title="0">logger.Error("error parsing env val to bool", zap.String("env", envKey))</span>
+        }
+        <span class="cov1" title="1">return defaultConf</span>
+}
+
+// GetConfigStringList ...
+func GetConfigStringList(envKey string, defaultConf string, logger zap.Logger) []string <span class="cov3" title="2">{
+        // Assume env var is a list of strings separated by ','
+        val := defaultConf
+
+        if getEnv(envKey) != "" </span><span class="cov1" title="1">{
+                val = getEnv(envKey)
+        }</span>
+
+        <span class="cov3" title="2">val = strings.ReplaceAll(val, " ", "")
+        return strings.Split(val, ",")</span>
+}
+
+// SetUpEvn ... Export the configmap (eg. cluster-info) to environment variables
+func SetUpEvn(kubeclient kubernetes.Interface, logger *zap.Logger) error <span class="cov6" title="5">{
+        logger.Info("Entry SetUpEvn")
+
+        //Read cluster meta info
+        err := LoadClusterInfoMap(kubeclient, logger)
+        if err != nil </span><span class="cov3" title="2">{
+                return err
+        }</span>
+
+        <span class="cov4" title="3">logger.Info("Exit SetUpEvn")
+        return err</span>
+}
+
+// LoadClusterInfoMap ... Read cluster metadata from 'cluster-info' map and load into ENV
+func LoadClusterInfoMap(kubeclient kubernetes.Interface, logger *zap.Logger) error <span class="cov6" title="5">{
+        logger.Debug("Entry LoadClusterInfoMap")
+
+        //check if the ENV variable already loaded
+        clusterid := getEnv("cluster_id")
+        if len(clusterid) &gt; 0 </span><span class="cov1" title="1">{
+                logger.Info("Exit LoadClusterInfoMap, cluster_id already set", zap.String("cluster_id", clusterid))
+                return nil
+        }</span>
+        <span class="cov5" title="4">ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+        defer cancel()
+        // export cluster-info config map
+        cmClusterInfo, err := kubeclient.CoreV1().ConfigMaps(consts.KubeSystem).Get(ctx, consts.ClusterInfo, metav1.GetOptions{})
+        if err != nil </span><span class="cov1" title="1">{
+                //err = fmt.Errorf("Unable to find the config map %s. Error: %v.Setting dummy values", consts.ClusterInfo, err)
+                logger.Warn("Unable to find the config map %s. Error: %v.Setting dummy values", zap.Reflect(consts.ClusterInfo, err))
+
+                setEnv("CLUSTER_ID", "dummyClusterID")
+                setEnv("CLUSTER_NAME", "dummyClusterName")
+                setEnv("DATACENTER", "dummyDC")
+                setEnv("CUSTOMER_ID", "dummyCustomerID")
+                return nil
+        }</span>
+
+        <span class="cov4" title="3">logger.Debug("configmap details", zap.Reflect(consts.ClusterInfo, cmClusterInfo))
+        clusterInfoData := cmClusterInfo.Data[consts.ClusterInfoData]
+        clusteInfo := ClusterInfo{}
+        err = json.Unmarshal([]byte(clusterInfoData), &amp;clusteInfo)
+        if err != nil </span><span class="cov1" title="1">{
+                err = fmt.Errorf("error while parsing cluster-config %s. Error: %v", consts.ClusterInfo, err)
+                return err
+        }</span>
+
+        <span class="cov3" title="2">logger.Info("Exporting cluster-config", zap.Reflect(consts.ClusterInfo, clusteInfo))
+        if clusteInfo.ClusterID == "" </span><span class="cov1" title="1">{
+                err = fmt.Errorf("cluster_id is not found in map %s", consts.ClusterInfo)
+                return err
+        }</span>
+        <span class="cov1" title="1">setEnv("CLUSTER_ID", clusteInfo.ClusterID)
+        setEnv("CLUSTER_NAME", clusteInfo.ClusterName)
+        setEnv("DATACENTER", clusteInfo.DataCenter)
+        setEnv("CUSTOMER_ID", clusteInfo.CustomerID)
+        logger.Debug("Exit LoadClusterInfoMap")
+        return nil</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2023 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package fake_grpc
+
+import (
+        "errors"
+        grpcClient "github.com/IBM/ibmcloud-object-storage-plugin/utils/grpc-client"
+        "google.golang.org/grpc"
+)
+
+// FakeGrpcSessionFactory implements grpcClient.GrpcSessionFactory
+type FakeGrpcSessionFactory struct {
+        //FailGrpcConnection ...
+        FailGrpcConnection bool
+        //FailGrpcConnectionErr with specific error msg...
+        FailGrpcConnectionErr string
+        //PassGrpcConnection ...
+        PassGrpcConnection bool
+}
+
+var _ grpcClient.GrpcSessionFactory = (*FakeGrpcSessionFactory)(nil)
+
+// fakeGrpcSession implements grpcClient.GrpcSession
+type fakeGrpcSession struct {
+        factory *FakeGrpcSessionFactory
+}
+
+// NewGrpcSession method creates a new fakeGrpcSession session
+func (f *FakeGrpcSessionFactory) NewGrpcSession() grpcClient.GrpcSession <span class="cov0" title="0">{
+        return &amp;fakeGrpcSession{
+                factory: f,
+        }
+}</span>
+
+// GrpcDial method creates a fake-grpc-client connection
+func (c *fakeGrpcSession) GrpcDial(clientConn grpcClient.ClientConn, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) <span class="cov0" title="0">{
+        if c.factory.FailGrpcConnection </span><span class="cov0" title="0">{
+                return conn, errors.New(c.factory.FailGrpcConnectionErr)
+        }</span>
+        <span class="cov0" title="0">return conn, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file11" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package grpc_client
+
+import (
+        "google.golang.org/grpc"
+)
+
+type GrpcSessionFactory interface {
+        NewGrpcSession() GrpcSession
+}
+
+type GrpcSession interface {
+        GrpcDial(cc ClientConn, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
+}
+
+type ConnObjFactory struct{}
+
+type ClientConn interface {
+        Connect(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error)
+        //Close() error
+}
+
+type GrpcSes struct {
+        conn *grpc.ClientConn
+        cc   ClientConn
+}
+
+func (gs *GrpcSes) Connect(target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) <span class="cov0" title="0">{
+        var err error
+        // nolint:staticcheck // grpc.Dial is deprecated but still required until grpc.NewClient is available
+        gs.conn, err = grpc.Dial(target, opts...)
+        return gs.conn, err
+}</span>
+
+//func (gs *GrpcSes) Close() error {
+//        if gs.conn != nil {
+//                return gs.conn.Close()
+//        }
+//        return nil
+//}
+
+func (c *ConnObjFactory) NewGrpcSession() GrpcSession <span class="cov1" title="1">{
+        return &amp;GrpcSes{}
+}</span>
+
+//var cc ClientConn = &amp;GrpcSes{}
+
+// GrpcDial establishes a grpc-client client server connection
+func (c *GrpcSes) GrpcDial(cc ClientConn, target string, opts ...grpc.DialOption) (*grpc.ClientConn, error) <span class="cov10" title="2">{
+        conn, err := cc.Connect(target, opts...)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, err
+        }</span>
+        <span class="cov1" title="1">return conn, err</span>
+}
+</pre>
+		
+		<pre class="file" id="file12" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Kubernetes Service, 5737-D43
+ * (C) Copyright IBM Corp. 2025 All Rights Reserved.
+ * The source code for this program is not published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package logger
+
+import (
+        "context"
+        "errors"
+        "os"
+
+        "github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
+        uid "github.com/gofrs/uuid"
+        "go.uber.org/zap"
+        "go.uber.org/zap/zapcore"
+)
+
+const (
+        // PodName is the zap field key label for pod name
+        PodName = "podName"
+)
+
+// ZapLogger is the global logger
+var ZapLogger *zap.Logger
+
+// GetZapLogger returns an instance of the logger, initializing a new logger
+func GetZapLogger() (*zap.Logger, error) <span class="cov10" title="15">{
+        if ZapLogger == nil </span><span class="cov10" title="15">{
+                return NewZapLogger()
+        }</span>
+        <span class="cov0" title="0">return ZapLogger, nil</span>
+}
+
+// GetZapContextLogger Creates a new logger based from the global logger and adds values from the
+// context as logging fields. If the context passed in is null then it
+// returns the global logger
+func GetZapContextLogger(ctx context.Context) (*zap.Logger, error) <span class="cov3" title="2">{
+        var contextLogger *zap.Logger
+        globalLogger, _ := GetZapLogger()
+        if ctx != nil </span><span class="cov3" title="2">{
+                contextLogger = addContextFields(ctx, globalLogger)
+                return contextLogger, nil
+        }</span>
+        <span class="cov0" title="0">return globalLogger, nil</span>
+}
+
+// GetZapDefaultContextLogger Creates a new logger based from the global logger and adds RequestID from the
+// context as logging field.
+func GetZapDefaultContextLogger() (*zap.Logger, error) <span class="cov1" title="1">{
+        var contextLogger *zap.Logger
+        globalLogger, _ := GetZapLogger()
+        contextLogger = addContextFields(generateContextWithRequestID(), globalLogger)
+        return contextLogger, nil
+}</span>
+
+// GetZapContextLoggerFromLogger creates a new logger based from an existing logger and adds values from the
+// context as logging fields. If the context passed in is null then it
+// returns the global logger
+func GetZapContextLoggerFromLogger(ctx context.Context, origLogger *zap.Logger) (*zap.Logger, error) <span class="cov5" title="4">{
+        var contextLogger *zap.Logger
+        if origLogger == nil </span><span class="cov3" title="2">{
+                return origLogger, errors.New("a valid logger needs to be passed in")
+        }</span>
+        <span class="cov3" title="2">if ctx != nil </span><span class="cov3" title="2">{
+                contextLogger = addContextFields(ctx, origLogger)
+                return contextLogger, nil
+        }</span>
+        <span class="cov0" title="0">return origLogger, nil</span>
+}
+
+// Adds fields to an existing logger using values in the context
+func addContextFields(ctx context.Context, origLogger *zap.Logger) *zap.Logger <span class="cov7" title="7">{
+        if _, ok := ctx.Value(consts.TriggerKeyLabel).(string); ok </span><span class="cov1" title="1">{
+                origLogger = origLogger.With(CreateZapTiggerKeyField(ctx))
+        }</span>
+        <span class="cov7" title="7">if _, ok := ctx.Value(consts.RequestIDLabel).(string); ok </span><span class="cov6" title="5">{
+                origLogger = origLogger.With(CreateZapRequestIDField(ctx))
+        }</span>
+        <span class="cov7" title="7">return origLogger</span>
+}
+
+// NewZapLogger creates and returns a new global logger. It overwrites the
+// existing global logger if that has been previously defined.
+func NewZapLogger() (*zap.Logger, error) <span class="cov10" title="15">{
+        productionConfig := zap.NewProductionConfig()
+        productionConfig.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+        ZapLogger, _ := productionConfig.Build()
+        return ZapLogger, nil
+}</span>
+
+// CreatePodNameLogger takes a zap logger and adds a pod name field
+// NOTE: the logger returned is a different logger from the one passed in
+func CreatePodNameLogger(logger *zap.Logger) (*zap.Logger, error) <span class="cov4" title="3">{
+        if logger == nil </span><span class="cov1" title="1">{
+                return nil, errors.New("logger passed in can not be null")
+        }</span>
+        <span class="cov3" title="2">podNameField := CreateZapPodNameKeyField()
+        return logger.With(podNameField), nil</span>
+}
+
+// CreateZapRequestIDField Creates a zap logger field containing the request ID, convenience method for creating the
+// field in cases where the ContextLogger can't be used and the field needs to be passed
+// in as a parameter in the logging statements
+func CreateZapRequestIDField(ctx context.Context) zapcore.Field <span class="cov7" title="8">{
+        if ctx != nil </span><span class="cov7" title="8">{
+                if requestID, ok := ctx.Value(consts.RequestIDLabel).(string); ok </span><span class="cov6" title="6">{
+                        return zapcore.Field{Key: consts.RequestIDLabel, Type: zapcore.StringType, String: requestID}
+                }</span>
+        }
+        <span class="cov3" title="2">return zapcore.Field{Key: consts.RequestIDLabel, Type: zapcore.StringType, String: ""}</span>
+}
+
+// CreateZapTiggerKeyField Creates a zap logger field containing the trigger key for a job, convenience method for creating the
+// field in cases where the ContextLogger can't be used and the field needs to be passed
+// in as a parameter in the logging statements
+func CreateZapTiggerKeyField(ctx context.Context) zapcore.Field <span class="cov5" title="4">{
+        if ctx != nil </span><span class="cov5" title="4">{
+                if triggerKey, ok := ctx.Value(consts.TriggerKeyLabel).(string); ok </span><span class="cov3" title="2">{
+                        return zapcore.Field{Key: consts.TriggerKeyLabel, Type: zapcore.StringType, String: triggerKey}
+                }</span>
+        }
+        <span class="cov3" title="2">return zapcore.Field{Key: consts.TriggerKeyLabel, Type: zapcore.StringType, String: ""}</span>
+}
+
+// CreateZapPodNameKeyField Creates a zap logger field containing the pod name that the container is in,
+// convenience method for creating the field so it can be passed
+// in as a parameter in the logging statements
+func CreateZapPodNameKeyField() zapcore.Field <span class="cov5" title="4">{
+        pod := os.Getenv(consts.PodNameEnvVar)
+        // if the pod name isn't set then the value will be empty
+        return zapcore.Field{Key: PodName, Type: zapcore.StringType, String: pod}
+}</span>
+
+// Creates a context that contains a unique request ID
+func generateContextWithRequestID() context.Context <span class="cov3" title="2">{
+        reqID, _ := uid.NewV4()
+        requestID := reqID.String()
+        return context.WithValue(context.Background(), consts.RequestIDLabel, requestID) // nolint:staticcheck
+}</span>
+</pre>
+		
+		<pre class="file" id="file13" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Container Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
+ * The source code for this program is not  published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package parser
+
+import (
+        "encoding/base64"
+        "encoding/json"
+        "fmt"
+        "net"
+        "strings"
+)
+
+// DecodeBase64 decodes a base64 string
+func DecodeBase64(encoded string) (string, error) <span class="cov4" title="2">{
+        bytes, err := base64.StdEncoding.DecodeString(encoded)
+        if err != nil </span><span class="cov1" title="1">{
+                return "", err
+        }</span>
+
+        <span class="cov1" title="1">return string(bytes), nil</span>
+}
+
+// UnmarshalMap unmarshal a map[string]string to an interface (via JSON decoding)
+func UnmarshalMap(m *map[string]string, v interface{}) error <span class="cov4" title="2">{
+        jsonBytes, err := json.Marshal(*m)
+        if err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("cannot marshal map: %v", err)
+        }</span>
+        <span class="cov4" title="2">err = json.Unmarshal(jsonBytes, v)
+        if err != nil </span><span class="cov1" title="1">{
+                return fmt.Errorf("cannot unmarshal '%s': %v", string(jsonBytes), err)
+        }</span>
+        <span class="cov1" title="1">return nil</span>
+}
+
+// MarshalToMap converts an interface to map[string]string (via JSON encoding)
+func MarshalToMap(v interface{}) (map[string]string, error) <span class="cov8" title="4">{
+        var m map[string]interface{}
+
+        jsonString, err := json.Marshal(v)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("cannot marshal object: %v", err)
+        }</span>
+        <span class="cov7" title="3">err = json.Unmarshal([]byte(jsonString), &amp;m)
+        if err != nil </span><span class="cov1" title="1">{
+                return nil, fmt.Errorf("cannot unmarshal '%s' to map: %v", jsonString, err)
+        }</span>
+
+        <span class="cov4" title="2">res := make(map[string]string)
+
+        for k, v := range m </span><span class="cov4" title="2">{
+                stringVal, ok := v.(string)
+                if !ok </span><span class="cov1" title="1">{
+                        return nil, fmt.Errorf("cannot convert value to string: %v", v)
+                }</span>
+                <span class="cov1" title="1">res[k] = stringVal</span>
+        }
+        <span class="cov1" title="1">return res, nil</span>
+}
+
+// parse ips passed in string format
+func ParseIPs(ips string) (bool, []string) <span class="cov4" title="2">{
+        var invalidIpArr []string
+        ipArray := strings.Split(ips, ",")
+        for _, ip := range ipArray </span><span class="cov10" title="5">{
+                ip = strings.TrimSpace(ip)
+                if ip != "" </span><span class="cov10" title="5">{
+                        if net.ParseIP(ip) == nil </span><span class="cov4" title="2">{
+                                invalidIpArr = append(invalidIpArr, ip)
+                        }</span>
+                }
+        }
+
+        <span class="cov4" title="2">if len(invalidIpArr) == 0 </span><span class="cov1" title="1">{
+                return true, nil
+        }</span> else<span class="cov1" title="1"> {
+                return false, invalidIpArr
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file14" style="display: none">/*******************************************************************************
+ * IBM Confidential
+ * OCO Source Materials
+ * IBM Cloud Container Service, 5737-D43
+ * (C) Copyright IBM Corp. 2017, 2018 All Rights Reserved.
+ * The source code for this program is not  published or otherwise divested of
+ * its trade secrets, irrespective of what has been deposited with
+ * the U.S. Copyright Office.
+ ******************************************************************************/
+
+package uuid
+
+import (
+        "crypto/rand"
+        "fmt"
+        "io"
+)
+
+// Generator generates UUID strings
+type Generator interface {
+        // New generates a random UUID according to RFC 4122
+        New() (string, error)
+}
+
+// ReaderGenerator generates UUID strings using an IO reader
+type ReaderGenerator struct {
+        // Reader is the entropy source for the UUID generator
+        Reader io.Reader
+}
+
+// NewCryptoGenerator returns new cryptographic UUID generator
+func NewCryptoGenerator() *ReaderGenerator <span class="cov1" title="1">{
+        return &amp;ReaderGenerator{Reader: rand.Reader}
+}</span>
+
+// New generates a random UUID according to RFC 4122
+func (u *ReaderGenerator) New() (string, error) <span class="cov10" title="101">{
+        uuid := make([]byte, 16)
+        n, err := io.ReadFull(u.Reader, uuid)
+        if n != len(uuid) || err != nil </span><span class="cov1" title="1">{
+                return "", err
+        }</span>
+        // variant bits; see section 4.1.1
+        <span class="cov9" title="100">uuid[8] = uuid[8]&amp;^0xc0 | 0x80
+        // version 4 (pseudo-random); see section 4.1.3
+        uuid[6] = uuid[6]&amp;^0xf0 | 0x40
+        return fmt.Sprintf("%x-%x-%x-%x-%x", uuid[0:4], uuid[4:6], uuid[6:8], uuid[8:10], uuid[10:]), nil</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
