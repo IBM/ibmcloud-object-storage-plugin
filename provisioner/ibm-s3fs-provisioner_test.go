@@ -217,7 +217,7 @@ func getFakeClientGo(cfg *clientGoConfig) kubernetes.Interface {
 		objects = append(objects, runtime.Object(secret))
 	}
 
-	return k8fake.NewSimpleClientset(objects...)
+	return k8fake.NewClientset(objects...)
 }
 
 func getCustomProvisioner(cfg *clientGoConfig, factory backend.ObjectStorageSessionFactory, grpcFac grpcClient.GrpcSessionFactory, updateAPFac backend.AccessPolicyFactory, IBMProvider provider.IBMProviderClientFactory, uuidGen uuid.Generator) *IBMS3fsProvisioner {
