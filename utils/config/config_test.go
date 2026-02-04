@@ -11,15 +11,16 @@
 package config
 
 import (
-	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
-	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
-	"github.com/stretchr/testify/assert"
-	"k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	kfakes "k8s.io/client-go/kubernetes/fake"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/consts"
+	"github.com/IBM/ibmcloud-object-storage-plugin/utils/logger"
+	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kfakes "k8s.io/client-go/kubernetes/fake"
 )
 
 type testConfig struct {
@@ -213,7 +214,7 @@ func TestPassSetEnv(t *testing.T) {
 			"CRN_VERSION":     "v1",
 		},
 	}
-	kubeclient := kfakes.NewSimpleClientset(clusterconfigmap, crnconfigmap)
+	kubeclient := kfakes.NewClientset(clusterconfigmap, crnconfigmap)
 	err := SetUpEvn(kubeclient, testLogger)
 	assert.Nil(t, err)
 }
@@ -221,7 +222,7 @@ func TestPassSetEnv(t *testing.T) {
 func TestPassAlreadySetEnv(t *testing.T) {
 	t.Log("Testing SetUpEvn() cluster config already exported")
 
-	kubeclient := kfakes.NewSimpleClientset()
+	kubeclient := kfakes.NewClientset()
 	err := SetUpEvn(kubeclient, testLogger)
 	assert.Nil(t, err)
 }
@@ -230,7 +231,7 @@ func TestCmNotFoundSetEnv(t *testing.T) {
 	_ = os.Unsetenv("CLUSTER_ID")
 	t.Log("Testing SetUpEvn() for CM not found")
 
-	kubeclient := kfakes.NewSimpleClientset()
+	kubeclient := kfakes.NewClientset()
 	err := SetUpEvn(kubeclient, testLogger)
 	assert.Nil(t, err)
 }
@@ -247,7 +248,7 @@ func TestCmErrorSetEnv(t *testing.T) {
 			"cluster-config.json": "{\"wrong\": \"de3daf0f942446a8b8c38e68a14c607a\", \"cluster_name\": \"stage-dal09-de3daf0f942446a8b8c38e68a14c607a\", \"datacenter\": \"dal10\", \"account_id\": \"fd1611c9a44144d7c2b944234b6bb40e\"}",
 		},
 	}
-	kubeclient := kfakes.NewSimpleClientset(configmap)
+	kubeclient := kfakes.NewClientset(configmap)
 	err := SetUpEvn(kubeclient, testLogger)
 	assert.Error(t, err)
 }
@@ -264,7 +265,7 @@ func TestCmErrorParsing(t *testing.T) {
 			"cluster-config.json": "{\"wrong\" \"de3daf0f942446a8b8c38e68a14c607a\" \"cluster_name\": \"stage-dal09-de3daf0f942446a8b8c38e68a14c607a\", \"datacenter\": \"dal10\", \"account_id\": \"fd1611c9a44144d7c2b944234b6bb40e\"}",
 		},
 	}
-	kubeclient := kfakes.NewSimpleClientset(configmap)
+	kubeclient := kfakes.NewClientset(configmap)
 	err := SetUpEvn(kubeclient, testLogger)
 	assert.Error(t, err)
 }
