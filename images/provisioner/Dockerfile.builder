@@ -1,4 +1,4 @@
-FROM golang:1.25.3
+FROM golang:1.26.0
 ADD . /go/src/github.com/IBM/ibmcloud-object-storage-plugin
 RUN set -ex; cd /go/src/github.com/IBM/ibmcloud-object-storage-plugin/ && \
     echo "Starting go install..." && \
