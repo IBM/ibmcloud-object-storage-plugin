@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/IBM/go-sdk-core/v5 v5.21.2
-	github.com/IBM/ibm-cos-sdk-go v1.12.3
+	github.com/IBM/go-sdk-core/v5 v5.21.4
+	github.com/IBM/ibm-cos-sdk-go v1.14.1
 	github.com/IBM/ibm-cos-sdk-go-config/v2 v2.3.0
 	github.com/gofrs/uuid v4.4.0+incompatible
 	github.com/golang/protobuf v1.5.4
