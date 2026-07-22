@@ -90,7 +90,7 @@ type Options struct {
 	IAMEndpoint             string `json:"iam-endpoint,omitempty"`
 	ConnectTimeoutSeconds   string `json:"connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"readwrite-timeout,omitempty"`
-	UseXattr                bool   `json:"use-xattr,omitempty"`
+	UseXattr                bool   `json:"use-xattr,string,omitempty"`
 	AccessMode              string `json:"access-mode,omitempty"`
 	ServiceInstanceIDB64    string `json:"kubernetes.io/secret/service-instance-id,omitempty"`
 	CAbundleB64             string `json:"kubernetes.io/secret/ca-bundle-crt,omitempty"`
