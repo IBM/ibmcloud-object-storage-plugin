@@ -23,7 +23,7 @@ jobs:
 
     strategy:
       matrix:
-        go-version: ["1.26.0", "stable"]   
+        go-version: ["1.26.5", "stable"]   
       fail-fast: false                    
 
     steps:
