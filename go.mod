@@ -4,7 +4,7 @@ go 1.26.0
 
 require (
 	github.com/BurntSushi/toml v1.6.0
-	github.com/IBM/go-sdk-core/v5 v5.23.2
+	github.com/IBM/go-sdk-core/v5 v5.23.3
 	github.com/IBM/ibm-cos-sdk-go v1.15.1
 	github.com/IBM/ibm-cos-sdk-go-config/v2 v2.3.0
 	github.com/gofrs/uuid v4.4.0+incompatible
