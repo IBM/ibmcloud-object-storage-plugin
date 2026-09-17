@@ -1196,3 +1196,45 @@ func Test_AddMountParam(t *testing.T) {
 		assert.Equal(t, expectedArgs, commandArgs)
 	}
 }
+
+func Test_sanitizeArgs_RedactsPasswdFile(t *testing.T) {
+	input := []string{
+		"mybucket", "/mnt/target",
+		"-o", "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd",
+		"-o", "url=https://s3.example.com",
+	}
+	got := sanitizeArgs(input)
+	assert.Equal(t, "passwd_file=<redacted>", got[3])
+}
+
+func Test_sanitizeArgs_OtherArgsUnchanged(t *testing.T) {
+	input := []string{
+		"mybucket", "/mnt/target",
+		"-o", "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd",
+		"-o", "url=https://s3.example.com",
+		"-o", "default_acl=private",
+	}
+	got := sanitizeArgs(input)
+	assert.Equal(t, "mybucket", got[0])
+	assert.Equal(t, "/mnt/target", got[1])
+	assert.Equal(t, "url=https://s3.example.com", got[5])
+	assert.Equal(t, "default_acl=private", got[7])
+}
+
+func Test_sanitizeArgs_DoesNotMutateOriginal(t *testing.T) {
+	passwdEntry := "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd"
+	input := []string{"-o", passwdEntry}
+	_ = sanitizeArgs(input)
+	assert.Equal(t, passwdEntry, input[1], "sanitizeArgs must not modify the original slice")
+}
+
+func Test_sanitizeArgs_NoPasswdFile(t *testing.T) {
+	input := []string{"-o", "url=https://s3.example.com", "-o", "default_acl=private"}
+	got := sanitizeArgs(input)
+	assert.Equal(t, input, got)
+}
+
+func Test_sanitizeArgs_EmptySlice(t *testing.T) {
+	got := sanitizeArgs([]string{})
+	assert.Empty(t, got)
+}
