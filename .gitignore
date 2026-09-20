@@ -2,3 +2,4 @@
 deploy/binary-build-and-deploy-scripts/bin/
 deploy/binary-build-and-deploy-scripts/ibmcloud-object-storage-plugin/
 deploy/binary-build-and-deploy-scripts/s3fs-fuse/
+.bob

@@ -590,7 +590,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	args := []string{fullBucketPath, mountRequest.MountDir,
 		"-o", "multireq_max=" + strconv.Itoa(options.MultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + passwordFile,
 		"-o", "url=" + endptValue,
 		"-o", "endpoint=" + regionValue,
 		"-o", "parallel_count=" + strconv.Itoa(options.ParallelCount),
@@ -679,7 +678,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 
 	p.Logger.Info(podUID+":"+"Running s3fs",
-		zap.Strings("args", sanitizeArgs(args)))
+		zap.Strings("args", args))
+
+	// Append passwd_file only for exec — passwordFile never enters args so
+	// the tainted value never reaches the logger above.
+	s3fsArgs := append(args, "-o", "passwd_file="+passwordFile)
 
 	output, err := command("s3fs", "--version").CombinedOutput()
 	if err == nil {
@@ -688,7 +691,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	}
 	p.Logger.Info(podUID+":S3FS-Driver info:", zap.String("Version", buildVersion))
 
-	out, err := command("s3fs", args...).CombinedOutput()
+	out, err := command("s3fs", s3fsArgs...).CombinedOutput()
 	if err != nil {
 		p.Logger.Error(podUID+":"+"Running s3fs",
 			zap.String("Error", string(out)))
