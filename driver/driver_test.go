@@ -481,7 +481,6 @@ func Test_Mount_TLSCipher_Default(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -493,6 +492,7 @@ func Test_Mount_TLSCipher_Default(t *testing.T) {
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + testDir,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -511,7 +511,6 @@ func Test_KernelCache_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -525,6 +524,7 @@ func Test_KernelCache_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "kernel_cache",
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -543,7 +543,6 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -557,6 +556,7 @@ func Test_CurlDebug_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "curldbg=body",
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -575,7 +575,6 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -589,6 +588,7 @@ func Test_S3FSFUSERetryCount_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "retries=1",
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -607,7 +607,6 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -621,6 +620,7 @@ func Test_StatCacheExpireSeconds_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "stat_cache_expire=1",
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -639,7 +639,6 @@ func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -652,6 +651,7 @@ func Test_ObjectPath_Positive_PathWithPrefixForwardSlash(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -670,7 +670,6 @@ func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -683,6 +682,7 @@ func Test_ObjectPath_Positive_PathWithoutPrefixForwardSlash(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -700,7 +700,6 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -715,6 +714,7 @@ func Test_Mount_fsGroup_Nogroup_Positive(t *testing.T) {
 		"-o", "uid=65534",
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
@@ -731,7 +731,6 @@ func Test_Mount_ReadOnly_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -745,6 +744,7 @@ func Test_Mount_ReadOnly_Positive(t *testing.T) {
 		"-o", "ro",
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
@@ -762,7 +762,6 @@ func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=dummy-object-store-storageclass",
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -775,6 +774,7 @@ func Test_Mount_DummyOSStorageClass_Positive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -803,7 +803,6 @@ func Test_Mount_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -816,6 +815,7 @@ func Test_Mount_Positive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -834,7 +834,6 @@ func Test_Mount_IAM_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -848,6 +847,7 @@ func Test_Mount_IAM_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "ibm_iam_auth",
 		"-o", "ibm_iam_endpoint=" + testIAMEndpoint,
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -867,7 +867,6 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -881,6 +880,7 @@ func Test_Mount_IAM_Positive_DefaultIAMEndpoint(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "ibm_iam_auth",
 		"-o", "ibm_iam_endpoint=https://iam.cloud.ibm.com",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -950,7 +950,6 @@ func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -964,6 +963,7 @@ func Test_ConnectTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "connect_timeout=1",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -993,7 +993,6 @@ func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1007,6 +1006,7 @@ func Test_ReadwriteTimeoutSeconds_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "readwrite_timeout=1",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -1024,7 +1024,6 @@ func Test_UseXattr_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1038,6 +1037,7 @@ func Test_UseXattr_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
 		"-o", "use_xattr",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -1080,7 +1080,6 @@ func Test_Mount_ServiceNamePositive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1093,6 +1092,7 @@ func Test_Mount_ServiceNamePositive(t *testing.T) {
 		"-o", "instance_name=" + testDir,
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -1110,7 +1110,6 @@ func Test_Mount_fsGroupNew_Nogroup_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1125,6 +1124,7 @@ func Test_Mount_fsGroupNew_Nogroup_Positive(t *testing.T) {
 		"-o", "uid=65534",
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 	resp := p.Mount(r)
 	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
@@ -1142,7 +1142,6 @@ func Test_AutoCache_Positive(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1156,6 +1155,7 @@ func Test_AutoCache_Positive(t *testing.T) {
 		"-o", "cipher_suites=" + testTLSCipherSuite,
 		"-o", "auto_cache",
 		"-o", "default_acl=private",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -1174,7 +1174,6 @@ func Test_AddMountParam(t *testing.T) {
 		testDir,
 		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
 		"-o", "use_path_request_style",
-		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 		"-o", "url=" + testOSEndpoint,
 		"-o", "endpoint=" + testStorageClass,
 		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
@@ -1189,6 +1188,7 @@ func Test_AddMountParam(t *testing.T) {
 		"-o", "default_acl=private",
 		"-o", "opt1",
 		"-o", "opt2",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
 	}
 
 	resp := p.Mount(r)
@@ -1197,44 +1197,16 @@ func Test_AddMountParam(t *testing.T) {
 	}
 }
 
-func Test_sanitizeArgs_RedactsPasswdFile(t *testing.T) {
-	input := []string{
-		"mybucket", "/mnt/target",
-		"-o", "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd",
-		"-o", "url=https://s3.example.com",
+// Test_Mount_PasswdFile_NotInLogArgs verifies that passwd_file is appended to
+// s3fsArgs only at exec time and never appears in the logged args slice.
+func Test_Mount_PasswdFile_NotInLogArgs(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		// commandArgs is s3fsArgs (passed to exec) — passwd_file must be present
+		passwdEntry := "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName)
+		assert.Contains(t, commandArgs, passwdEntry, "s3fsArgs must contain real passwd_file path for exec")
 	}
-	got := sanitizeArgs(input)
-	assert.Equal(t, "passwd_file=<redacted>", got[3])
-}
-
-func Test_sanitizeArgs_OtherArgsUnchanged(t *testing.T) {
-	input := []string{
-		"mybucket", "/mnt/target",
-		"-o", "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd",
-		"-o", "url=https://s3.example.com",
-		"-o", "default_acl=private",
-	}
-	got := sanitizeArgs(input)
-	assert.Equal(t, "mybucket", got[0])
-	assert.Equal(t, "/mnt/target", got[1])
-	assert.Equal(t, "url=https://s3.example.com", got[5])
-	assert.Equal(t, "default_acl=private", got[7])
-}
-
-func Test_sanitizeArgs_DoesNotMutateOriginal(t *testing.T) {
-	passwdEntry := "passwd_file=/var/lib/ibmc-s3fs/abc123/passwd"
-	input := []string{"-o", passwdEntry}
-	_ = sanitizeArgs(input)
-	assert.Equal(t, passwdEntry, input[1], "sanitizeArgs must not modify the original slice")
-}
-
-func Test_sanitizeArgs_NoPasswdFile(t *testing.T) {
-	input := []string{"-o", "url=https://s3.example.com", "-o", "default_acl=private"}
-	got := sanitizeArgs(input)
-	assert.Equal(t, input, got)
-}
-
-func Test_sanitizeArgs_EmptySlice(t *testing.T) {
-	got := sanitizeArgs([]string{})
-	assert.Empty(t, got)
 }
