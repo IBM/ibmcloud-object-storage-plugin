@@ -680,8 +680,7 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	p.Logger.Info(podUID+":"+"Running s3fs",
 		zap.Strings("args", args))
 
-	// Append passwd_file only for exec — passwordFile never enters args so
-	// the tainted value never reaches the logger above.
+	// passwd_file is appended only at exec time to keep it out of logs.
 	s3fsArgs := append(args, "-o", "passwd_file="+passwordFile)
 
 	output, err := command("s3fs", "--version").CombinedOutput()
@@ -782,16 +781,3 @@ func (p *S3fsPlugin) unmountInternal(unmountRequest interfaces.FlexVolumeUnmount
 	return nil
 }
 
-// sanitizeArgs returns a copy of the s3fs argument slice with the value of
-// passwd_file replaced by "<redacted>" so that the credential file path
-// (which is tainted by the decoded secret) never appears in log output.
-func sanitizeArgs(args []string) []string {
-	safe := make([]string, len(args))
-	copy(safe, args)
-	for i, a := range safe {
-		if strings.HasPrefix(a, "passwd_file=") {
-			safe[i] = "passwd_file=<redacted>"
-		}
-	}
-	return safe
-}
