@@ -754,9 +754,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		sc.UseXattr = pvc.UseXattr
 	}
 
-	if pvc.DebugLevel != "" {
+	if pvc.DebugLevel != nil && pvc.DebugLevel != "" {
 		sc.DebugLevel = pvc.DebugLevel
 	}
+    if sc.DebugLevel == "" {
+        // Give a default of 'warn' vs. making s3fs-fuse error out with dbglevel=""
+        sc.DebugLevel = "warn"
+    }
 
 	if pvc.CurlDebug {
 		sc.CurlDebug = pvc.CurlDebug
