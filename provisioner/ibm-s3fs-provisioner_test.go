@@ -1538,6 +1538,15 @@ func Test_Provision_PVCAnnotations_DebugLevel(t *testing.T) {
 	assert.Equal(t, "info", pv.Spec.FlexVolume.Options[optionDebugLevel])
 }
 
+func Test_Provision_PVCAnnotations_Preserve_SC_DebugLevel(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.StorageClass.Parameters["ibm.io/debug-level"] = "info"
+	pv, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
+	assert.Equal(t, "info", pv.Spec.FlexVolume.Options[optionDebugLevel])
+}
+
 func Test_Provision_PVCAnnotations_CurlDebug(t *testing.T) {
 	p := getProvisioner()
 	v := getVolumeOptions()
