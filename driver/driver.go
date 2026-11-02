@@ -78,7 +78,7 @@ type Options struct {
 	ObjectPath              string `json:"object-path,omitempty"`
 	DebugLevel              string `json:"debug-level"`
 	CurlDebug               bool   `json:"curl-debug,string"`
-	KernelCache             bool   `json:"kernel-cache,string,omitempty"`
+	KernelCache             bool   `json:"kernel-cache,string"`
 	TLSCipherSuite          string `json:"tls-cipher-suite,omitempty"`
 	S3FSFUSERetryCount      string `json:"s3fs-fuse-retry-count,omitempty"`
 	StatCacheExpireSeconds  string `json:"stat-cache-expire-seconds,omitempty"`

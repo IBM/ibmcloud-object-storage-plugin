@@ -58,6 +58,7 @@ type pvcAnnotations struct {
 	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
+	KernelCache             string `json:"ibm.io/kernel-cache,omitempty"`
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
@@ -443,6 +444,13 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 		sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds
 	}
 
+	//Override value of kernel-cache defined in storageclass
+	if pvc.KernelCache != "" {
+		if sc.KernelCache, err = strconv.ParseBool(pvc.KernelCache); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of kernel-cache into boolean: %v", err)
+		}
+	}
+
 	if pvc.AutoCreateBucket == "true" && pvc.ObjectPath != "" {
 		return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
 	}
@@ -826,6 +834,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		ReadwriteTimeoutSeconds: pvc.ReadwriteTimeoutSeconds,
 		ConnectTimeoutSeconds:   pvc.ConnectTimeoutSeconds,
 		UseXattr:                pvc.UseXattr,
+		KernelCache:             pvc.KernelCache,
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
 		CosServiceName:          pvc.CosServiceName,
