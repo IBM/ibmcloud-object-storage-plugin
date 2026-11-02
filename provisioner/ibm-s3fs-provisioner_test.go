@@ -1234,6 +1234,7 @@ func Test_Provision_Positive(t *testing.T) {
 			optionTLSCipherSuite:         testTLSCipherSuite,
 			optionDebugLevel:             testDebugLevel,
 			optionCurlDebug:              testCurlDebug,
+			optionKernelCache:            "false",
 			optionOSEndpoint:             testOSEndpoint,
 			optionBucket:                 testBucket,
 			optionStorageClass:           testStorageClass,
@@ -1262,6 +1263,39 @@ func Test_Provision_KernelCache_Positive(t *testing.T) {
 	pv, _, err := p.Provision(context.Background(), v)
 	assert.NoError(t, err)
 	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionKernelCache])
+}
+
+func Test_Provision_KernelCache_PVCOverrideFalse_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.StorageClass.Parameters[parameterKernelCache] = "true"
+	v.PVC.Annotations[parameterKernelCache] = "false"
+
+	pv, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
+	assert.Equal(t, "false", pv.Spec.FlexVolume.Options[optionKernelCache])
+}
+
+func Test_Provision_KernelCache_PVCOverrideTrue_Positive(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.StorageClass.Parameters[parameterKernelCache] = "false"
+	v.PVC.Annotations[parameterKernelCache] = "true"
+
+	pv, _, err := p.Provision(context.Background(), v)
+	assert.NoError(t, err)
+	assert.Equal(t, "true", pv.Spec.FlexVolume.Options[optionKernelCache])
+}
+
+func Test_Provision_KernelCache_PVCInvalid_Negative(t *testing.T) {
+	p := getProvisioner()
+	v := getVolumeOptions()
+	v.PVC.Annotations[parameterKernelCache] = "notabool"
+
+	_, _, err := p.Provision(context.Background(), v)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "Cannot convert value of kernel-cache into boolean")
+	}
 }
 
 func Test_Provision_AccessMode_Negative(t *testing.T) {
