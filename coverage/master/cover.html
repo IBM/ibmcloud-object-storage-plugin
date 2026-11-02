@@ -63,7 +63,7 @@
 				
 				<option value="file3">github.com/IBM/ibmcloud-object-storage-plugin/ibm-provider/provider/provider_grpc.pb.go (0.0%)</option>
 				
-				<option value="file4">github.com/IBM/ibmcloud-object-storage-plugin/provisioner/ibm-s3fs-provisioner.go (85.5%)</option>
+				<option value="file4">github.com/IBM/ibmcloud-object-storage-plugin/provisioner/ibm-s3fs-provisioner.go (85.6%)</option>
 				
 				<option value="file5">github.com/IBM/ibmcloud-object-storage-plugin/utils/backend/access_policy.go (93.3%)</option>
 				
@@ -186,7 +186,7 @@ type Options struct {
         ObjectPath              string `json:"object-path,omitempty"`
         DebugLevel              string `json:"debug-level"`
         CurlDebug               bool   `json:"curl-debug,string"`
-        KernelCache             bool   `json:"kernel-cache,string,omitempty"`
+        KernelCache             bool   `json:"kernel-cache,string"`
         TLSCipherSuite          string `json:"tls-cipher-suite,omitempty"`
         S3FSFUSERetryCount      string `json:"s3fs-fuse-retry-count,omitempty"`
         StatCacheExpireSeconds  string `json:"stat-cache-expire-seconds,omitempty"`
@@ -1563,6 +1563,7 @@ type pvcAnnotations struct {
         ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
         ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
         UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
+        KernelCache             string `json:"ibm.io/kernel-cache,omitempty"`
         CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
         DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
         TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
@@ -1650,26 +1651,26 @@ func UnixConnect(addr string, t time.Duration) (net.Conn, error) {
 </span>}
 
 func parseSecret(secret *v1.Secret, keyName string) (string, error) {
-        <span class="cov10" title="301">bytesVal, ok := secret.Data[keyName]
+        <span class="cov10" title="310">bytesVal, ok := secret.Data[keyName]
         if !ok </span>{
-                <span class="cov8" title="156">return "", fmt.Errorf("%s secret missing", keyName)
+                <span class="cov8" title="161">return "", fmt.Errorf("%s secret missing", keyName)
 </span>        }
-        <span class="cov8" title="145">return string(bytesVal), nil</span>
+        <span class="cov8" title="149">return string(bytesVal), nil</span>
 }
 
 func (p *IBMS3fsProvisioner) writeCrtFile(ctx context.Context, secretName, secretNamespace, serviceName string) error {
-        <span class="cov8" title="93">if serviceName == "" </span>{
-                <span class="cov8" title="87">serviceName = "standard-cos"
+        <span class="cov8" title="96">if serviceName == "" </span>{
+                <span class="cov8" title="90">serviceName = "standard-cos"
 </span>        }
-        <span class="cov8" title="93">crtFile := path.Join(caBundlePath, serviceName)
+        <span class="cov8" title="96">crtFile := path.Join(caBundlePath, serviceName)
         secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
         if err != nil </span>{
                 <span class="cov2" title="3">return err
 </span>        }
-        <span class="cov8" title="90">crtKey, err := parseSecret(secrets, driver.CrtBundle)
+        <span class="cov8" title="93">crtKey, err := parseSecret(secrets, driver.CrtBundle)
         if err != nil </span>{
                 //CA Cert not provided, try default one
-                <span class="cov8" title="85">return nil
+                <span class="cov8" title="88">return nil
 </span>        }
         <span class="cov3" title="5">if err = writeFile(crtFile, []byte(crtKey), 0600); err != nil </span>{
                 <span class="cov2" title="2">return err
@@ -1681,29 +1682,29 @@ func (p *IBMS3fsProvisioner) writeCrtFile(ctx context.Context, secretName, secre
 }
 
 func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, secretNamespace string) (credentials *backend.ObjectStorageCredentials, allowedNamespace []string, resConfApiKey string, kpRootKeyCrn string, err error) {
-        <span class="cov7" title="73">secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
+        <span class="cov7" title="75">secrets, err := p.Client.CoreV1().Secrets(secretNamespace).Get(ctx, secretName, metav1.GetOptions{})
         if err != nil </span>{
                 <span class="cov0" title="0">return nil, nil, "", "", fmt.Errorf("cannot retrieve secret %s: %v", secretName, err)
 </span>        }
 
-        <span class="cov7" title="73">if strings.TrimSpace(string(secrets.Type)) != driverName </span>{
+        <span class="cov7" title="75">if strings.TrimSpace(string(secrets.Type)) != driverName </span>{
                 <span class="cov1" title="1">return nil, nil, "", "", fmt.Errorf("wrong secret type. provided secret of type %s. expected type %s", string(secrets.Type), driverName)
 </span>        }
 
-        <span class="cov7" title="72">var accessKey, secretKey, apiKey, serviceInstanceID string
+        <span class="cov7" title="74">var accessKey, secretKey, apiKey, serviceInstanceID string
 </span>
-        <span class="cov7" title="72">if bytesVal, ok := secrets.Data[driver.SecretAllowedNS]; ok </span>{
+        <span class="cov7" title="74">if bytesVal, ok := secrets.Data[driver.SecretAllowedNS]; ok </span>{
                 <span class="cov2" title="2">allowedNamespace = strings.Split(string(bytesVal), " ")
 </span>        }
 
-        <span class="cov7" title="72">apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
+        <span class="cov7" title="74">apiKey, err = parseSecret(secrets, driver.SecretAPIKey)
         if err != nil </span>{
-                <span class="cov7" title="68">accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
+                <span class="cov7" title="70">accessKey, err = parseSecret(secrets, driver.SecretAccessKey)
                 if err != nil </span>{
                         <span class="cov1" title="1">return nil, nil, "", "", err
 </span>                }
 
-                <span class="cov7" title="67">secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
+                <span class="cov7" title="69">secretKey, err = parseSecret(secrets, driver.SecretSecretKey)
                 if err != nil </span>{
                         <span class="cov1" title="1">return nil, nil, "", "", err
 </span>                }
@@ -1714,15 +1715,15 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 </span>                }
         }
 
-        <span class="cov7" title="69">if bytesVal, ok := secrets.Data[ResConfApiKey]; ok </span>{
+        <span class="cov7" title="71">if bytesVal, ok := secrets.Data[ResConfApiKey]; ok </span>{
                 <span class="cov5" title="15">resConfApiKey = string(bytesVal)
 </span>        }
 
-        <span class="cov7" title="69">if bytesVal, ok := secrets.Data[KPRootKeyCRN]; ok </span>{
+        <span class="cov7" title="71">if bytesVal, ok := secrets.Data[KPRootKeyCRN]; ok </span>{
                 <span class="cov0" title="0">kpRootKeyCrn = string(bytesVal)
 </span>        }
 
-        <span class="cov7" title="69">return &amp;backend.ObjectStorageCredentials{
+        <span class="cov7" title="71">return &amp;backend.ObjectStorageCredentials{
                 AccessKey:         accessKey,
                 SecretKey:         secretKey,
                 APIKey:            apiKey,
@@ -1731,25 +1732,25 @@ func (p *IBMS3fsProvisioner) getCredentials(ctx context.Context, secretName, sec
 }
 
 func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options controller.ProvisionOptions) (pvcAnnotations, scOptions, string, error) {
-        <span class="cov8" title="95">var pvc pvcAnnotations
+        <span class="cov8" title="98">var pvc pvcAnnotations
         var sc scOptions
         var pvcName = options.PVC.Name
         var clusterID = os.Getenv("CLUSTER_ID")
         var svcIp string
         var err error
 </span>
-        <span class="cov8" title="95">contextLogger, _ := logger.GetZapDefaultContextLogger()
+        <span class="cov8" title="98">contextLogger, _ := logger.GetZapDefaultContextLogger()
         contextLogger.Info(pvcName + ":" + clusterID + ":validate annotations and assign default values to annotations")
 </span>
-        <span class="cov8" title="95">if err := parser.UnmarshalMap(&amp;options.PVC.Annotations, &amp;pvc); err != nil </span>{
+        <span class="cov8" title="98">if err := parser.UnmarshalMap(&amp;options.PVC.Annotations, &amp;pvc); err != nil </span>{
                 <span class="cov0" title="0">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal PVC annotations: %v", err)
 </span>        }
 
-        <span class="cov8" title="95">if err := parser.UnmarshalMap(&amp;options.StorageClass.Parameters, &amp;sc); err != nil </span>{
+        <span class="cov8" title="98">if err := parser.UnmarshalMap(&amp;options.StorageClass.Parameters, &amp;sc); err != nil </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":cannot unmarshal storage class parameters: %v", err)
 </span>        }
 
-        <span class="cov8" title="94">if pvc.SecretName == "" </span>{
+        <span class="cov8" title="97">if pvc.SecretName == "" </span>{
                 <span class="cov1" title="1">if sc.SecretName != "" </span>{
                         <span class="cov0" title="0">pvc.SecretName = sc.SecretName
 </span>                } else {
@@ -1757,83 +1758,83 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 </span>                }
         }
 
-        <span class="cov8" title="93">contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
+        <span class="cov8" title="96">contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret: " + strconv.FormatBool(*AllowCrossNsSecret))
 </span>
-        <span class="cov8" title="93">if AllowCrossNsSecret != nil &amp;&amp; !*AllowCrossNsSecret </span>{
+        <span class="cov8" title="96">if AllowCrossNsSecret != nil &amp;&amp; !*AllowCrossNsSecret </span>{
                 <span class="cov2" title="2">contextLogger.Info(pvcName + ":" + clusterID + " AllowCrossNsSecret is set to false, the secret will be looked for in same namespace where pvc is created")
                 if pvc.SecretNamespace != "" </span>{
                         <span class="cov2" title="2">contextLogger.Warn(pvcName + ":" + clusterID + " Ignoring 'ibm.io/secret-namespace' annotation as AllowCrossNsSecret is set to false")
 </span>                }
                 <span class="cov2" title="2">pvc.SecretNamespace = options.PVC.Namespace</span>
         } else {
-                <span class="cov8" title="91">if pvc.SecretNamespace == "" </span>{
-                        <span class="cov8" title="89">if sc.SecretNamespace != "" </span>{
+                <span class="cov8" title="94">if pvc.SecretNamespace == "" </span>{
+                        <span class="cov8" title="92">if sc.SecretNamespace != "" </span>{
                                 <span class="cov0" title="0">pvc.SecretNamespace = sc.SecretNamespace
 </span>                        } else {
-                                <span class="cov8" title="89">pvc.SecretNamespace = options.PVC.Namespace
+                                <span class="cov8" title="92">pvc.SecretNamespace = options.PVC.Namespace
 </span>                        }
                 }
         }
 
-        <span class="cov8" title="93">if pvc.AutoCreateBucket == "" </span>{
-                <span class="cov7" title="70">if sc.AutoCreateBucket != "" </span>{
+        <span class="cov8" title="96">if pvc.AutoCreateBucket == "" </span>{
+                <span class="cov7" title="73">if sc.AutoCreateBucket != "" </span>{
                         <span class="cov0" title="0">pvc.AutoCreateBucket = sc.AutoCreateBucket
 </span>                } else {
-                        <span class="cov7" title="70">pvc.AutoCreateBucket = "true"
+                        <span class="cov7" title="73">pvc.AutoCreateBucket = "true"
 </span>                }
         } else <span class="cov5" title="23">if _, err := strconv.ParseBool(pvc.AutoCreateBucket); err != nil </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-create-bucket, expects true/false: %v", err)
 </span>        }
 
-        <span class="cov8" title="92">if pvc.BucketVersioning == "" </span>{
-                <span class="cov8" title="92">pvc.BucketVersioning = sc.BucketVersioning
+        <span class="cov8" title="95">if pvc.BucketVersioning == "" </span>{
+                <span class="cov8" title="95">pvc.BucketVersioning = sc.BucketVersioning
 </span>        }
         // TODO: Update this logic if bucket-versioning is expected to be enabled by default
-        <span class="cov8" title="92">if pvc.BucketVersioning != "" </span>{
+        <span class="cov8" title="95">if pvc.BucketVersioning != "" </span>{
                 <span class="cov0" title="0">pvc.BucketVersioning = strings.ToLower(strings.TrimSpace(pvc.BucketVersioning))
                 if _, err := strconv.ParseBool(pvc.BucketVersioning); err != nil </span>{
                         <span class="cov0" title="0">return pvc, sc, svcIp, fmt.Errorf("%s:%s:invalid value for bucket-versioning: %v (must be 'true' or 'false')", pvcName, clusterID, pvc.BucketVersioning)
 </span>                }
         }
 
-        <span class="cov8" title="92">if pvc.AutoDeleteBucket == "" </span>{
-                <span class="cov7" title="79">if sc.AutoDeleteBucket != "" </span>{
+        <span class="cov8" title="95">if pvc.AutoDeleteBucket == "" </span>{
+                <span class="cov7" title="82">if sc.AutoDeleteBucket != "" </span>{
                         <span class="cov0" title="0">pvc.AutoDeleteBucket = sc.AutoDeleteBucket
 </span>                } else {
-                        <span class="cov7" title="79">pvc.AutoDeleteBucket = "false"
+                        <span class="cov7" title="82">pvc.AutoDeleteBucket = "false"
 </span>                }
         } else <span class="cov5" title="13">if _, err := strconv.ParseBool(pvc.AutoDeleteBucket); err != nil </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for auto-delete-bucket, expects true/false: %v", err)
 </span>        }
 
-        <span class="cov8" title="91">if pvc.Bucket == "" &amp;&amp; sc.Bucket != "" </span>{
+        <span class="cov8" title="94">if pvc.Bucket == "" &amp;&amp; sc.Bucket != "" </span>{
                 <span class="cov0" title="0">pvc.Bucket = sc.Bucket
 </span>        }
 
-        <span class="cov8" title="91">if pvc.ObjectPath == "" &amp;&amp; sc.ObjectPath != "" </span>{
+        <span class="cov8" title="94">if pvc.ObjectPath == "" &amp;&amp; sc.ObjectPath != "" </span>{
                 <span class="cov0" title="0">pvc.ObjectPath = sc.ObjectPath
 </span>        }
 
-        <span class="cov8" title="91">if pvc.AccessPolicyAllowedIps != "" </span>{
+        <span class="cov8" title="94">if pvc.AccessPolicyAllowedIps != "" </span>{
                 <span class="cov2" title="2">validIps, wrongIpArr := parser.ParseIPs(pvc.AccessPolicyAllowedIps)
                 if !validIps </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for access-policy-allowed-ips,  invalid ips are : %v", wrongIpArr)
 </span>                }
         }
 
-        <span class="cov8" title="90">if pvc.SetAccessPolicy != "" </span>{
+        <span class="cov8" title="93">if pvc.SetAccessPolicy != "" </span>{
                 <span class="cov2" title="3">if _, err := strconv.ParseBool(pvc.SetAccessPolicy); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for set-access-policy, expects true/false: %v", err)
 </span>                }
         }
 
-        <span class="cov8" title="89">if pvc.QuotaLimit != "" </span>{
+        <span class="cov8" title="92">if pvc.QuotaLimit != "" </span>{
                 <span class="cov2" title="2">if _, err := strconv.ParseBool(pvc.QuotaLimit); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":invalid value for quota-limit, expects true/false: %v", err)
 </span>                }
         }
 
-        <span class="cov8" title="88">if pvc.CosServiceName != "" </span>{
+        <span class="cov8" title="91">if pvc.CosServiceName != "" </span>{
                 // TLS enabled COS Service
                 <span class="cov3" title="5">if pvc.CosServiceNamespace != "" </span>{
                         // Generate the COS Service DNS name
@@ -1848,34 +1849,34 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
                 }
         }
         // retrieve CA Cert if provided in secrets
-        <span class="cov8" title="87">if err := p.writeCrtFile(ctx, pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName); err != nil </span>{
+        <span class="cov8" title="90">if err := p.writeCrtFile(ctx, pvc.SecretName, pvc.SecretNamespace, pvc.CosServiceName); err != nil </span>{
                 <span class="cov2" title="3">return pvc, sc, svcIp, fmt.Errorf("cannot retrieve secret: %v", err)
 </span>        }
 
         //Override value of EndPoint defined in storageclass
         // EndPoint should be defined in storage class.
-        <span class="cov7" title="84">if pvc.Endpoint != "" </span>{
+        <span class="cov8" title="87">if pvc.Endpoint != "" </span>{
                 <span class="cov3" title="4">sc.OSEndpoint = pvc.Endpoint
 </span>        }
 
         //Override value of OSStorageClass defined in storageclass.
         // pvc Region will be deprecated.
-        <span class="cov7" title="84">if pvc.Region != "" </span>{
+        <span class="cov8" title="87">if pvc.Region != "" </span>{
                 <span class="cov1" title="1">sc.OSStorageClass = pvc.Region
 </span>        }
 
-        <span class="cov7" title="84">if !strings.HasPrefix(sc.OSEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.OSEndpoint, "http://") </span>{
+        <span class="cov8" title="87">if !strings.HasPrefix(sc.OSEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.OSEndpoint, "http://") </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
                         ":Bad value for ibm.io/object-store-endpoint \"%v\": scheme is missing. "+
                         "Must be of the form http://&lt;hostname&gt; or https://&lt;hostname&gt;",
                         sc.OSEndpoint)
 </span>        }
 
-        <span class="cov7" title="83">if pvc.IAMEndpoint != "" </span>{
+        <span class="cov7" title="86">if pvc.IAMEndpoint != "" </span>{
                 <span class="cov2" title="2">sc.IAMEndpoint = pvc.IAMEndpoint
 </span>        }
 
-        <span class="cov7" title="83">if !strings.HasPrefix(sc.IAMEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.IAMEndpoint, "http://") </span>{
+        <span class="cov7" title="86">if !strings.HasPrefix(sc.IAMEndpoint, "https://") &amp;&amp; !strings.HasPrefix(sc.IAMEndpoint, "http://") </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+
                         ":Bad value for ibm.io/iam-endpoint \"%v\":"+
                         " Must be of the form https://&lt;hostname&gt; or http://&lt;hostname&gt;",
@@ -1883,88 +1884,95 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 </span>        }
 
         //Override value of s3fs-fuse-retry-count defined in storageclass
-        <span class="cov7" title="82">if pvc.S3FSFUSERetryCount != "" </span>{
+        <span class="cov7" title="85">if pvc.S3FSFUSERetryCount != "" </span>{
                 <span class="cov2" title="3">sc.S3FSFUSERetryCount = pvc.S3FSFUSERetryCount
 </span>        }
-        <span class="cov7" title="82">if sc.S3FSFUSERetryCount != "" </span>{
-                <span class="cov7" title="82">if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil </span>{
+        <span class="cov7" title="85">if sc.S3FSFUSERetryCount != "" </span>{
+                <span class="cov7" title="85">if retryCount, err := strconv.Atoi(sc.S3FSFUSERetryCount); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of s3fs-fuse-retry-count into integer: %v", err)
-</span>                } else <span class="cov7" title="81">if retryCount &lt; 1 </span>{
+</span>                } else <span class="cov7" title="84">if retryCount &lt; 1 </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of s3fs-fuse-retry-count should be &gt;= 1")
 </span>                }
         }
 
         //Override value of stat-cache-expire-seconds defined in storageclass
-        <span class="cov7" title="80">if pvc.StatCacheExpireSeconds != "" </span>{
+        <span class="cov7" title="83">if pvc.StatCacheExpireSeconds != "" </span>{
                 <span class="cov2" title="3">sc.StatCacheExpireSeconds = pvc.StatCacheExpireSeconds
 </span>        }
-        <span class="cov7" title="80">if sc.StatCacheExpireSeconds != "" </span>{
-                <span class="cov7" title="80">if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil </span>{
+        <span class="cov7" title="83">if sc.StatCacheExpireSeconds != "" </span>{
+                <span class="cov7" title="83">if cacheExpireSeconds, err := strconv.Atoi(sc.StatCacheExpireSeconds); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-expire-seconds into integer: %v", err)
-</span>                } else <span class="cov7" title="79">if cacheExpireSeconds &lt; 0 </span>{
+</span>                } else <span class="cov7" title="82">if cacheExpireSeconds &lt; 0 </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, errors.New(pvcName + ":" + clusterID + ":value of stat-cache-expire-seconds should be &gt;= 0")
 </span>                }
         }
 
         //Override value of chunk-size-mb defined in storageclass
-        <span class="cov7" title="78">if pvc.ChunkSizeMB != "" </span>{
+        <span class="cov7" title="81">if pvc.ChunkSizeMB != "" </span>{
                 <span class="cov2" title="2">if sc.ChunkSizeMB, err = strconv.Atoi(pvc.ChunkSizeMB); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of chunk-size-mb into integer: %v", err)
 </span>                }
         }
 
         //Override value of parallel-count defined in storageclass
-        <span class="cov7" title="77">if pvc.ParallelCount != "" </span>{
+        <span class="cov7" title="80">if pvc.ParallelCount != "" </span>{
                 <span class="cov2" title="2">if sc.ParallelCount, err = strconv.Atoi(pvc.ParallelCount); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of parallel-count into integer: %v", err)
 </span>                }
         }
 
         //Override value of multireq-max defined in storageclass
-        <span class="cov7" title="76">if pvc.MultiReqMax != "" </span>{
+        <span class="cov7" title="79">if pvc.MultiReqMax != "" </span>{
                 <span class="cov2" title="2">if sc.MultiReqMax, err = strconv.Atoi(pvc.MultiReqMax); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of multireq-max into integer: %v", err)
 </span>                }
         }
 
         //Override value of stat-cache-size defined in storageclass
-        <span class="cov7" title="75">if pvc.StatCacheSize != "" </span>{
+        <span class="cov7" title="78">if pvc.StatCacheSize != "" </span>{
                 <span class="cov2" title="2">if sc.StatCacheSize, err = strconv.Atoi(pvc.StatCacheSize); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of stat-cache-size into integer: %v", err)
 </span>                }
         }
 
-        <span class="cov7" title="74">if pvc.ConnectTimeoutSeconds != "" </span>{
+        <span class="cov7" title="77">if pvc.ConnectTimeoutSeconds != "" </span>{
                 <span class="cov2" title="2">if _, err := strconv.Atoi(pvc.ConnectTimeoutSeconds); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of connect-timeout-seconds into integer: %v", err)
 </span>                }
                 <span class="cov1" title="1">sc.ConnectTimeoutSeconds = pvc.ConnectTimeoutSeconds</span>
         }
 
-        <span class="cov7" title="73">if pvc.ReadwriteTimeoutSeconds != "" </span>{
+        <span class="cov7" title="76">if pvc.ReadwriteTimeoutSeconds != "" </span>{
                 <span class="cov2" title="2">if _, err := strconv.Atoi(pvc.ReadwriteTimeoutSeconds); err != nil </span>{
                         <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
 </span>                }
                 <span class="cov1" title="1">sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds</span>
         }
 
-        <span class="cov7" title="72">if pvc.AutoCreateBucket == "true" &amp;&amp; pvc.ObjectPath != "" </span>{
+        //Override value of kernel-cache defined in storageclass
+        <span class="cov7" title="75">if pvc.KernelCache != "" </span>{
+                <span class="cov2" title="3">if sc.KernelCache, err = strconv.ParseBool(pvc.KernelCache); err != nil </span>{
+                        <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of kernel-cache into boolean: %v", err)
+</span>                }
+        }
+
+        <span class="cov7" title="74">if pvc.AutoCreateBucket == "true" &amp;&amp; pvc.ObjectPath != "" </span>{
                 <span class="cov1" title="1">return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":object-path cannot be set when auto-create is enabled, got: %s", pvc.ObjectPath)
 </span>        }
 
         // Additional parameter should be of form "-o opt1 -o opt2=xxx -o opt3"
-        <span class="cov7" title="71">if pvc.AddMountParam != "" </span>{
+        <span class="cov7" title="73">if pvc.AddMountParam != "" </span>{
                 <span class="cov1" title="1">sc.AddMountParam = pvc.AddMountParam
 </span>        }
 
-        <span class="cov7" title="71">return pvc, sc, svcIp, nil</span>
+        <span class="cov7" title="73">return pvc, sc, svcIp, nil</span>
 }
 
 // Provision provisions a new persistent volume
 func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.ProvisionOptions) (*v1.PersistentVolume, controller.ProvisioningState, error) {
         //var pvc pvcAnnotations
         //var sc scOptions
-        <span class="cov8" title="95">var pvcName = options.PVC.Name
+        <span class="cov8" title="98">var pvcName = options.PVC.Name
         var pvcNamespace = options.PVC.Namespace
         var clusterID = os.Getenv("CLUSTER_ID")
         var msg, resConfApiKey, kpRootKeyCrn, providerType, vpcServiceEndpoints string
@@ -1980,19 +1988,19 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
         var setQuotaLimit = false
         var quotaLimit int64
 </span>
-        <span class="cov8" title="95">ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+        <span class="cov8" title="98">ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
         defer cancel()
         contextLogger, _ := logger.GetZapDefaultContextLogger()
         contextLogger.Info(pvcName + ":" + clusterID + ":Provisioning storage with these spec")
         contextLogger.Info(pvcName+":"+clusterID+":PVC Details: ", zap.String("pvc", options.PVName))
 </span>
-        <span class="cov8" title="95">pvc, sc, svcIp, err := p.validateAnnotations(ctx, options)
+        <span class="cov8" title="98">pvc, sc, svcIp, err := p.validateAnnotations(ctx, options)
         if err != nil </span>{
-                <span class="cov6" title="24">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot validate annotations: %v", err)
+                <span class="cov6" title="25">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot validate annotations: %v", err)
 </span>        }
 
         //this handles the case where AutoDeleteBucket is set to true
-        <span class="cov7" title="71">if pvc.AutoDeleteBucket == "true" </span>{
+        <span class="cov7" title="73">if pvc.AutoDeleteBucket == "true" </span>{
                 <span class="cov4" title="8">if pvc.AutoCreateBucket == "false" </span>{
                         <span class="cov1" title="1">return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":bucket auto-create must be enabled when bucket auto-delete is enabled")
 </span>                }
@@ -2010,24 +2018,24 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 }
         }
 
-        <span class="cov7" title="69">if pvc.ValidateBucket == "no" &amp;&amp; pvc.AutoCreateBucket == "false" </span>{
+        <span class="cov7" title="71">if pvc.ValidateBucket == "no" &amp;&amp; pvc.AutoCreateBucket == "false" </span>{
                 <span class="cov0" title="0">valBucket = false
 </span>        } else {
-                <span class="cov7" title="69">valBucket = true
+                <span class="cov7" title="71">valBucket = true
 </span>        }
 
         //var err_msg error
-        <span class="cov7" title="69">if valBucket </span>{
-                <span class="cov7" title="69">creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
+        <span class="cov7" title="71">if valBucket </span>{
+                <span class="cov7" title="71">creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
                 if err != nil </span>{
                         <span class="cov3" title="4">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 </span>                }
 
-                <span class="cov7" title="65">creds.IAMEndpoint = sc.IAMEndpoint
+                <span class="cov7" title="67">creds.IAMEndpoint = sc.IAMEndpoint
                 sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)</span>
         }
 
-        <span class="cov7" title="65">if len(allowedNamespace) &gt; 0 </span>{
+        <span class="cov7" title="67">if len(allowedNamespace) &gt; 0 </span>{
                 <span class="cov2" title="2">var allowed = false
 </span>
                 <span class="cov2" title="2">for _, item := range allowedNamespace </span>{
@@ -2041,9 +2049,9 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 </span>                }
         }
 
-        <span class="cov7" title="64">contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetQuotaLimit: " + strconv.FormatBool(*ConfigQuotaLimit))
+        <span class="cov7" title="66">contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetQuotaLimit: " + strconv.FormatBool(*ConfigQuotaLimit))
 </span>
-        <span class="cov7" title="64">if ConfigQuotaLimit != nil &amp;&amp; *ConfigQuotaLimit &amp;&amp; pvc.QuotaLimit != "false" </span>{
+        <span class="cov7" title="66">if ConfigQuotaLimit != nil &amp;&amp; *ConfigQuotaLimit &amp;&amp; pvc.QuotaLimit != "false" </span>{
 
                 <span class="cov3" title="4">updateAP = p.AccessPolicy.NewAccessPolicy()
                 rcc = &amp;backend.UpdateAPObj{}
@@ -2056,13 +2064,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 setQuotaLimit = true
 </span>
         } else {
-                <span class="cov7" title="60">if pvc.QuotaLimit == "false" </span>{
+                <span class="cov7" title="62">if pvc.QuotaLimit == "false" </span>{
                         <span class="cov0" title="0">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " quota-limit annotation is set to false for this PVC. bucket quota limit will not be set for this PVC")
 </span>                }
         }
 
         //add check for region = BNNP
-        <span class="cov7" title="64">if ConfigBucketAccessPolicy != nil &amp;&amp; *ConfigBucketAccessPolicy &amp;&amp; pvc.SetAccessPolicy != "false" </span>{
+        <span class="cov7" title="66">if ConfigBucketAccessPolicy != nil &amp;&amp; *ConfigBucketAccessPolicy &amp;&amp; pvc.SetAccessPolicy != "false" </span>{
                 <span class="cov5" title="13">grpcSess = p.GRPCBackend.NewGrpcSession()
                 cc := &amp;grpcClient.GrpcSes{}
 </span>                // nolint:staticcheck // WithBlock and WithDialer are deprecated but required with grpc.Dial until NewClient is available
@@ -2116,42 +2124,42 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                         <span class="cov1" title="1">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :set-access-policy not suppoerted on cluster-type: %v", providerType)
 </span>                }
         } else {
-                <span class="cov7" title="51">if pvc.SetAccessPolicy == "false" </span>{
+                <span class="cov7" title="53">if pvc.SetAccessPolicy == "false" </span>{
                         <span class="cov1" title="1">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " set-access-policy annotation is set to false for this PVC. bucket access policy will not be set for this PVC")
 </span>                }
-                <span class="cov7" title="51">if pvc.AccessPolicyAllowedIps != "" &amp;&amp; !*ConfigBucketAccessPolicy </span>{
+                <span class="cov7" title="53">if pvc.AccessPolicyAllowedIps != "" &amp;&amp; !*ConfigBucketAccessPolicy </span>{
                         <span class="cov0" title="0">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + " configBucketAccessPolicy is not enabled for this release. bucket access policy will not be set for this PVC")
 </span>                }
         }
 
-        <span class="cov7" title="58">if (setBucketAccessPolicy &amp;&amp; resConfApiKey == "") || (setQuotaLimit &amp;&amp; resConfApiKey == "") </span>{
+        <span class="cov7" title="60">if (setBucketAccessPolicy &amp;&amp; resConfApiKey == "") || (setQuotaLimit &amp;&amp; resConfApiKey == "") </span>{
                 <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+": res-conf-apikey missing, cannot set access policy for bucket '%s'", pvc.Bucket)
 </span>        }
 
-        <span class="cov7" title="58">if pvc.AutoCreateBucket == "true" </span>{
-                <span class="cov7" title="51">var deleteBucket = true
+        <span class="cov7" title="60">if pvc.AutoCreateBucket == "true" </span>{
+                <span class="cov7" title="53">var deleteBucket = true
                 if pvc.AutoDeleteBucket != "true" &amp;&amp; pvc.Bucket == "" </span>{ //this handles the cases where AutoDeleteBucket is set false and bucket is not specified.
-                        <span class="cov6" title="42">id, err := p.UUIDGenerator.New()
+                        <span class="cov6" title="44">id, err := p.UUIDGenerator.New()
                         if err != nil </span>{
                                 <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot create UUID for bucket name: %v", err)
 </span>                        }
-                        <span class="cov6" title="42">pvc.Bucket = autoBucketNamePrefix + id</span>
+                        <span class="cov6" title="44">pvc.Bucket = autoBucketNamePrefix + id</span>
                 }
 
-                <span class="cov7" title="51">if creds.APIKey != "" &amp;&amp; creds.ServiceInstanceID == "" </span>{
+                <span class="cov7" title="53">if creds.APIKey != "" &amp;&amp; creds.ServiceInstanceID == "" </span>{
                         <span class="cov0" title="0">return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + " :cannot create bucket using API key without service-instance-id")
 </span>                }
 
-                <span class="cov7" title="51">contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
+                <span class="cov7" title="53">contextLogger.Info(pvcName + ":" + clusterID + " :creating bucket: " + pvc.Bucket)
                 if kpRootKeyCrn != "" </span>{
                         <span class="cov0" title="0">contextLogger.Info("key protect root key crn provided for bucket" + pvc.Bucket)
 </span>                }
-                <span class="cov7" title="51">msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass, kpRootKeyCrn)
+                <span class="cov7" title="53">msg, err = sess.CreateBucket(pvc.Bucket, sc.OSStorageClass, kpRootKeyCrn)
                 if msg != "" </span>{
                         <span class="cov0" title="0">contextLogger.Info(pvcName + ":" + clusterID + " : " + msg)
 </span>                }
                 // When using existing bucket with auto-create-bucket: true
-                <span class="cov7" title="51">if err != nil </span>{
+                <span class="cov7" title="53">if err != nil </span>{
                         <span class="cov2" title="3">if strings.Contains(fmt.Sprintf("%v", err), "BucketAlreadyExists") </span>{
                                 <span class="cov2" title="2">valBucket = true
                                 deleteBucket = false
@@ -2161,7 +2169,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 </span>                        }
                 }
 
-                <span class="cov7" title="50">if pvc.BucketVersioning != "" </span>{
+                <span class="cov7" title="52">if pvc.BucketVersioning != "" </span>{
                         <span class="cov0" title="0">enable := strings.ToLower(strings.TrimSpace(pvc.BucketVersioning)) == "true"
                         contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning value evaluated to: %t", pvcName, clusterID, enable))
 </span>
@@ -2178,7 +2186,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                         <span class="cov0" title="0">contextLogger.Info(fmt.Sprintf("%s:%s : bucket versioning set to '%t' for bucket %s", pvcName, clusterID, enable, pvc.Bucket))</span>
                 }
 
-                <span class="cov7" title="50">if setBucketAccessPolicy </span>{
+                <span class="cov7" title="52">if setBucketAccessPolicy </span>{
                         <span class="cov3" title="6">err := updateAP.UpdateAccessPolicy(vpcServiceEndpoints, resConfApiKey, pvc.Bucket, rcc)
                         if err != nil </span>{
                                 //revert bucket creation if updating bucket access policy fails
@@ -2193,7 +2201,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                         <span class="cov3" title="5">contextLogger.Info(pvcName + ":" + clusterID + " bucket :'" + pvc.Bucket + "' access policy configured successfully")</span>
                 }
 
-                <span class="cov7" title="49">if setQuotaLimit </span>{
+                <span class="cov7" title="51">if setQuotaLimit </span>{
                         <span class="cov3" title="4">err := updateAP.UpdateQuotaLimit(quotaLimit, resConfApiKey, pvc.Bucket, sc.OSEndpoint, sc.IAMEndpoint, rcc)
                         if err != nil </span>{
                                 //revert bucket creation if updating bucket access policy fails
@@ -2240,13 +2248,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 }
         }
 
-        <span class="cov7" title="55">if valBucket </span>{
-                <span class="cov7" title="55">if err := sess.CheckBucketAccess(pvc.Bucket); err != nil </span>{
+        <span class="cov7" title="57">if valBucket </span>{
+                <span class="cov7" title="57">if err := sess.CheckBucketAccess(pvc.Bucket); err != nil </span>{
                         <span class="cov2" title="3">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+" : "+clusterID+" :cannot access bucket %s: %v", pvc.Bucket, err)
 </span>                }
         }
 
-        <span class="cov7" title="52">if pvc.ObjectPath != "" </span>{
+        <span class="cov7" title="54">if pvc.ObjectPath != "" </span>{
                 <span class="cov2" title="3">exist, err := sess.CheckObjectPathExistence(pvc.Bucket, pvc.ObjectPath)
                 if err != nil </span>{
                         <span class="cov1" title="1">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+" :cannot access object-path \"%s\" inside bucket %s: %v", pvc.ObjectPath, pvc.Bucket, err)
@@ -2255,35 +2263,35 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 </span>                }
         }
 
-        <span class="cov7" title="50">if pvc.UseXattr </span>{
+        <span class="cov7" title="52">if pvc.UseXattr </span>{
                 <span class="cov1" title="1">sc.UseXattr = pvc.UseXattr
 </span>        }
 
-        <span class="cov7" title="50">if pvc.DebugLevel != "" </span>{
+        <span class="cov7" title="52">if pvc.DebugLevel != "" </span>{
                 <span class="cov1" title="1">sc.DebugLevel = pvc.DebugLevel
 </span>        }
 
-        <span class="cov7" title="50">if pvc.CurlDebug </span>{
+        <span class="cov7" title="52">if pvc.CurlDebug </span>{
                 <span class="cov1" title="1">sc.CurlDebug = pvc.CurlDebug
 </span>        }
 
-        <span class="cov7" title="50">if strings.TrimSpace(pvc.TLSCipherSuite) != "" </span>{
+        <span class="cov7" title="52">if strings.TrimSpace(pvc.TLSCipherSuite) != "" </span>{
                 <span class="cov1" title="1">sc.TLSCipherSuite =
                         strings.TrimSpace(pvc.TLSCipherSuite)
 </span>        }
 
         // Check AccessMode
-        <span class="cov7" title="50">accessMode := options.PVC.Spec.AccessModes
+        <span class="cov7" title="52">accessMode := options.PVC.Spec.AccessModes
         contextLogger.Info(pvcName+":"+clusterID+": acccess mode is.. ", zap.Any("access mode", accessMode))
         if len(accessMode) &gt; 1 </span>{
                 <span class="cov1" title="1">return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ": More that one access mode is not supported.")
 </span>        }
 
-        <span class="cov7" title="49">if pvc.AutoCache </span>{
+        <span class="cov7" title="51">if pvc.AutoCache </span>{
                 <span class="cov1" title="1">sc.KernelCache = false
 </span>        }
 
-        <span class="cov7" title="49">driverOptions, err := parser.MarshalToMap(&amp;driver.Options{
+        <span class="cov7" title="51">driverOptions, err := parser.MarshalToMap(&amp;driver.Options{
                 ChunkSizeMB:             sc.ChunkSizeMB,
                 ParallelCount:           sc.ParallelCount,
                 MultiReqMax:             sc.MultiReqMax,
@@ -2311,7 +2319,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal driver options: %v", err)
 </span>        }
 
-        <span class="cov7" title="49">pvcAnnots, err := parser.MarshalToMap(&amp;pvcAnnotations{
+        <span class="cov7" title="51">pvcAnnots, err := parser.MarshalToMap(&amp;pvcAnnotations{
                 AutoCreateBucket:        pvc.AutoCreateBucket,
                 AutoDeleteBucket:        pvc.AutoDeleteBucket,
                 Bucket:                  pvc.Bucket,
@@ -2331,6 +2339,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 ReadwriteTimeoutSeconds: pvc.ReadwriteTimeoutSeconds,
                 ConnectTimeoutSeconds:   pvc.ConnectTimeoutSeconds,
                 UseXattr:                pvc.UseXattr,
+                KernelCache:             pvc.KernelCache,
                 CurlDebug:               pvc.CurlDebug,
                 DebugLevel:              pvc.DebugLevel,
                 CosServiceName:          pvc.CosServiceName,
@@ -2338,11 +2347,11 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
                 AddMountParam:           pvc.AddMountParam,
         })
 </span>
-        <span class="cov7" title="49">if err != nil </span>{
+        <span class="cov7" title="51">if err != nil </span>{
                 <span class="cov0" title="0">return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot marshal pv options: %v", err)
 </span>        }
 
-        <span class="cov7" title="49">reclaimPolicy := options.StorageClass.ReclaimPolicy
+        <span class="cov7" title="51">reclaimPolicy := options.StorageClass.ReclaimPolicy
         return &amp;v1.PersistentVolume{
                 ObjectMeta: metav1.ObjectMeta{
                         Name:        options.PVName,
