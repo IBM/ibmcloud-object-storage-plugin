@@ -87,7 +87,7 @@ type scOptions struct {
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level"`
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
-	KernelCache             bool   `json:"ibm.io/kernel-cache,string"`
+	KernelCache             bool   `json:"ibm.io/kernel-cache,string,omitempty"`
 	S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
 	StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
 	IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
@@ -834,6 +834,7 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		ReadwriteTimeoutSeconds: pvc.ReadwriteTimeoutSeconds,
 		ConnectTimeoutSeconds:   pvc.ConnectTimeoutSeconds,
 		UseXattr:                pvc.UseXattr,
+		KernelCache:             pvc.KernelCache,
 		CurlDebug:               pvc.CurlDebug,
 		DebugLevel:              pvc.DebugLevel,
 		CosServiceName:          pvc.CosServiceName,
