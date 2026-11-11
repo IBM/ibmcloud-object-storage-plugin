@@ -597,7 +597,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		"-o", "dbglevel=" + options.DebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(options.StatCacheSize),
 		"-o", "allow_other",
-		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + mountRequest.MountDir,
 	}
@@ -664,7 +663,11 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if options.AddMountParam != "" {
 		paramSlice := strings.Split(options.AddMountParam, ",")
 		for _, value := range paramSlice {
-			args = append(args, "-o", value)
+			trimmed := strings.TrimSpace(value)
+			if strings.HasPrefix(trimmed, "max_background") {
+				p.Logger.Warn(podUID + ": 'max_background' is a FUSE 2 option and may cause mount failure on FUSE 3 systems (RHEL 9+, RHCOS 9+, Ubuntu 24.04+)")
+			}
+			args = append(args, "-o", trimmed)
 		}
 	}
 
