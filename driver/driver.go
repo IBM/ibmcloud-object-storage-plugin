@@ -664,8 +664,12 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		paramSlice := strings.Split(options.AddMountParam, ",")
 		for _, value := range paramSlice {
 			trimmed := strings.TrimSpace(value)
+			if trimmed == "" {
+				continue
+			}
 			if strings.HasPrefix(trimmed, "max_background") {
-				p.Logger.Warn(podUID + ": 'max_background' is a FUSE 2 option and may cause mount failure on FUSE 3 systems (RHEL 9+, RHCOS 9+, Ubuntu 24.04+)")
+				p.Logger.Warn(podUID + ": ignoring deprecated 'max_background' option (unsupported in FUSE 3 / s3fs 1.97+)")
+				continue
 			}
 			args = append(args, "-o", trimmed)
 		}

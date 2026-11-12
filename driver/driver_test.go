@@ -1177,6 +1177,37 @@ func Test_AddMountParam(t *testing.T) {
 	}
 }
 
+func Test_AddMountParam_MaxBackground(t *testing.T) {
+	p := getPlugin()
+	r := getMountRequest()
+	r.Opts[optionAddMountParam] = "max_background=1000,max_threads=128"
+
+	expectedArgs := []string{
+		testBucket,
+		testDir,
+		"-o", "multireq_max=" + strconv.Itoa(testMultiReqMax),
+		"-o", "use_path_request_style",
+		"-o", "url=" + testOSEndpoint,
+		"-o", "endpoint=" + testStorageClass,
+		"-o", "parallel_count=" + strconv.Itoa(testParallelCount),
+		"-o", "multipart_size=" + strconv.Itoa(testChunkSizeMB),
+		"-o", "dbglevel=" + testDebugLevel,
+		"-o", "max_stat_cache_size=" + strconv.Itoa(testStatCacheSize),
+		"-o", "allow_other",
+		"-o", "mp_umask=002",
+		"-o", "instance_name=" + testDir,
+		"-o", "cipher_suites=" + testTLSCipherSuite,
+		"-o", "default_acl=private",
+		"-o", "max_threads=128",
+		"-o", "passwd_file=" + path.Join(dataRootPath, fmt.Sprintf("%x", sha256.Sum256([]byte(testDir))), passwordFileName),
+	}
+
+	resp := p.Mount(r)
+	if assert.Equal(t, interfaces.StatusSuccess, resp.Status) {
+		assert.Equal(t, expectedArgs, commandArgs)
+	}
+}
+
 // Test_Mount_PasswdFile_NotInLogArgs verifies that passwd_file is appended to
 // s3fsArgs only at exec time and never appears in the logged args slice.
 func Test_Mount_PasswdFile_NotInLogArgs(t *testing.T) {
