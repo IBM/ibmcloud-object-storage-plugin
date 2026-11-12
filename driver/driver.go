@@ -597,7 +597,6 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 		"-o", "dbglevel=" + options.DebugLevel,
 		"-o", "max_stat_cache_size=" + strconv.Itoa(options.StatCacheSize),
 		"-o", "allow_other",
-		"-o", "max_background=1000",
 		"-o", "mp_umask=002",
 		"-o", "instance_name=" + mountRequest.MountDir,
 	}
@@ -664,7 +663,15 @@ func (p *S3fsPlugin) mountInternal(mountRequest interfaces.FlexVolumeMountReques
 	if options.AddMountParam != "" {
 		paramSlice := strings.Split(options.AddMountParam, ",")
 		for _, value := range paramSlice {
-			args = append(args, "-o", value)
+			trimmed := strings.TrimSpace(value)
+			if trimmed == "" {
+				continue
+			}
+			if strings.HasPrefix(trimmed, "max_background") {
+				p.Logger.Warn(podUID + ": ignoring deprecated 'max_background' option (unsupported in FUSE 3 / s3fs 1.97+)")
+				continue
+			}
+			args = append(args, "-o", trimmed)
 		}
 	}
 
