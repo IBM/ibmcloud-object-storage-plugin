@@ -519,13 +519,13 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		valBucket = true
 	}
 
-	//var err_msg error
-	if valBucket {
-		creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
-		if err != nil {
-			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
-		}
+	// credentials are always fetched so that allowed_ns is enforced even when bucket validation is skipped
+	creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
+	if err != nil {
+		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
+	}
 
+	if valBucket {
 		creds.IAMEndpoint = sc.IAMEndpoint
 		sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)
 	}
