@@ -58,6 +58,7 @@ type pvcAnnotations struct {
 	ConnectTimeoutSeconds   string `json:"ibm.io/connect-timeout,omitempty"`
 	ReadwriteTimeoutSeconds string `json:"ibm.io/readwrite-timeout,omitempty"`
 	UseXattr                bool   `json:"ibm.io/use-xattr,string,omitempty"`
+	KernelCache             string `json:"ibm.io/kernel-cache,omitempty"`
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level,omitempty"`
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
@@ -441,6 +442,13 @@ func (p *IBMS3fsProvisioner) validateAnnotations(ctx context.Context, options co
 			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of readwrite-timeout-seconds into integer: %v", err)
 		}
 		sc.ReadwriteTimeoutSeconds = pvc.ReadwriteTimeoutSeconds
+	}
+    
+	//Override value of kernel-cache defined in storageclass
+	if pvc.KernelCache != "" {
+		if sc.KernelCache, err = strconv.ParseBool(pvc.KernelCache); err != nil {
+			return pvc, sc, svcIp, fmt.Errorf(pvcName+":"+clusterID+":Cannot convert value of kernel-cache into boolean: %v", err)
+		}
 	}
 
 	if pvc.AutoCreateBucket == "true" && pvc.ObjectPath != "" {
