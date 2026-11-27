@@ -86,7 +86,7 @@ type scOptions struct {
 	TLSCipherSuite          string `json:"ibm.io/tls-cipher-suite,omitempty"`
 	DebugLevel              string `json:"ibm.io/debug-level"`
 	CurlDebug               bool   `json:"ibm.io/curl-debug,string,omitempty"`
-	KernelCache             bool   `json:"ibm.io/kernel-cache,string"`
+	KernelCache             bool   `json:"ibm.io/kernel-cache,string,,omitempty"`
 	S3FSFUSERetryCount      string `json:"ibm.io/s3fs-fuse-retry-count,omitempty"`
 	StatCacheExpireSeconds  string `json:"ibm.io/stat-cache-expire-seconds,omitempty"`
 	IAMEndpoint             string `json:"ibm.io/iam-endpoint,omitempty"`
