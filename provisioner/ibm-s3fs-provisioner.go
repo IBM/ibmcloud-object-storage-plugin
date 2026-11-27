@@ -519,15 +519,10 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 		valBucket = true
 	}
 
-	//var err_msg error
-	if valBucket {
-		creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
-		if err != nil {
-			return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
-		}
-
-		creds.IAMEndpoint = sc.IAMEndpoint
-		sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)
+	// credentials are always fetched so that allowed_ns is enforced even when bucket validation is skipped
+	creds, allowedNamespace, resConfApiKey, kpRootKeyCrn, err = p.getCredentials(ctx, pvc.SecretName, pvc.SecretNamespace)
+	if err != nil {
+		return nil, controller.ProvisioningFinished, fmt.Errorf(pvcName+":"+clusterID+":cannot get credentials: %v", err)
 	}
 
 	if len(allowedNamespace) > 0 {
@@ -543,6 +538,10 @@ func (p *IBMS3fsProvisioner) Provision(ctx context.Context, options controller.P
 			return nil, controller.ProvisioningFinished, errors.New(pvcName + ":" + clusterID + ":PVC creation in " + pvcNamespace + " namespace is not allowed")
 		}
 	}
+
+	// session is always created so that versioning and object-path calls do not run on a nil session
+	creds.IAMEndpoint = sc.IAMEndpoint
+	sess = p.Backend.NewObjectStorageSession(sc.OSEndpoint, sc.OSStorageClass, creds, p.Logger)
 
 	contextLogger.Info(pvcName + ":" + clusterID + " ConfigBucketAccessPolicy: " + strconv.FormatBool(*ConfigBucketAccessPolicy) + ", SetQuotaLimit: " + strconv.FormatBool(*ConfigQuotaLimit))
 
